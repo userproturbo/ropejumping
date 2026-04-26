@@ -1,0 +1,45 @@
+import { HydrateClient } from "@/trpc/server";
+
+export default async function Home() {
+  return (
+    <HydrateClient>
+      <main className="min-h-screen bg-zinc-950 text-zinc-100">
+        <div className="mx-auto flex min-h-screen w-full max-w-5xl flex-col justify-center gap-8 px-6 py-16">
+          <div className="space-y-4">
+            <p className="text-sm font-medium tracking-[0.18em] text-emerald-300 uppercase">
+              Technical foundation
+            </p>
+            <h1 className="max-w-3xl text-4xl font-semibold tracking-tight sm:text-6xl">
+              ropejumping
+            </h1>
+            <p className="max-w-2xl text-lg leading-8 text-zinc-300">
+              Next.js App Router, TypeScript, tRPC, Prisma, PostgreSQL, Tailwind
+              CSS, and Auth.js are ready for product development.
+            </p>
+          </div>
+
+          <div className="grid gap-3 text-sm text-zinc-300 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="border border-zinc-800 bg-zinc-900/60 p-4">
+              Next.js App Router
+            </div>
+            <div className="border border-zinc-800 bg-zinc-900/60 p-4">
+              tRPC API foundation
+            </div>
+            <div className="border border-zinc-800 bg-zinc-900/60 p-4">
+              Prisma + PostgreSQL
+            </div>
+            <div className="border border-zinc-800 bg-zinc-900/60 p-4">
+              Auth.js adapter schema
+            </div>
+            <div className="border border-zinc-800 bg-zinc-900/60 p-4">
+              Tailwind CSS
+            </div>
+            <div className="border border-zinc-800 bg-zinc-900/60 p-4">
+              ESLint + Prettier
+            </div>
+          </div>
+        </div>
+      </main>
+    </HydrateClient>
+  );
+}
