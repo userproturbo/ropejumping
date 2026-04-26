@@ -15,6 +15,94 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum TeamRole {
+  OWNER
+  ADMIN
+  ORGANIZER
+  MEMBER
+}
+
+enum TeamStatus {
+  REGULAR
+  VERIFIED
+  HIDDEN
+  BLOCKED
+}
+
+enum ObjectType {
+  BRIDGE
+  BUILDING
+  TOWER
+  CLIFF
+  INDUSTRIAL
+  OTHER
+}
+
+enum ObjectVisibility {
+  PUBLIC
+  HIDDEN
+}
+
+enum EventStatus {
+  DRAFT
+  PUBLISHED
+  APPLICATIONS_OPEN
+  FULL
+  APPLICATIONS_CLOSED
+  POSTPONED
+  CANCELLED
+  COMPLETED
+  ARCHIVED
+}
+
+enum ApplicationStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  CANCELLED_BY_USER
+  CONFIRMED_PARTICIPATION
+  NO_SHOW
+}
+
+enum BadgeCategory {
+  PARTICIPATION
+  OBJECTS
+  HEIGHT
+  EVENT
+  ROLE
+  CONTENT
+  SPECIAL
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
+}
+
+enum ReportStatus {
+  OPEN
+  REVIEWED
+  RESOLVED
+  DISMISSED
+}
+
+enum AuditAction {
+  TEAM_CREATED
+  TEAM_UPDATED
+  TEAM_VERIFIED
+  EVENT_CREATED
+  EVENT_UPDATED
+  EVENT_COMPLETED
+  APPLICATION_ACCEPTED
+  APPLICATION_REJECTED
+  PARTICIPATION_CONFIRMED
+  OBJECT_CREATED
+  OBJECT_HIDDEN
+  BADGE_GRANTED
+  CONTENT_HIDDEN
+  USER_BLOCKED
+}
+
 // Necessary for Next auth
 model Account {
   id                       String  @id @default(cuid())
@@ -44,13 +132,27 @@ model Session {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String?   @unique
-  emailVerified DateTime?
-  image         String?
-  accounts      Account[]
-  sessions      Session[]
+  id                      String               @id @default(cuid())
+  name                    String?
+  email                   String?              @unique
+  emailVerified           DateTime?
+  image                   String?
+  accounts                Account[]
+  sessions                Session[]
+  profile                 Profile?
+  teamMemberships         TeamMember[]
+  createdObjects          JumpObject[]         @relation("CreatedObjects")
+  createdEvents           Event[]              @relation("CreatedEvents")
+  eventApplications       EventApplication[]   @relation("EventApplications")
+  decidedApplications     EventApplication[]   @relation("DecidedApplications")
+  eventParticipations     EventParticipation[] @relation("EventParticipations")
+  confirmedParticipations EventParticipation[] @relation("ConfirmedParticipations")
+  media                   Media[]              @relation("UserMedia")
+  badges                  UserBadge[]          @relation("UserBadges")
+  awardedBadges           UserBadge[]          @relation("AwardedBadges")
+  reports                 Report[]             @relation("ReportsFiled")
+  reviewedReports         Report[]             @relation("ReportsReviewed")
+  auditLogs               AuditLog[]           @relation("AuditLogActor")
 }
 
 model VerificationToken {
@@ -59,4 +161,245 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+model Profile {
+  id                 String   @id @default(cuid())
+  userId             String   @unique
+  username           String?  @unique
+  displayName        String?
+  bio                String?
+  city               String?
+  avatarUrl          String?
+  externalExperience String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Team {
+  id          String     @id @default(cuid())
+  name        String
+  slug        String     @unique
+  description String?
+  region      String?
+  logoUrl     String?
+  status      TeamStatus @default(REGULAR)
+  verifiedAt  DateTime?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  members TeamMember[]
+  events  Event[]
+
+  @@index([status])
+  @@index([region])
+}
+
+model TeamMember {
+  id        String   @id @default(cuid())
+  teamId    String
+  userId    String
+  role      TeamRole @default(MEMBER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId])
+  @@index([teamId])
+  @@index([userId])
+}
+
+model JumpObject {
+  id            String           @id @default(cuid())
+  name          String
+  slug          String           @unique
+  type          ObjectType
+  visibility    ObjectVisibility @default(PUBLIC)
+  heightMeters  Int?
+  region        String?
+  description   String?
+  coverImageUrl String?
+  createdById   String?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  createdBy User?   @relation("CreatedObjects", fields: [createdById], references: [id], onDelete: SetNull)
+  events    Event[]
+
+  @@index([visibility])
+  @@index([type])
+  @@index([region])
+  @@index([createdById])
+}
+
+model Event {
+  id               String      @id @default(cuid())
+  teamId           String
+  objectId         String?
+  createdById      String
+  title            String
+  slug             String      @unique
+  description      String?
+  requirementsText String?
+  region           String?
+  startsAt         DateTime
+  endsAt           DateTime?
+  status           EventStatus @default(DRAFT)
+  capacity         Int?
+  priceText        String?
+  levelText        String?
+  coverImageUrl    String?
+  completedAt      DateTime?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  team           Team                 @relation(fields: [teamId], references: [id])
+  object         JumpObject?          @relation(fields: [objectId], references: [id], onDelete: SetNull)
+  createdBy      User                 @relation("CreatedEvents", fields: [createdById], references: [id])
+  applications   EventApplication[]
+  participations EventParticipation[]
+
+  @@index([status])
+  @@index([startsAt])
+  @@index([teamId])
+  @@index([objectId])
+  @@index([createdById])
+}
+
+model EventApplication {
+  id            String            @id @default(cuid())
+  eventId       String
+  userId        String
+  status        ApplicationStatus @default(PENDING)
+  message       String?
+  organizerNote String?
+  decidedById   String?
+  decidedAt     DateTime?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  event     Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user      User  @relation("EventApplications", fields: [userId], references: [id], onDelete: Cascade)
+  decidedBy User? @relation("DecidedApplications", fields: [decidedById], references: [id], onDelete: SetNull)
+
+  @@unique([eventId, userId])
+  @@index([eventId])
+  @@index([eventId, status])
+  @@index([userId])
+  @@index([status])
+  @@index([decidedById])
+}
+
+model EventParticipation {
+  id            String   @id @default(cuid())
+  eventId       String
+  userId        String
+  confirmedById String?
+  confirmedAt   DateTime @default(now())
+  createdAt     DateTime @default(now())
+
+  event       Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user        User  @relation("EventParticipations", fields: [userId], references: [id], onDelete: Cascade)
+  confirmedBy User? @relation("ConfirmedParticipations", fields: [confirmedById], references: [id], onDelete: SetNull)
+
+  @@unique([eventId, userId])
+  @@index([eventId])
+  @@index([userId])
+  @@index([confirmedById])
+}
+
+model Badge {
+  id          String        @id @default(cuid())
+  code        String        @unique
+  name        String
+  description String?
+  category    BadgeCategory
+  iconUrl     String?
+  isManual    Boolean       @default(false)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  userBadges UserBadge[]
+}
+
+model UserBadge {
+  id          String   @id @default(cuid())
+  userId      String
+  badgeId     String
+  awardedById String?
+  awardedAt   DateTime @default(now())
+  reason      String?
+
+  user      User  @relation("UserBadges", fields: [userId], references: [id], onDelete: Cascade)
+  badge     Badge @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+  awardedBy User? @relation("AwardedBadges", fields: [awardedById], references: [id], onDelete: SetNull)
+
+  @@unique([userId, badgeId])
+  @@index([userId])
+  @@index([badgeId])
+  @@index([awardedById])
+}
+
+model Media {
+  id        String    @id @default(cuid())
+  ownerId   String
+  type      MediaType
+  bucket    String
+  key       String
+  url       String?
+  mimeType  String?
+  sizeBytes Int?
+  width     Int?
+  height    Int?
+  alt       String?
+  createdAt DateTime  @default(now())
+
+  owner User @relation("UserMedia", fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@unique([bucket, key])
+  @@index([ownerId])
+  @@index([type])
+}
+
+model Report {
+  id           String       @id @default(cuid())
+  reporterId   String
+  targetType   String
+  targetId     String
+  reason       String
+  details      String?
+  status       ReportStatus @default(OPEN)
+  reviewedById String?
+  reviewedAt   DateTime?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  reporter   User  @relation("ReportsFiled", fields: [reporterId], references: [id], onDelete: Cascade)
+  reviewedBy User? @relation("ReportsReviewed", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([reporterId])
+  @@index([reviewedById])
+  @@index([status])
+  @@index([targetType, targetId])
+}
+
+model AuditLog {
+  id         String      @id @default(cuid())
+  actorId    String?
+  action     AuditAction
+  targetType String?
+  targetId   String?
+  metadata   Json?
+  createdAt  DateTime    @default(now())
+
+  actor User? @relation("AuditLogActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([actorId])
+  @@index([action])
+  @@index([targetType, targetId])
+  @@index([createdAt])
 }
