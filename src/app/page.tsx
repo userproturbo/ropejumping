@@ -13,9 +13,9 @@ export default async function Home() {
               ropejumping
             </h1>
             <p className="max-w-2xl text-lg leading-8 text-zinc-300">
-              A focused foundation for authenticated profiles in the ropejumping
-              community. Teams, events, objects, and badges are not implemented
-              yet.
+              A focused foundation for authenticated profiles and team pages in
+              the ropejumping community. Events, objects, and badges are not
+              implemented yet.
             </p>
           </div>
 
@@ -27,7 +27,7 @@ export default async function Home() {
               Basic profile
             </div>
             <div className="border border-zinc-800 bg-zinc-900/60 p-4">
-              Public profile page
+              Public teams
             </div>
           </div>
         </div>
