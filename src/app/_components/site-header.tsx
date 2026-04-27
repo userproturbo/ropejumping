@@ -16,13 +16,27 @@ export async function SiteHeader() {
           <Link href="/" className="text-sm text-zinc-600 hover:text-zinc-950">
             Home
           </Link>
+          <Link
+            href="/teams"
+            className="text-sm text-zinc-600 hover:text-zinc-950"
+          >
+            Teams
+          </Link>
           {user ? (
-            <Link
-              href="/profile"
-              className="text-sm text-zinc-600 hover:text-zinc-950"
-            >
-              Profile
-            </Link>
+            <>
+              <Link
+                href="/teams/my"
+                className="text-sm text-zinc-600 hover:text-zinc-950"
+              >
+                My teams
+              </Link>
+              <Link
+                href="/profile"
+                className="text-sm text-zinc-600 hover:text-zinc-950"
+              >
+                Profile
+              </Link>
+            </>
           ) : null}
         </nav>
 

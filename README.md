@@ -56,6 +56,15 @@ The first authenticated feature is the basic profile flow:
 - `/profile/edit` creates or updates the current user's profile.
 - `/u/[username]` shows a public profile by username.
 
+The first team feature set is also available:
+
+- `/teams` lists public teams.
+- `/teams/new` creates a team and adds the creator as `OWNER`.
+- `/teams/my` shows teams where the current user is a member.
+- `/teams/[slug]` shows the public team page.
+- `/teams/[slug]/settings` lets `OWNER` and `ADMIN` members edit basic team
+  details. Team slugs are required during creation and are not editable yet.
+
 ## Local Development Sign In
 
 In development, Auth.js enables a credentials-only test provider for local
