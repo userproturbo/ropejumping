@@ -46,6 +46,28 @@ DATABASE_URL="postgresql://ropejumping:ropejumping@localhost:5432/ropejumping"
 Fill `AUTH_SECRET` and OAuth provider values before using authentication in a real environment.
 Yandex Object Storage variables are placeholders only; upload logic is not implemented yet.
 
+Authentication is configured with Auth.js. OAuth providers are enabled only when
+their environment variables are present, so the app can still build without real
+provider credentials during local foundation work.
+
+The first authenticated feature is the basic profile flow:
+
+- `/profile` shows the current user's profile and requires authentication.
+- `/profile/edit` creates or updates the current user's profile.
+- `/u/[username]` shows a public profile by username.
+
+## Local Development Sign In
+
+In development, Auth.js enables a credentials-only test provider for local
+profile testing. Sign in with:
+
+```text
+dev@ropejumping.local
+```
+
+This provider is enabled only when `NODE_ENV` is `development`; it is disabled
+in production. OAuth provider placeholders remain available for later setup.
+
 ## Docker Database
 
 Start PostgreSQL:

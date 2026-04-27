@@ -2,6 +2,7 @@ import "@/styles/globals.css";
 
 import { type Metadata } from "next";
 
+import { SiteHeader } from "@/app/_components/site-header";
 import { TRPCReactProvider } from "@/trpc/react";
 
 export const metadata: Metadata = {
@@ -16,7 +17,10 @@ export default function RootLayout({
   return (
     <html lang="ru">
       <body>
-        <TRPCReactProvider>{children}</TRPCReactProvider>
+        <TRPCReactProvider>
+          <SiteHeader />
+          {children}
+        </TRPCReactProvider>
       </body>
     </html>
   );
