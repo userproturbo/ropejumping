@@ -44,7 +44,7 @@ export default async function PublicProfilePage({
 
           {profile.bio ? (
             <div>
-              <h2 className="text-sm font-medium text-zinc-950">Bio</h2>
+              <h2 className="text-sm font-medium text-zinc-950">О себе</h2>
               <p className="mt-2 text-sm leading-6 whitespace-pre-wrap text-zinc-600">
                 {profile.bio}
               </p>
@@ -54,7 +54,7 @@ export default async function PublicProfilePage({
           {profile.externalExperience ? (
             <div>
               <h2 className="text-sm font-medium text-zinc-950">
-                External experience
+                Опыт вне платформы
               </h2>
               <p className="mt-2 text-sm leading-6 whitespace-pre-wrap text-zinc-600">
                 {profile.externalExperience}

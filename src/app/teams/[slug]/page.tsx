@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { getEventStatusLabel, getTeamRoleLabel, getTeamStatusLabel } from "@/lib/display";
 import { api } from "@/trpc/server";
+
+import { formatEventDateRange } from "../../events/_components/date-format";
 
 type TeamPageProps = {
   params: Promise<{
@@ -41,7 +44,7 @@ export default async function TeamPage({ params }: TeamPageProps) {
                   </p>
                 </div>
                 <span className="text-xs font-medium text-zinc-500">
-                  {team.status}
+                  {getTeamStatusLabel(team.status)}
                 </span>
               </div>
 
@@ -55,7 +58,7 @@ export default async function TeamPage({ params }: TeamPageProps) {
                 </p>
               ) : (
                 <p className="mt-4 text-sm text-zinc-500">
-                  No description yet.
+                  Описание пока не добавлено.
                 </p>
               )}
             </div>
@@ -63,7 +66,7 @@ export default async function TeamPage({ params }: TeamPageProps) {
         </section>
 
         <section className="mt-6 border border-zinc-200 bg-white p-6">
-          <h2 className="text-xl font-semibold text-zinc-950">Members</h2>
+          <h2 className="text-xl font-semibold text-zinc-950">Участники</h2>
           <div className="mt-5 grid gap-4">
             {team.members.map((member) => {
               const profile = member.user.profile;
@@ -86,7 +89,7 @@ export default async function TeamPage({ params }: TeamPageProps) {
                     ) : null}
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium text-zinc-950">
-                        {displayName ?? "Unnamed member"}
+                        {displayName ?? "Участник без имени"}
                       </p>
                       {profile?.username ? (
                         <Link
@@ -99,7 +102,7 @@ export default async function TeamPage({ params }: TeamPageProps) {
                     </div>
                   </div>
                   <span className="text-xs font-medium text-zinc-500">
-                    {member.role}
+                    {getTeamRoleLabel(member.role)}
                   </span>
                 </div>
               );
@@ -108,10 +111,42 @@ export default async function TeamPage({ params }: TeamPageProps) {
         </section>
 
         <section className="mt-6 border border-zinc-200 bg-white p-6">
-          <h2 className="text-xl font-semibold text-zinc-950">Events</h2>
-          <p className="mt-2 text-sm text-zinc-600">
-            Events are not implemented yet.
-          </p>
+          <h2 className="text-xl font-semibold text-zinc-950">Мероприятия</h2>
+          {team.events.length > 0 ? (
+            <div className="mt-5 grid gap-4">
+              {team.events.map((event) => (
+                <Link
+                  key={event.id}
+                  href={`/events/${event.slug}`}
+                  className="block border border-zinc-200 p-4 hover:border-zinc-950"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <h3 className="text-base font-semibold text-zinc-950">
+                        {event.title}
+                      </h3>
+                      <p className="mt-1 text-sm text-zinc-500">
+                        {formatEventDateRange(event.startsAt, event.endsAt)}
+                      </p>
+                    </div>
+                    <span className="text-xs font-medium text-zinc-500">
+                      {getEventStatusLabel(event.status)}
+                    </span>
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-3 text-sm text-zinc-600">
+                    {event.region ? <span>{event.region}</span> : null}
+                    {event.capacity ? (
+                      <span>Количество мест: {event.capacity}</span>
+                    ) : null}
+                  </div>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <p className="mt-2 text-sm text-zinc-600">
+              Открытых мероприятий пока нет.
+            </p>
+          )}
         </section>
       </div>
     </main>

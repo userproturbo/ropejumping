@@ -16,7 +16,7 @@ export const teamSlugSchema = z.preprocess(
     .string()
     .min(3)
     .max(40)
-    .regex(/^[a-z0-9-]+$/, "Use lowercase letters, numbers, and dashes only."),
+    .regex(/^[a-z0-9-]+$/, "Используйте латинские строчные буквы, цифры и дефисы."),
 );
 
 const teamEditableFieldsSchema = z.object({

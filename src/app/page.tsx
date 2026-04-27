@@ -7,27 +7,27 @@ export default async function Home() {
         <div className="mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-5xl flex-col justify-center gap-8 px-6 py-16">
           <div className="space-y-4">
             <p className="text-sm font-medium tracking-[0.18em] text-emerald-300 uppercase">
-              Community platform
+              ПЛАТФОРМА СООБЩЕСТВА
             </p>
             <h1 className="max-w-3xl text-4xl font-semibold tracking-tight sm:text-6xl">
               ropejumping
             </h1>
             <p className="max-w-2xl text-lg leading-8 text-zinc-300">
-              A focused foundation for authenticated profiles and team pages in
-              the ropejumping community. Events, objects, and badges are not
-              implemented yet.
+              Платформа для команд, мероприятий и участников
+              роупджампинг-сообщества. Команды и мероприятия уже доступны.
+              Объекты, бейджи и лента появятся позже.
             </p>
           </div>
 
           <div className="grid gap-3 text-sm text-zinc-300 sm:grid-cols-2 lg:grid-cols-3">
             <div className="border border-zinc-800 bg-zinc-900/60 p-4">
-              Auth.js session
+              Авторизация
             </div>
             <div className="border border-zinc-800 bg-zinc-900/60 p-4">
-              Basic profile
+              Профиль участника
             </div>
             <div className="border border-zinc-800 bg-zinc-900/60 p-4">
-              Public teams
+              Публичная страница
             </div>
           </div>
         </div>

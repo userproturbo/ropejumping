@@ -3,23 +3,21 @@ import { notFound } from "next/navigation";
 import { requireCurrentUser } from "@/server/auth/session";
 import { api } from "@/trpc/server";
 
-import { TeamSettingsForm } from "./team-settings-form";
+import { EventEditForm } from "./event-edit-form";
 
-type TeamSettingsPageProps = {
+type EditEventPageProps = {
   params: Promise<{
     slug: string;
   }>;
 };
 
-export default async function TeamSettingsPage({
-  params,
-}: TeamSettingsPageProps) {
+export default async function EditEventPage({ params }: EditEventPageProps) {
   const { slug } = await params;
-  await requireCurrentUser(`/teams/${slug}/settings`);
+  await requireCurrentUser(`/events/${slug}/edit`);
 
-  const team = await api.team.getForSettings(slug).catch(() => null);
+  const event = await api.event.getForEdit(slug).catch(() => null);
 
-  if (!team) {
+  if (!event) {
     notFound();
   }
 
@@ -28,15 +26,14 @@ export default async function TeamSettingsPage({
       <div className="mx-auto w-full max-w-3xl px-6 py-10">
         <div className="mb-8">
           <h1 className="text-3xl font-semibold tracking-tight text-zinc-950">
-            Настройки команды
+            Редактировать мероприятие
           </h1>
           <p className="mt-2 text-sm text-zinc-600">
-            Редактирование основной информации команды. Изменение slug пока
-            недоступно.
+            Изменение slug и заявки пока не реализованы.
           </p>
         </div>
 
-        <TeamSettingsForm team={team} />
+        <EventEditForm event={event} />
       </div>
     </main>
   );

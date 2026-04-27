@@ -14,13 +14,19 @@ export async function SiteHeader() {
             ropejumping
           </Link>
           <Link href="/" className="text-sm text-zinc-600 hover:text-zinc-950">
-            Home
+            Главная
           </Link>
           <Link
             href="/teams"
             className="text-sm text-zinc-600 hover:text-zinc-950"
           >
-            Teams
+            Команды
+          </Link>
+          <Link
+            href="/events"
+            className="text-sm text-zinc-600 hover:text-zinc-950"
+          >
+            Мероприятия
           </Link>
           {user ? (
             <>
@@ -28,13 +34,19 @@ export async function SiteHeader() {
                 href="/teams/my"
                 className="text-sm text-zinc-600 hover:text-zinc-950"
               >
-                My teams
+                Мои команды
+              </Link>
+              <Link
+                href="/events/my"
+                className="text-sm text-zinc-600 hover:text-zinc-950"
+              >
+                Мои мероприятия
               </Link>
               <Link
                 href="/profile"
                 className="text-sm text-zinc-600 hover:text-zinc-950"
               >
-                Profile
+                Профиль
               </Link>
             </>
           ) : null}
@@ -44,7 +56,7 @@ export async function SiteHeader() {
           {user ? (
             <>
               <span className="hidden text-zinc-500 sm:inline">
-                {user.email ?? user.name ?? "Signed in"}
+                {user.email ?? user.name ?? "Выполнен вход"}
               </span>
               <form
                 action={async () => {
@@ -57,7 +69,7 @@ export async function SiteHeader() {
                   type="submit"
                   className="border border-zinc-300 px-3 py-2 text-zinc-700 hover:border-zinc-950 hover:text-zinc-950"
                 >
-                  Sign out
+                  Выйти
                 </button>
               </form>
             </>
@@ -66,7 +78,7 @@ export async function SiteHeader() {
               href="/api/auth/signin"
               className="border border-zinc-300 px-3 py-2 text-zinc-700 hover:border-zinc-950 hover:text-zinc-950"
             >
-              Sign in
+              Войти
             </Link>
           )}
         </div>

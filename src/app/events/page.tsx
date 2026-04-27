@@ -1,10 +1,12 @@
 import Link from "next/link";
 
-import { getTeamStatusLabel } from "@/lib/display";
+import { getEventStatusLabel } from "@/lib/display";
 import { api } from "@/trpc/server";
 
-export default async function TeamsPage() {
-  const teams = await api.team.listPublic();
+import { formatEventDateRange } from "./_components/date-format";
+
+export default async function EventsPage() {
+  const events = await api.event.listPublic();
 
   return (
     <main className="min-h-[calc(100vh-4rem)] bg-zinc-50">
@@ -12,63 +14,58 @@ export default async function TeamsPage() {
         <div className="mb-8 flex items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-semibold tracking-tight text-zinc-950">
-              Команды
+              Мероприятия
             </h1>
             <p className="mt-2 text-sm text-zinc-600">
-              Команды роупджампинг-сообщества, зарегистрированные на платформе.
+              Открытые мероприятия роупджампинг-сообщества.
             </p>
           </div>
           <Link
-            href="/teams/new"
+            href="/events/new"
             className="border border-zinc-300 px-4 py-2 text-sm text-zinc-800 hover:border-zinc-950"
           >
-            Создать команду
+            Создать мероприятие
           </Link>
         </div>
 
-        {teams.length > 0 ? (
+        {events.length > 0 ? (
           <div className="grid gap-4">
-            {teams.map((team) => (
+            {events.map((event) => (
               <Link
-                key={team.id}
-                href={`/teams/${team.slug}`}
+                key={event.id}
+                href={`/events/${event.slug}`}
                 className="block border border-zinc-200 bg-white p-5 hover:border-zinc-950"
               >
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <h2 className="text-xl font-semibold text-zinc-950">
-                      {team.name}
+                      {event.title}
                     </h2>
                     <p className="mt-1 text-sm text-zinc-500">
-                      /teams/{team.slug}
+                      {formatEventDateRange(event.startsAt, event.endsAt)}
                     </p>
                   </div>
                   <span className="text-xs font-medium text-zinc-500">
-                    {getTeamStatusLabel(team.status)}
+                    {getEventStatusLabel(event.status)}
                   </span>
                 </div>
                 <div className="mt-4 flex flex-wrap gap-3 text-sm text-zinc-600">
-                  {team.region ? <span>{team.region}</span> : null}
-                  <span>
-                    {team._count.members}{" "}
-                    {team._count.members === 1 ? "участник" : "участников"}
-                  </span>
+                  <span>{event.team.name}</span>
+                  {event.region ? <span>{event.region}</span> : null}
+                  {event.capacity ? (
+                    <span>Количество мест: {event.capacity}</span>
+                  ) : null}
                 </div>
-                {team.description ? (
-                  <p className="mt-4 line-clamp-3 text-sm leading-6 text-zinc-600">
-                    {team.description}
-                  </p>
-                ) : null}
               </Link>
             ))}
           </div>
         ) : (
           <section className="border border-zinc-200 bg-white p-6">
             <h2 className="text-xl font-semibold text-zinc-950">
-              Команд пока нет
+              Открытых мероприятий пока нет
             </h2>
             <p className="mt-2 text-sm leading-6 text-zinc-600">
-              Команды появятся здесь после создания.
+              Мероприятия появятся здесь после создания организаторами.
             </p>
           </section>
         )}

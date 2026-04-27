@@ -60,7 +60,7 @@ export function TeamSettingsForm({ team }: TeamSettingsFormProps) {
 
       <div className="grid gap-2">
         <label htmlFor="name" className="text-sm font-medium text-zinc-950">
-          Team name
+          Название команды
         </label>
         <input
           id="name"
@@ -76,7 +76,7 @@ export function TeamSettingsForm({ team }: TeamSettingsFormProps) {
 
       <div className="grid gap-2">
         <label htmlFor="region" className="text-sm font-medium text-zinc-950">
-          Region
+          Регион
         </label>
         <input
           id="region"
@@ -90,7 +90,7 @@ export function TeamSettingsForm({ team }: TeamSettingsFormProps) {
 
       <div className="grid gap-2">
         <label htmlFor="logoUrl" className="text-sm font-medium text-zinc-950">
-          Logo URL
+          Ссылка на логотип
         </label>
         <input
           id="logoUrl"
@@ -108,7 +108,7 @@ export function TeamSettingsForm({ team }: TeamSettingsFormProps) {
           htmlFor="description"
           className="text-sm font-medium text-zinc-950"
         >
-          Description
+          Описание
         </label>
         <textarea
           id="description"
@@ -124,7 +124,7 @@ export function TeamSettingsForm({ team }: TeamSettingsFormProps) {
       {updateTeam.error ? (
         <p className="text-sm text-red-700">{updateTeam.error.message}</p>
       ) : null}
-      {saved ? <p className="text-sm text-emerald-700">Saved.</p> : null}
+      {saved ? <p className="text-sm text-emerald-700">Сохранено.</p> : null}
 
       <div className="flex items-center gap-3">
         <button
@@ -132,13 +132,13 @@ export function TeamSettingsForm({ team }: TeamSettingsFormProps) {
           disabled={updateTeam.isPending}
           className="bg-zinc-950 px-4 py-2 text-sm text-white disabled:cursor-not-allowed disabled:bg-zinc-400"
         >
-          {updateTeam.isPending ? "Saving..." : "Save settings"}
+          {updateTeam.isPending ? "Сохранение..." : "Сохранить настройки"}
         </button>
         <Link
           href={`/teams/${team.slug}`}
           className="text-sm text-zinc-600 hover:text-zinc-950"
         >
-          Cancel
+          Отмена
         </Link>
       </div>
     </form>

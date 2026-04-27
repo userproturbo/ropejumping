@@ -50,20 +50,33 @@ Authentication is configured with Auth.js. OAuth providers are enabled only when
 their environment variables are present, so the app can still build without real
 provider credentials during local foundation work.
 
-The first authenticated feature is the basic profile flow:
+Базовый профиль участника:
 
-- `/profile` shows the current user's profile and requires authentication.
-- `/profile/edit` creates or updates the current user's profile.
-- `/u/[username]` shows a public profile by username.
+- `/profile` показывает профиль текущего пользователя и требует входа.
+- `/profile/edit` создает или обновляет профиль текущего пользователя.
+- `/u/[username]` показывает публичный профиль по имени пользователя.
 
-The first team feature set is also available:
+Базовые команды:
 
-- `/teams` lists public teams.
-- `/teams/new` creates a team and adds the creator as `OWNER`.
-- `/teams/my` shows teams where the current user is a member.
-- `/teams/[slug]` shows the public team page.
-- `/teams/[slug]/settings` lets `OWNER` and `ADMIN` members edit basic team
-  details. Team slugs are required during creation and are not editable yet.
+- `/teams` показывает публичные команды.
+- `/teams/new` создает команду и добавляет автора как `OWNER`.
+- `/teams/my` показывает команды, в которых состоит текущий пользователь.
+- `/teams/[slug]` показывает публичную страницу команды.
+- `/teams/[slug]/settings` позволяет участникам с ролью `OWNER` и `ADMIN`
+  редактировать базовые данные команды. Slug команды задается при создании и
+  пока не редактируется.
+
+Базовые мероприятия доступны без заявок:
+
+- `/events` показывает публичные мероприятия.
+- `/events/new` создает мероприятие для команды, где текущий пользователь имеет
+  роль `OWNER`, `ADMIN` или `ORGANIZER`.
+- `/events/my` показывает мероприятия, созданные текущим пользователем или
+  доступные ему для управления через роль в команде.
+- `/events/[slug]` показывает публичную страницу мероприятия.
+- `/events/[slug]/edit` позволяет автору мероприятия или участникам команды с
+  ролью `OWNER`, `ADMIN` или `ORGANIZER` редактировать базовые данные
+  мероприятия. Slug мероприятия задается при создании и пока не редактируется.
 
 ## Local Development Sign In
 

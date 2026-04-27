@@ -13,10 +13,10 @@ export default async function EditProfilePage() {
       <div className="mx-auto w-full max-w-3xl px-6 py-10">
         <div className="mb-8">
           <h1 className="text-3xl font-semibold tracking-tight text-zinc-950">
-            {profile ? "Edit profile" : "Create profile"}
+            {profile ? "Редактировать профиль" : "Создать профиль"}
           </h1>
           <p className="mt-2 text-sm text-zinc-600">
-            Keep this simple for now. Avatar upload is not implemented yet.
+            Пока только базовые поля. Загрузка аватара еще не реализована.
           </p>
         </div>
 
