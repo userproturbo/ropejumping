@@ -12,6 +12,7 @@ import {
   publicProcedure,
 } from "@/server/api/trpc";
 import type { db as database } from "@/server/db";
+import { publicEventStatuses } from "@/server/events/statuses";
 import { hasTeamOwnerOrAdminRole } from "@/server/teams/permissions";
 
 const publicTeamStatuses = [TeamStatus.REGULAR, TeamStatus.VERIFIED];
@@ -40,7 +41,7 @@ const getManageableTeam = async ({
   if (!team) {
     throw new TRPCError({
       code: "NOT_FOUND",
-      message: "Team not found.",
+      message: "Команда не найдена.",
     });
   }
 
@@ -53,7 +54,7 @@ const getManageableTeam = async ({
   if (!canManage) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "You do not have permission to manage this team.",
+      message: "У вас нет прав на управление этой командой.",
     });
   }
 
@@ -117,6 +118,26 @@ export const teamRouter = createTRPCRouter({
           },
         },
         include: {
+          events: {
+            where: {
+              status: {
+                in: publicEventStatuses,
+              },
+            },
+            orderBy: {
+              startsAt: "asc",
+            },
+            select: {
+              id: true,
+              title: true,
+              slug: true,
+              startsAt: true,
+              endsAt: true,
+              status: true,
+              region: true,
+              capacity: true,
+            },
+          },
           members: {
             orderBy: {
               createdAt: "asc",
@@ -157,7 +178,7 @@ export const teamRouter = createTRPCRouter({
       if (existingTeam) {
         throw new TRPCError({
           code: "CONFLICT",
-          message: "This team slug is already taken.",
+          message: "Такой slug команды уже занят.",
         });
       }
 
@@ -181,7 +202,7 @@ export const teamRouter = createTRPCRouter({
         if (isUniqueConstraintError(error)) {
           throw new TRPCError({
             code: "CONFLICT",
-            message: "This team slug is already taken.",
+            message: "Такой slug команды уже занят.",
           });
         }
 

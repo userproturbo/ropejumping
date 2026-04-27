@@ -36,7 +36,7 @@ export const profileRouter = createTRPCRouter({
         ) {
           throw new TRPCError({
             code: "CONFLICT",
-            message: "This username is already taken.",
+            message: "Такое имя пользователя уже занято.",
           });
         }
 

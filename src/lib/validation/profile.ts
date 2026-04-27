@@ -40,7 +40,7 @@ export const profileInputSchema = z.object({
 
 export const profileUsernameLookupSchema = usernameSchema.refine(
   (value) => value !== null,
-  "Username is required",
+  "Имя пользователя обязательно",
 );
 
 export type ProfileInput = z.infer<typeof profileInputSchema>;

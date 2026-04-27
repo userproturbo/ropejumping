@@ -40,7 +40,7 @@ export function TeamCreateForm() {
     >
       <div className="grid gap-2">
         <label htmlFor="name" className="text-sm font-medium text-zinc-950">
-          Team name
+          Название команды
         </label>
         <input
           id="name"
@@ -71,13 +71,13 @@ export function TeamCreateForm() {
           placeholder="team-name"
         />
         <p className="text-xs text-zinc-500">
-          Lowercase letters, numbers, and dashes. This cannot be changed yet.
+          Латинские строчные буквы, цифры и дефисы. Это поле пока нельзя изменить.
         </p>
       </div>
 
       <div className="grid gap-2">
         <label htmlFor="region" className="text-sm font-medium text-zinc-950">
-          Region
+          Регион
         </label>
         <input
           id="region"
@@ -91,7 +91,7 @@ export function TeamCreateForm() {
 
       <div className="grid gap-2">
         <label htmlFor="logoUrl" className="text-sm font-medium text-zinc-950">
-          Logo URL
+          Ссылка на логотип
         </label>
         <input
           id="logoUrl"
@@ -109,7 +109,7 @@ export function TeamCreateForm() {
           htmlFor="description"
           className="text-sm font-medium text-zinc-950"
         >
-          Description
+          Описание
         </label>
         <textarea
           id="description"
@@ -132,13 +132,13 @@ export function TeamCreateForm() {
           disabled={createTeam.isPending}
           className="bg-zinc-950 px-4 py-2 text-sm text-white disabled:cursor-not-allowed disabled:bg-zinc-400"
         >
-          {createTeam.isPending ? "Creating..." : "Create team"}
+          {createTeam.isPending ? "Создание..." : "Создать команду"}
         </button>
         <Link
           href="/teams"
           className="text-sm text-zinc-600 hover:text-zinc-950"
         >
-          Cancel
+          Отмена
         </Link>
       </div>
     </form>

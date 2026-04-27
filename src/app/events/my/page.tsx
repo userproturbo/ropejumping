@@ -1,13 +1,15 @@
 import Link from "next/link";
 
-import { getTeamRoleLabel, getTeamStatusLabel } from "@/lib/display";
+import { getEventStatusLabel } from "@/lib/display";
 import { requireCurrentUser } from "@/server/auth/session";
 import { api } from "@/trpc/server";
 
-export default async function MyTeamsPage() {
-  await requireCurrentUser("/teams/my");
+import { formatEventDateRange } from "../_components/date-format";
 
-  const teams = await api.team.getMine();
+export default async function MyEventsPage() {
+  await requireCurrentUser("/events/my");
+
+  const events = await api.event.getMine();
 
   return (
     <main className="min-h-[calc(100vh-4rem)] bg-zinc-50">
@@ -15,61 +17,61 @@ export default async function MyTeamsPage() {
         <div className="mb-8 flex items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-semibold tracking-tight text-zinc-950">
-              Мои команды
+              Мои мероприятия
             </h1>
             <p className="mt-2 text-sm text-zinc-600">
-              Команды, в которых вы состоите.
+              Мероприятия, которые вы создали или можете редактировать.
             </p>
           </div>
           <Link
-            href="/teams/new"
+            href="/events/new"
             className="border border-zinc-300 px-4 py-2 text-sm text-zinc-800 hover:border-zinc-950"
           >
-            Создать команду
+            Создать мероприятие
           </Link>
         </div>
 
-        {teams.length > 0 ? (
+        {events.length > 0 ? (
           <div className="grid gap-4">
-            {teams.map((team) => (
+            {events.map((event) => (
               <section
-                key={team.id}
+                key={event.id}
                 className="border border-zinc-200 bg-white p-5"
               >
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <h2 className="text-xl font-semibold text-zinc-950">
                       <Link
-                        href={`/teams/${team.slug}`}
+                        href={`/events/${event.slug}`}
                         className="hover:text-zinc-600"
                       >
-                        {team.name}
+                        {event.title}
                       </Link>
                     </h2>
                     <p className="mt-1 text-sm text-zinc-500">
-                      Ваша роль: {getTeamRoleLabel(team.currentUserRole)}
+                      {formatEventDateRange(event.startsAt, event.endsAt)}
+                    </p>
+                    <p className="mt-1 text-sm text-zinc-500">
+                      Команда: {event.team.name}
                     </p>
                   </div>
                   <span className="text-xs font-medium text-zinc-500">
-                    {getTeamStatusLabel(team.status)}
+                    {getEventStatusLabel(event.status)}
                   </span>
                 </div>
                 <div className="mt-4 flex flex-wrap gap-4 text-sm">
                   <Link
-                    href={`/teams/${team.slug}`}
+                    href={`/events/${event.slug}`}
                     className="text-zinc-700 hover:text-zinc-950"
                   >
                     Публичная страница
                   </Link>
-                  {team.currentUserRole === "OWNER" ||
-                  team.currentUserRole === "ADMIN" ? (
-                    <Link
-                      href={`/teams/${team.slug}/settings`}
-                      className="text-zinc-700 hover:text-zinc-950"
-                    >
-                      Настройки
-                    </Link>
-                  ) : null}
+                  <Link
+                    href={`/events/${event.slug}/edit`}
+                    className="text-zinc-700 hover:text-zinc-950"
+                  >
+                    Редактировать
+                  </Link>
                 </div>
               </section>
             ))}
@@ -77,10 +79,11 @@ export default async function MyTeamsPage() {
         ) : (
           <section className="border border-zinc-200 bg-white p-6">
             <h2 className="text-xl font-semibold text-zinc-950">
-              Вы пока не состоите в командах
+              Доступных для редактирования мероприятий пока нет
             </h2>
             <p className="mt-2 text-sm leading-6 text-zinc-600">
-              Создайте команду, чтобы стать ее владельцем.
+              Создайте мероприятие от команды, где вы владелец, администратор
+              или организатор.
             </p>
           </section>
         )}

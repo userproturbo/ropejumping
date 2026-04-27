@@ -14,17 +14,17 @@ export default async function ProfilePage() {
         <div className="mb-8 flex items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-semibold tracking-tight text-zinc-950">
-              Your profile
+              Мой профиль
             </h1>
             <p className="mt-2 text-sm text-zinc-600">
-              Basic information shown on your public profile.
+              Основная информация, которая отображается в публичном профиле.
             </p>
           </div>
           <Link
             href="/profile/edit"
             className="border border-zinc-300 px-4 py-2 text-sm text-zinc-800 hover:border-zinc-950"
           >
-            {profile ? "Edit" : "Create"}
+            {profile ? "Редактировать" : "Создать"}
           </Link>
         </div>
 
@@ -41,7 +41,7 @@ export default async function ProfilePage() {
               ) : null}
               <div>
                 <h2 className="text-2xl font-semibold text-zinc-950">
-                  {profile.displayName ?? profile.username ?? "Unnamed profile"}
+                  {profile.displayName ?? profile.username ?? "Профиль без имени"}
                 </h2>
                 {profile.username ? (
                   <Link
@@ -52,7 +52,7 @@ export default async function ProfilePage() {
                   </Link>
                 ) : (
                   <p className="text-sm text-zinc-500">
-                    Add a username to enable a public profile URL.
+                    Добавьте имя пользователя, чтобы открыть публичную ссылку на профиль.
                   </p>
                 )}
               </div>
@@ -60,23 +60,23 @@ export default async function ProfilePage() {
 
             <dl className="grid gap-5 text-sm">
               <div>
-                <dt className="font-medium text-zinc-950">City</dt>
+                <dt className="font-medium text-zinc-950">Город</dt>
                 <dd className="mt-1 whitespace-pre-wrap text-zinc-600">
-                  {profile.city ?? "Not set"}
+                  {profile.city ?? "Не указано"}
                 </dd>
               </div>
               <div>
-                <dt className="font-medium text-zinc-950">Bio</dt>
+                <dt className="font-medium text-zinc-950">О себе</dt>
                 <dd className="mt-1 whitespace-pre-wrap text-zinc-600">
-                  {profile.bio ?? "Not set"}
+                  {profile.bio ?? "Не указано"}
                 </dd>
               </div>
               <div>
                 <dt className="font-medium text-zinc-950">
-                  External experience
+                  Опыт вне платформы
                 </dt>
                 <dd className="mt-1 whitespace-pre-wrap text-zinc-600">
-                  {profile.externalExperience ?? "Not set"}
+                  {profile.externalExperience ?? "Не указано"}
                 </dd>
               </div>
             </dl>
@@ -84,17 +84,17 @@ export default async function ProfilePage() {
         ) : (
           <section className="border border-zinc-200 bg-white p-6">
             <h2 className="text-xl font-semibold text-zinc-950">
-              No profile yet
+              Профиль еще не создан
             </h2>
             <p className="mt-2 max-w-xl text-sm leading-6 text-zinc-600">
-              Create a basic profile with a username, display name, city, bio,
-              and external ropejumping experience.
+              Создайте профиль с именем пользователя, отображаемым именем,
+              городом, описанием и опытом вне платформы.
             </p>
             <Link
               href="/profile/edit"
               className="mt-5 inline-flex border border-zinc-300 px-4 py-2 text-sm text-zinc-800 hover:border-zinc-950"
             >
-              Create profile
+              Создать профиль
             </Link>
           </section>
         )}

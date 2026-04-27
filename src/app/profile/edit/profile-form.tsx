@@ -50,7 +50,7 @@ export function ProfileForm({ profile }: ProfileFormProps) {
     >
       <div className="grid gap-2">
         <label htmlFor="username" className="text-sm font-medium text-zinc-950">
-          Username
+          Имя пользователя
         </label>
         <input
           id="username"
@@ -64,7 +64,8 @@ export function ProfileForm({ profile }: ProfileFormProps) {
           placeholder="lowercase-name"
         />
         <p className="text-xs text-zinc-500">
-          Lowercase letters, numbers, underscore, and dash. Enables /u/username.
+          Латинские строчные буквы, цифры, подчеркивание и дефис. Открывает
+          адрес /u/username.
         </p>
       </div>
 
@@ -73,7 +74,7 @@ export function ProfileForm({ profile }: ProfileFormProps) {
           htmlFor="displayName"
           className="text-sm font-medium text-zinc-950"
         >
-          Display name
+          Отображаемое имя
         </label>
         <input
           id="displayName"
@@ -87,7 +88,7 @@ export function ProfileForm({ profile }: ProfileFormProps) {
 
       <div className="grid gap-2">
         <label htmlFor="city" className="text-sm font-medium text-zinc-950">
-          City
+          Город
         </label>
         <input
           id="city"
@@ -104,7 +105,7 @@ export function ProfileForm({ profile }: ProfileFormProps) {
           htmlFor="avatarUrl"
           className="text-sm font-medium text-zinc-950"
         >
-          Avatar URL
+          Ссылка на аватар
         </label>
         <input
           id="avatarUrl"
@@ -119,7 +120,7 @@ export function ProfileForm({ profile }: ProfileFormProps) {
 
       <div className="grid gap-2">
         <label htmlFor="bio" className="text-sm font-medium text-zinc-950">
-          Bio
+          О себе
         </label>
         <textarea
           id="bio"
@@ -137,7 +138,7 @@ export function ProfileForm({ profile }: ProfileFormProps) {
           htmlFor="externalExperience"
           className="text-sm font-medium text-zinc-950"
         >
-          External experience
+          Опыт вне платформы
         </label>
         <textarea
           id="externalExperience"
@@ -160,13 +161,13 @@ export function ProfileForm({ profile }: ProfileFormProps) {
           disabled={upsertProfile.isPending}
           className="bg-zinc-950 px-4 py-2 text-sm text-white disabled:cursor-not-allowed disabled:bg-zinc-400"
         >
-          {upsertProfile.isPending ? "Saving..." : "Save profile"}
+          {upsertProfile.isPending ? "Сохранение..." : "Сохранить профиль"}
         </button>
         <Link
           href="/profile"
           className="text-sm text-zinc-600 hover:text-zinc-950"
         >
-          Cancel
+          Отмена
         </Link>
       </div>
     </form>
