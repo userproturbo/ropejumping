@@ -87,6 +87,11 @@ export const eventRouter = createTRPCRouter({
         startsAt: "asc",
       },
       include: {
+        _count: {
+          select: {
+            applications: true,
+          },
+        },
         team: {
           select: {
             id: true,
@@ -114,6 +119,11 @@ export const eventRouter = createTRPCRouter({
           },
         },
         include: {
+          _count: {
+            select: {
+              applications: true,
+            },
+          },
           team: {
             select: {
               id: true,

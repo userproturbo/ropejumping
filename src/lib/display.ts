@@ -1,4 +1,5 @@
 import type {
+  ApplicationStatus,
   EventStatus,
   TeamRole,
   TeamStatus,
@@ -30,6 +31,15 @@ const eventStatusLabels = {
   ARCHIVED: "Архив",
 } satisfies Record<EventStatus, string>;
 
+const applicationStatusLabels = {
+  PENDING: "Ожидает решения",
+  ACCEPTED: "Принята",
+  REJECTED: "Отклонена",
+  CANCELLED_BY_USER: "Отменена пользователем",
+  CONFIRMED_PARTICIPATION: "Участие подтверждено",
+  NO_SHOW: "Не явился",
+} satisfies Record<ApplicationStatus, string>;
+
 export const getTeamStatusLabel = (status: TeamStatus) =>
   teamStatusLabels[status];
 
@@ -37,3 +47,6 @@ export const getTeamRoleLabel = (role: TeamRole) => teamRoleLabels[role];
 
 export const getEventStatusLabel = (status: EventStatus) =>
   eventStatusLabels[status];
+
+export const getApplicationStatusLabel = (status: ApplicationStatus) =>
+  applicationStatusLabels[status];
