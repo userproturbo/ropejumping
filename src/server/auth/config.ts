@@ -42,10 +42,7 @@ declare module "next-auth/jwt" {
  */
 const providers: Provider[] = [];
 
-const devUser = {
-  email: "dev@ropejumping.local",
-  name: "Dev User",
-};
+const devEmailDomain = "@ropejumping.local";
 
 if (env.NODE_ENV === "development") {
   providers.push(
@@ -56,7 +53,7 @@ if (env.NODE_ENV === "development") {
         email: {
           label: "Email",
           type: "email",
-          placeholder: devUser.email,
+          placeholder: `dev${devEmailDomain}`,
         },
       },
       authorize: async (credentials) => {
@@ -65,16 +62,27 @@ if (env.NODE_ENV === "development") {
             ? credentials.email.trim().toLowerCase()
             : "";
 
-        if (email !== devUser.email) {
+        if (!email.endsWith(devEmailDomain)) {
           return null;
         }
 
+        const emailPrefix = email.slice(0, -devEmailDomain.length);
+        if (!emailPrefix) {
+          return null;
+        }
+
+        const name = emailPrefix
+          .split(/[._-]+/)
+          .filter(Boolean)
+          .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+          .join(" ");
+
         const user = await db.user.upsert({
-          where: { email: devUser.email },
-          update: { name: devUser.name },
+          where: { email },
+          update: { name },
           create: {
-            email: devUser.email,
-            name: devUser.name,
+            email,
+            name,
           },
         });
 

@@ -55,6 +55,7 @@ export default async function EventsPage() {
                   {event.capacity ? (
                     <span>Количество мест: {event.capacity}</span>
                   ) : null}
+                  <span>Заявок: {event._count.applications}</span>
                 </div>
               </Link>
             ))}

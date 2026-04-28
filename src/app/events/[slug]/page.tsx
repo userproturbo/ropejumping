@@ -1,10 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { EventStatus } from "@/generated/prisma/enums";
 import { getEventStatusLabel } from "@/lib/display";
+import { getCurrentUser } from "@/server/auth/session";
 import { api } from "@/trpc/server";
 
 import { formatEventDateRange } from "../_components/date-format";
+import { EventApplicationPanel } from "./event-application-panel";
 
 type EventPageProps = {
   params: Promise<{
@@ -14,11 +17,25 @@ type EventPageProps = {
 
 export default async function EventPage({ params }: EventPageProps) {
   const { slug } = await params;
+  const user = await getCurrentUser();
   const event = await api.event.getBySlug(slug);
 
   if (!event) {
     notFound();
   }
+
+  const application = user
+    ? await api.application.getMineForEvent(slug).catch(() => null)
+    : null;
+  const canManage = user
+    ? await api.event
+        .getForEdit(slug)
+        .then(() => true)
+        .catch(() => false)
+    : false;
+  const canApply =
+    event.status === EventStatus.PUBLISHED ||
+    event.status === EventStatus.APPLICATIONS_OPEN;
 
   return (
     <main className="min-h-[calc(100vh-4rem)] bg-zinc-50">
@@ -72,6 +89,12 @@ export default async function EventPage({ params }: EventPageProps) {
               </dd>
             </div>
             <div>
+              <dt className="font-medium text-zinc-950">Заявки</dt>
+              <dd className="mt-1 text-zinc-600">
+                {event._count.applications}
+              </dd>
+            </div>
+            <div>
               <dt className="font-medium text-zinc-950">Цена</dt>
               <dd className="mt-1 text-zinc-600">
                 {event.priceText ?? "Не указано"}
@@ -99,7 +122,9 @@ export default async function EventPage({ params }: EventPageProps) {
               {event.description}
             </p>
           ) : (
-            <p className="mt-3 text-sm text-zinc-500">Описание пока не добавлено.</p>
+            <p className="mt-3 text-sm text-zinc-500">
+              Описание пока не добавлено.
+            </p>
           )}
         </section>
 
@@ -110,15 +135,35 @@ export default async function EventPage({ params }: EventPageProps) {
               {event.requirementsText}
             </p>
           ) : (
-            <p className="mt-3 text-sm text-zinc-500">Требования пока не добавлены.</p>
+            <p className="mt-3 text-sm text-zinc-500">
+              Требования пока не добавлены.
+            </p>
           )}
         </section>
 
         <section className="mt-6 border border-zinc-200 bg-white p-6">
           <h2 className="text-xl font-semibold text-zinc-950">Заявки</h2>
-          <p className="mt-2 text-sm text-zinc-600">
-            Заявки пока не реализованы.
-          </p>
+          {!user ? (
+            <Link
+              href={`/api/auth/signin?callbackUrl=${encodeURIComponent(`/events/${event.slug}`)}`}
+              className="mt-4 inline-flex border border-zinc-300 px-4 py-2 text-sm text-zinc-800 hover:border-zinc-950"
+            >
+              Войдите, чтобы подать заявку
+            </Link>
+          ) : canManage ? (
+            <Link
+              href={`/events/${event.slug}/applications`}
+              className="mt-4 inline-flex border border-zinc-300 px-4 py-2 text-sm text-zinc-800 hover:border-zinc-950"
+            >
+              Управление заявками
+            </Link>
+          ) : (
+            <EventApplicationPanel
+              application={application}
+              canApply={canApply}
+              eventSlug={event.slug}
+            />
+          )}
         </section>
       </div>
     </main>

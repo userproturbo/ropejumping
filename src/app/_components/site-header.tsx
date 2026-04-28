@@ -43,6 +43,12 @@ export async function SiteHeader() {
                 Мои мероприятия
               </Link>
               <Link
+                href="/applications/my"
+                className="text-sm text-zinc-600 hover:text-zinc-950"
+              >
+                Мои заявки
+              </Link>
+              <Link
                 href="/profile"
                 className="text-sm text-zinc-600 hover:text-zinc-950"
               >
