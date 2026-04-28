@@ -76,5 +76,10 @@ export const eventUpdateInputSchema = eventEditableFieldsSchema.extend({
 
 export const eventSlugLookupSchema = eventSlugSchema;
 
+export const eventCompletionInputSchema = z.object({
+  eventSlug: eventSlugSchema,
+  confirmedUserIds: z.array(z.string().cuid()),
+});
+
 export type EventCreateInput = z.infer<typeof eventCreateInputSchema>;
 export type EventUpdateInput = z.infer<typeof eventUpdateInputSchema>;

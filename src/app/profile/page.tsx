@@ -3,10 +3,13 @@ import Link from "next/link";
 import { requireCurrentUser } from "@/server/auth/session";
 import { api } from "@/trpc/server";
 
+import { formatEventDateRange } from "../events/_components/date-format";
+
 export default async function ProfilePage() {
   await requireCurrentUser("/profile");
 
   const profile = await api.profile.getMine();
+  const participations = await api.profile.getMyParticipations();
 
   return (
     <main className="min-h-[calc(100vh-4rem)] bg-zinc-50">
@@ -98,6 +101,40 @@ export default async function ProfilePage() {
             </Link>
           </section>
         )}
+
+        <section className="mt-6 border border-zinc-200 bg-white p-6">
+          <h2 className="text-xl font-semibold text-zinc-950">
+            История участия
+          </h2>
+          {participations.length > 0 ? (
+            <div className="mt-5 grid gap-4">
+              {participations.map((participation) => (
+                <Link
+                  key={participation.id}
+                  href={`/events/${participation.event.slug}`}
+                  className="block border border-zinc-200 p-4 hover:border-zinc-950"
+                >
+                  <h3 className="text-base font-semibold text-zinc-950">
+                    {participation.event.title}
+                  </h3>
+                  <p className="mt-1 text-sm text-zinc-500">
+                    {formatEventDateRange(
+                      participation.event.startsAt,
+                      participation.event.endsAt,
+                    )}
+                  </p>
+                  <p className="mt-1 text-sm text-zinc-600">
+                    Команда: {participation.event.team.name}
+                  </p>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <p className="mt-2 text-sm text-zinc-600">
+              Пока нет подтверждённых участий.
+            </p>
+          )}
+        </section>
       </div>
     </main>
   );

@@ -151,12 +151,20 @@ export default async function EventPage({ params }: EventPageProps) {
               Войдите, чтобы подать заявку
             </Link>
           ) : canManage ? (
-            <Link
-              href={`/events/${event.slug}/applications`}
-              className="mt-4 inline-flex border border-zinc-300 px-4 py-2 text-sm text-zinc-800 hover:border-zinc-950"
-            >
-              Управление заявками
-            </Link>
+            <div className="mt-4 flex flex-wrap gap-3">
+              <Link
+                href={`/events/${event.slug}/applications`}
+                className="inline-flex border border-zinc-300 px-4 py-2 text-sm text-zinc-800 hover:border-zinc-950"
+              >
+                Управление заявками
+              </Link>
+              <Link
+                href={`/events/${event.slug}/complete`}
+                className="inline-flex border border-zinc-300 px-4 py-2 text-sm text-zinc-800 hover:border-zinc-950"
+              >
+                Завершить мероприятие
+              </Link>
+            </div>
           ) : (
             <EventApplicationPanel
               application={application}
@@ -165,6 +173,52 @@ export default async function EventPage({ params }: EventPageProps) {
             />
           )}
         </section>
+
+        {event.status === EventStatus.COMPLETED ||
+        event.participations.length > 0 ? (
+          <section className="mt-6 border border-zinc-200 bg-white p-6">
+            <h2 className="text-xl font-semibold text-zinc-950">
+              Подтверждённые участники
+            </h2>
+            {event.participations.length > 0 ? (
+              <div className="mt-5 grid gap-4">
+                {event.participations.map((participation) => {
+                  const profile = participation.user.profile;
+                  const displayName =
+                    profile?.displayName ??
+                    profile?.username ??
+                    participation.user.name ??
+                    "Участник без имени";
+
+                  return (
+                    <div
+                      key={participation.id}
+                      className="border border-zinc-200 p-4"
+                    >
+                      <p className="font-medium text-zinc-950">
+                        {displayName}
+                      </p>
+                      {profile?.username ? (
+                        <p className="mt-1 text-sm text-zinc-500">
+                          @{profile.username}
+                        </p>
+                      ) : null}
+                      {profile?.city ? (
+                        <p className="mt-1 text-sm text-zinc-600">
+                          {profile.city}
+                        </p>
+                      ) : null}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="mt-2 text-sm text-zinc-600">
+                Подтверждённых участников пока нет.
+              </p>
+            )}
+          </section>
+        ) : null}
       </div>
     </main>
   );

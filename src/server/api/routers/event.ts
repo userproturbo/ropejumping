@@ -1,7 +1,13 @@
 import { TRPCError } from "@trpc/server";
 
-import { EventStatus, TeamRole, TeamStatus } from "@/generated/prisma/enums";
 import {
+  ApplicationStatus,
+  EventStatus,
+  TeamRole,
+  TeamStatus,
+} from "@/generated/prisma/enums";
+import {
+  eventCompletionInputSchema,
   eventCreateInputSchema,
   eventSlugLookupSchema,
   eventUpdateInputSchema,
@@ -44,6 +50,46 @@ const getEventForManagement = async ({
     where: { slug },
     select: {
       id: true,
+    },
+  });
+
+  if (!event) {
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: "Мероприятие не найдено.",
+    });
+  }
+
+  const canManage = await canManageEvent({
+    db,
+    eventId: event.id,
+    userId,
+  });
+
+  if (!canManage) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "У вас нет прав на управление этим мероприятием.",
+    });
+  }
+
+  return event;
+};
+
+const ensureCanManageEventBySlug = async ({
+  db,
+  slug,
+  userId,
+}: {
+  db: EventRouterDb;
+  slug: string;
+  userId: string;
+}) => {
+  const event = await db.event.findUnique({
+    where: { slug },
+    select: {
+      id: true,
+      status: true,
     },
   });
 
@@ -138,6 +184,28 @@ export const eventRouter = createTRPCRouter({
               slug: true,
               type: true,
               region: true,
+            },
+          },
+          participations: {
+            orderBy: {
+              createdAt: "asc",
+            },
+            select: {
+              id: true,
+              user: {
+                select: {
+                  id: true,
+                  name: true,
+                  profile: {
+                    select: {
+                      username: true,
+                      displayName: true,
+                      city: true,
+                      avatarUrl: true,
+                    },
+                  },
+                },
+              },
             },
           },
         },
@@ -274,6 +342,203 @@ export const eventRouter = createTRPCRouter({
           levelText: input.levelText,
           coverImageUrl: input.coverImageUrl,
         },
+      });
+    }),
+
+  getForCompletion: protectedProcedure
+    .input(eventSlugLookupSchema)
+    .query(async ({ ctx, input }) => {
+      const event = await ensureCanManageEventBySlug({
+        db: ctx.db,
+        slug: input,
+        userId: ctx.session.user.id,
+      });
+
+      return ctx.db.event.findUnique({
+        where: { id: event.id },
+        select: {
+          id: true,
+          title: true,
+          slug: true,
+          startsAt: true,
+          endsAt: true,
+          status: true,
+          completedAt: true,
+          applications: {
+            where: {
+              status: ApplicationStatus.ACCEPTED,
+            },
+            orderBy: {
+              createdAt: "asc",
+            },
+            select: {
+              id: true,
+              message: true,
+              userId: true,
+              user: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                  profile: {
+                    select: {
+                      username: true,
+                      displayName: true,
+                      city: true,
+                      externalExperience: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+          participations: {
+            orderBy: {
+              createdAt: "asc",
+            },
+            select: {
+              id: true,
+              userId: true,
+              user: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                  profile: {
+                    select: {
+                      username: true,
+                      displayName: true,
+                      city: true,
+                      externalExperience: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+    }),
+
+  complete: protectedProcedure
+    .input(eventCompletionInputSchema)
+    .mutation(async ({ ctx, input }) => {
+      const event = await ensureCanManageEventBySlug({
+        db: ctx.db,
+        slug: input.eventSlug,
+        userId: ctx.session.user.id,
+      });
+
+      if (
+        event.status === EventStatus.DRAFT ||
+        event.status === EventStatus.CANCELLED
+      ) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Это мероприятие нельзя завершить.",
+        });
+      }
+
+      const confirmedUserIds = Array.from(new Set(input.confirmedUserIds));
+      const completedAt = new Date();
+
+      return ctx.db.$transaction(async (tx) => {
+        const acceptedApplications = await tx.eventApplication.findMany({
+          where: {
+            eventId: event.id,
+            status: ApplicationStatus.ACCEPTED,
+          },
+          select: {
+            userId: true,
+          },
+        });
+        const existingParticipations = await tx.eventParticipation.findMany({
+          where: {
+            eventId: event.id,
+          },
+          select: {
+            userId: true,
+          },
+        });
+
+        const acceptedUserIds = new Set(
+          acceptedApplications.map((application) => application.userId),
+        );
+        const validConfirmedUserIds = new Set([
+          ...acceptedUserIds,
+          ...existingParticipations.map((participation) => participation.userId),
+        ]);
+        const invalidUserIds = confirmedUserIds.filter(
+          (userId) => !validConfirmedUserIds.has(userId),
+        );
+
+        if (invalidUserIds.length > 0) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Можно подтверждать только принятые заявки.",
+          });
+        }
+
+        await tx.event.update({
+          where: { id: event.id },
+          data: {
+            status: EventStatus.COMPLETED,
+            completedAt,
+          },
+        });
+
+        await Promise.all(
+          confirmedUserIds.map((userId) =>
+            tx.eventParticipation.upsert({
+              where: {
+                eventId_userId: {
+                  eventId: event.id,
+                  userId,
+                },
+              },
+              create: {
+                eventId: event.id,
+                userId,
+                confirmedById: ctx.session.user.id,
+                confirmedAt: completedAt,
+              },
+              update: {
+                confirmedById: ctx.session.user.id,
+                confirmedAt: completedAt,
+              },
+            }),
+          ),
+        );
+
+        await tx.eventApplication.updateMany({
+          where: {
+            eventId: event.id,
+            userId: {
+              in: confirmedUserIds,
+            },
+            status: ApplicationStatus.ACCEPTED,
+          },
+          data: {
+            status: ApplicationStatus.CONFIRMED_PARTICIPATION,
+          },
+        });
+
+        await tx.eventApplication.updateMany({
+          where: {
+            eventId: event.id,
+            userId: {
+              notIn: confirmedUserIds,
+            },
+            status: ApplicationStatus.ACCEPTED,
+          },
+          data: {
+            status: ApplicationStatus.NO_SHOW,
+          },
+        });
+
+        return tx.event.findUnique({
+          where: { id: event.id },
+        });
       });
     }),
 });
