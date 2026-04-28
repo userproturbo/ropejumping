@@ -17,6 +17,35 @@ export const profileRouter = createTRPCRouter({
     });
   }),
 
+  getMyParticipations: protectedProcedure.query(({ ctx }) => {
+    return ctx.db.eventParticipation.findMany({
+      where: {
+        userId: ctx.session.user.id,
+      },
+      orderBy: {
+        confirmedAt: "desc",
+      },
+      include: {
+        event: {
+          select: {
+            id: true,
+            title: true,
+            slug: true,
+            startsAt: true,
+            endsAt: true,
+            team: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+              },
+            },
+          },
+        },
+      },
+    });
+  }),
+
   upsertMine: protectedProcedure
     .input(profileInputSchema)
     .mutation(async ({ ctx, input }) => {
@@ -49,6 +78,35 @@ export const profileRouter = createTRPCRouter({
     .query(({ ctx, input }) => {
       return ctx.db.profile.findUnique({
         where: { username: input },
+        include: {
+          user: {
+            select: {
+              eventParticipations: {
+                orderBy: {
+                  confirmedAt: "desc",
+                },
+                include: {
+                  event: {
+                    select: {
+                      id: true,
+                      title: true,
+                      slug: true,
+                      startsAt: true,
+                      endsAt: true,
+                      team: {
+                        select: {
+                          id: true,
+                          name: true,
+                          slug: true,
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
       });
     }),
 });
