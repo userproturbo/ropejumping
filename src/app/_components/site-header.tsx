@@ -34,8 +34,20 @@ export async function SiteHeader() {
           >
             Объекты
           </Link>
+          <Link
+            href="/feed"
+            className="text-sm text-zinc-600 hover:text-zinc-950"
+          >
+            Лента
+          </Link>
           {user ? (
             <>
+              <Link
+                href="/feed/new"
+                className="text-sm text-zinc-600 hover:text-zinc-950"
+              >
+                Создать пост
+              </Link>
               <Link
                 href="/teams/my"
                 className="text-sm text-zinc-600 hover:text-zinc-950"
