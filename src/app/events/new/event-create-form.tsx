@@ -9,14 +9,25 @@ import { api, type RouterOutputs } from "@/trpc/react";
 import { datetimeLocalToIso } from "../_components/date-format";
 
 type ManageableTeam = RouterOutputs["team"]["getMine"][number];
+type ObjectOption = RouterOutputs["object"]["listPublic"][number];
 
 type EventCreateFormProps = {
+  objects: ObjectOption[];
   teams: ManageableTeam[];
 };
 
-export function EventCreateForm({ teams }: EventCreateFormProps) {
+const getObjectOptionLabel = (object: ObjectOption) => {
+  const details = [object.heightMeters ? `${object.heightMeters} м` : null, object.region]
+    .filter(Boolean)
+    .join(", ");
+
+  return details ? `${object.name} (${details})` : object.name;
+};
+
+export function EventCreateForm({ objects, teams }: EventCreateFormProps) {
   const router = useRouter();
   const [teamId, setTeamId] = useState(teams[0]?.id ?? "");
+  const [objectId, setObjectId] = useState("");
   const [title, setTitle] = useState("");
   const [slug, setSlug] = useState("");
   const [description, setDescription] = useState("");
@@ -41,6 +52,7 @@ export function EventCreateForm({ teams }: EventCreateFormProps) {
 
     createEvent.mutate({
       teamId,
+      objectId,
       title,
       slug,
       description,
@@ -78,6 +90,32 @@ export function EventCreateForm({ teams }: EventCreateFormProps) {
             </option>
           ))}
         </select>
+      </div>
+
+      <div className="grid gap-2">
+        <label htmlFor="objectId" className="text-sm font-medium text-zinc-950">
+          Объект
+        </label>
+        <select
+          id="objectId"
+          name="objectId"
+          value={objectId}
+          onChange={(event) => setObjectId(event.target.value)}
+          className="border border-zinc-300 px-3 py-2 text-zinc-950 outline-none focus:border-zinc-950"
+        >
+          <option value="">Без объекта</option>
+          {objects.map((object) => (
+            <option key={object.id} value={object.id}>
+              {getObjectOptionLabel(object)}
+            </option>
+          ))}
+        </select>
+        <p className="text-xs text-zinc-500">
+          Нужно добавить объект?{" "}
+          <Link href="/objects/new" className="text-zinc-800 hover:text-zinc-950">
+            Создать объект
+          </Link>
+        </p>
       </div>
 
       <div className="grid gap-2">

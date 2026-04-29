@@ -192,6 +192,7 @@ model Team {
 
   members TeamMember[]
   events  Event[]
+  objects JumpObject[] @relation("TeamObjects")
 
   @@index([status])
   @@index([region])
@@ -214,26 +215,29 @@ model TeamMember {
 }
 
 model JumpObject {
-  id            String           @id @default(cuid())
-  name          String
-  slug          String           @unique
-  type          ObjectType
-  visibility    ObjectVisibility @default(PUBLIC)
-  heightMeters  Int?
-  region        String?
-  description   String?
-  coverImageUrl String?
-  createdById   String?
-  createdAt     DateTime         @default(now())
-  updatedAt     DateTime         @updatedAt
+  id              String           @id @default(cuid())
+  name            String
+  slug            String           @unique
+  type            ObjectType
+  visibility      ObjectVisibility @default(PUBLIC)
+  heightMeters    Int?
+  region          String?
+  description     String?
+  coverImageUrl   String?
+  createdById     String?
+  createdByTeamId String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
 
-  createdBy User?   @relation("CreatedObjects", fields: [createdById], references: [id], onDelete: SetNull)
-  events    Event[]
+  createdBy     User?   @relation("CreatedObjects", fields: [createdById], references: [id], onDelete: SetNull)
+  createdByTeam Team?   @relation("TeamObjects", fields: [createdByTeamId], references: [id], onDelete: SetNull)
+  events        Event[]
 
   @@index([visibility])
   @@index([type])
   @@index([region])
   @@index([createdById])
+  @@index([createdByTeamId])
 }
 
 model Event {

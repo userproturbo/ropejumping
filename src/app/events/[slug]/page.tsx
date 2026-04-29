@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { EventStatus } from "@/generated/prisma/enums";
-import { getEventStatusLabel } from "@/lib/display";
+import { getEventStatusLabel, getObjectTypeLabel } from "@/lib/display";
 import { getCurrentUser } from "@/server/auth/session";
 import { api } from "@/trpc/server";
 
@@ -110,11 +110,36 @@ export default async function EventPage({ params }: EventPageProps) {
             {event.object ? (
               <div>
                 <dt className="font-medium text-zinc-950">Объект</dt>
-                <dd className="mt-1 text-zinc-600">{event.object.name}</dd>
+                <dd className="mt-1 text-zinc-600">
+                  <Link
+                    href={`/objects/${event.object.slug}`}
+                    className="hover:text-zinc-950"
+                  >
+                    {event.object.name}
+                  </Link>
+                </dd>
               </div>
             ) : null}
           </dl>
         </section>
+
+        {event.object ? (
+          <section className="mt-6 border border-zinc-200 bg-white p-6">
+            <h2 className="text-xl font-semibold text-zinc-950">Объект</h2>
+            <Link href={`/objects/${event.object.slug}`} className="mt-4 block">
+              <h3 className="font-medium text-zinc-950 hover:text-zinc-700">
+                {event.object.name}
+              </h3>
+              <div className="mt-2 flex flex-wrap gap-3 text-sm text-zinc-600">
+                <span>{getObjectTypeLabel(event.object.type)}</span>
+                {event.object.heightMeters ? (
+                  <span>{event.object.heightMeters} м</span>
+                ) : null}
+                {event.object.region ? <span>{event.object.region}</span> : null}
+              </div>
+            </Link>
+          </section>
+        ) : null}
 
         <section className="mt-6 border border-zinc-200 bg-white p-6">
           <h2 className="text-xl font-semibold text-zinc-950">Описание</h2>

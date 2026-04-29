@@ -14,6 +14,7 @@ export default async function NewEventPage() {
   const manageableTeams = teams.filter((team) =>
     manageableRoles.includes(team.currentUserRole),
   );
+  const objects = await api.object.listPublic();
 
   return (
     <main className="min-h-[calc(100vh-4rem)] bg-zinc-50">
@@ -28,7 +29,7 @@ export default async function NewEventPage() {
         </div>
 
         {manageableTeams.length > 0 ? (
-          <EventCreateForm teams={manageableTeams} />
+          <EventCreateForm objects={objects} teams={manageableTeams} />
         ) : (
           <section className="border border-zinc-200 bg-white p-6">
             <h2 className="text-xl font-semibold text-zinc-950">

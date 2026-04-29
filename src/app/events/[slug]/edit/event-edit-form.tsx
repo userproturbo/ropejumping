@@ -12,13 +12,24 @@ import {
 } from "../../_components/date-format";
 
 type EventForEdit = NonNullable<RouterOutputs["event"]["getForEdit"]>;
+type ObjectOption = RouterOutputs["object"]["listPublic"][number];
 
 type EventEditFormProps = {
   event: EventForEdit;
+  objects: ObjectOption[];
 };
 
-export function EventEditForm({ event }: EventEditFormProps) {
+const getObjectOptionLabel = (object: ObjectOption) => {
+  const details = [object.heightMeters ? `${object.heightMeters} м` : null, object.region]
+    .filter(Boolean)
+    .join(", ");
+
+  return details ? `${object.name} (${details})` : object.name;
+};
+
+export function EventEditForm({ event, objects }: EventEditFormProps) {
   const router = useRouter();
+  const [objectId, setObjectId] = useState(event.objectId ?? "");
   const [title, setTitle] = useState(event.title);
   const [description, setDescription] = useState(event.description ?? "");
   const [requirementsText, setRequirementsText] = useState(
@@ -50,6 +61,7 @@ export function EventEditForm({ event }: EventEditFormProps) {
 
     updateEvent.mutate({
       slug: event.slug,
+      objectId,
       title,
       description,
       requirementsText,
@@ -92,6 +104,32 @@ export function EventEditForm({ event }: EventEditFormProps) {
           disabled
           className="border border-zinc-200 bg-zinc-50 px-3 py-2 text-zinc-500"
         />
+      </div>
+
+      <div className="grid gap-2">
+        <label htmlFor="objectId" className="text-sm font-medium text-zinc-950">
+          Объект
+        </label>
+        <select
+          id="objectId"
+          name="objectId"
+          value={objectId}
+          onChange={(inputEvent) => setObjectId(inputEvent.target.value)}
+          className="border border-zinc-300 px-3 py-2 text-zinc-950 outline-none focus:border-zinc-950"
+        >
+          <option value="">Без объекта</option>
+          {objects.map((object) => (
+            <option key={object.id} value={object.id}>
+              {getObjectOptionLabel(object)}
+            </option>
+          ))}
+        </select>
+        <p className="text-xs text-zinc-500">
+          Нужно добавить объект?{" "}
+          <Link href="/objects/new" className="text-zinc-800 hover:text-zinc-950">
+            Создать объект
+          </Link>
+        </p>
       </div>
 
       <div className="grid gap-2">

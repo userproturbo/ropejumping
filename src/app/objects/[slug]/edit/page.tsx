@@ -3,22 +3,21 @@ import { notFound } from "next/navigation";
 import { requireCurrentUser } from "@/server/auth/session";
 import { api } from "@/trpc/server";
 
-import { EventEditForm } from "./event-edit-form";
+import { ObjectForm } from "../../_components/object-form";
 
-type EditEventPageProps = {
+type EditObjectPageProps = {
   params: Promise<{
     slug: string;
   }>;
 };
 
-export default async function EditEventPage({ params }: EditEventPageProps) {
+export default async function EditObjectPage({ params }: EditObjectPageProps) {
   const { slug } = await params;
-  await requireCurrentUser(`/events/${slug}/edit`);
+  await requireCurrentUser(`/objects/${slug}/edit`);
 
-  const event = await api.event.getForEdit(slug).catch(() => null);
-  const objects = await api.object.listPublic();
+  const object = await api.object.getForEdit(slug).catch(() => null);
 
-  if (!event) {
+  if (!object) {
     notFound();
   }
 
@@ -27,14 +26,14 @@ export default async function EditEventPage({ params }: EditEventPageProps) {
       <div className="mx-auto w-full max-w-3xl px-6 py-10">
         <div className="mb-8">
           <h1 className="text-3xl font-semibold tracking-tight text-zinc-950">
-            Редактировать мероприятие
+            Редактировать объект
           </h1>
           <p className="mt-2 text-sm text-zinc-600">
-            Изменение slug и заявки пока не реализованы.
+            Slug объекта нельзя изменить после создания.
           </p>
         </div>
 
-        <EventEditForm event={event} objects={objects} />
+        <ObjectForm object={object} />
       </div>
     </main>
   );
