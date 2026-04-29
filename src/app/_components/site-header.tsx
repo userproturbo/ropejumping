@@ -2,9 +2,11 @@ import Link from "next/link";
 
 import { signOut } from "@/server/auth";
 import { getCurrentUser } from "@/server/auth/session";
+import { isModeratorUser } from "@/server/moderation/permissions";
 
 export async function SiteHeader() {
   const user = await getCurrentUser();
+  const isModerator = isModeratorUser(user);
 
   return (
     <header className="border-b border-zinc-200 bg-white">
@@ -78,6 +80,14 @@ export async function SiteHeader() {
               >
                 Профиль
               </Link>
+              {isModerator ? (
+                <Link
+                  href="/moderation"
+                  className="text-sm text-zinc-600 hover:text-zinc-950"
+                >
+                  Модерация
+                </Link>
+              ) : null}
             </>
           ) : null}
         </nav>

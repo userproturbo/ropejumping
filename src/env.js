@@ -15,6 +15,7 @@ export const env = createEnv({
     AUTH_DISCORD_ID: z.string().optional(),
     AUTH_DISCORD_SECRET: z.string().optional(),
     DATABASE_URL: z.string().url(),
+    MODERATOR_EMAILS: z.string().optional(),
     NODE_ENV: z
       .enum(["development", "test", "production"])
       .default("development"),
@@ -45,6 +46,7 @@ export const env = createEnv({
     AUTH_DISCORD_ID: process.env.AUTH_DISCORD_ID,
     AUTH_DISCORD_SECRET: process.env.AUTH_DISCORD_SECRET,
     DATABASE_URL: process.env.DATABASE_URL,
+    MODERATOR_EMAILS: process.env.MODERATOR_EMAILS,
     NODE_ENV: process.env.NODE_ENV,
     YANDEX_OBJECT_STORAGE_ENDPOINT: process.env.YANDEX_OBJECT_STORAGE_ENDPOINT,
     YANDEX_OBJECT_STORAGE_REGION: process.env.YANDEX_OBJECT_STORAGE_REGION,

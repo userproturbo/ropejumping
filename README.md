@@ -121,6 +121,15 @@ provider credentials during local foundation work.
 - `/posts/[id]` показывает пост, комментарии и лайки.
 - Алгоритмической ленты, загрузок файлов, репостов, уведомлений и чата пока нет.
 
+Модерация ленты:
+
+- Пользователи с профилем могут отправлять жалобы на посты и комментарии.
+- Модераторы задаются переменной `MODERATOR_EMAILS` со списком email через
+  запятую.
+- `/moderation` показывает открытые жалобы, `/moderation/reviewed` —
+  рассмотренные.
+- Скрытие контента использует `hiddenAt`; посты и комментарии не удаляются.
+
 ## Local Development Sign In
 
 In development, Auth.js enables a credentials-only test provider for local
