@@ -150,6 +150,9 @@ model User {
   media                   Media[]              @relation("UserMedia")
   badges                  UserBadge[]          @relation("UserBadges")
   awardedBadges           UserBadge[]          @relation("AwardedBadges")
+  posts                   Post[]               @relation("PostAuthor")
+  comments                Comment[]            @relation("CommentAuthor")
+  postLikes               PostLike[]           @relation("PostLikes")
   reports                 Report[]             @relation("ReportsFiled")
   reviewedReports         Report[]             @relation("ReportsReviewed")
   auditLogs               AuditLog[]           @relation("AuditLogActor")
@@ -193,6 +196,7 @@ model Team {
   members TeamMember[]
   events  Event[]
   objects JumpObject[] @relation("TeamObjects")
+  posts   Post[]
 
   @@index([status])
   @@index([region])
@@ -232,6 +236,7 @@ model JumpObject {
   createdBy     User?   @relation("CreatedObjects", fields: [createdById], references: [id], onDelete: SetNull)
   createdByTeam Team?   @relation("TeamObjects", fields: [createdByTeamId], references: [id], onDelete: SetNull)
   events        Event[]
+  posts         Post[]
 
   @@index([visibility])
   @@index([type])
@@ -266,6 +271,7 @@ model Event {
   createdBy      User                 @relation("CreatedEvents", fields: [createdById], references: [id])
   applications   EventApplication[]
   participations EventParticipation[]
+  posts          Post[]
 
   @@index([status])
   @@index([startsAt])
@@ -346,6 +352,65 @@ model UserBadge {
   @@index([userId])
   @@index([badgeId])
   @@index([awardedById])
+}
+
+model Post {
+  id        String    @id @default(cuid())
+  authorId  String
+  teamId    String?
+  eventId   String?
+  objectId  String?
+  content   String
+  imageUrl  String?
+  hiddenAt  DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  author   User        @relation("PostAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  team     Team?       @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  event    Event?      @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  object   JumpObject? @relation(fields: [objectId], references: [id], onDelete: SetNull)
+  comments Comment[]
+  likes    PostLike[]
+
+  @@index([authorId])
+  @@index([teamId])
+  @@index([eventId])
+  @@index([objectId])
+  @@index([createdAt])
+  @@index([hiddenAt])
+}
+
+model Comment {
+  id        String    @id @default(cuid())
+  postId    String
+  authorId  String
+  content   String
+  hiddenAt  DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author User @relation("CommentAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+  @@index([authorId])
+  @@index([createdAt])
+  @@index([hiddenAt])
+}
+
+model PostLike {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    String
+  createdAt DateTime @default(now())
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation("PostLikes", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@index([postId])
+  @@index([userId])
 }
 
 model Media {
