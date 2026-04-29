@@ -1,5 +1,6 @@
 import { TRPCError } from "@trpc/server";
 
+import { TeamStatus } from "@/generated/prisma/enums";
 import {
   profileInputSchema,
   profileUsernameLookupSchema,
@@ -9,6 +10,9 @@ import {
   protectedProcedure,
   publicProcedure,
 } from "@/server/api/trpc";
+import { publicEventStatuses } from "@/server/events/statuses";
+
+const publicTeamStatuses = [TeamStatus.REGULAR, TeamStatus.VERIFIED];
 
 export const profileRouter = createTRPCRouter({
   getMine: protectedProcedure.query(({ ctx }) => {
@@ -81,7 +85,27 @@ export const profileRouter = createTRPCRouter({
         include: {
           user: {
             select: {
+              badges: {
+                orderBy: {
+                  awardedAt: "desc",
+                },
+                include: {
+                  badge: true,
+                },
+              },
               eventParticipations: {
+                where: {
+                  event: {
+                    status: {
+                      in: publicEventStatuses,
+                    },
+                    team: {
+                      status: {
+                        in: publicTeamStatuses,
+                      },
+                    },
+                  },
+                },
                 orderBy: {
                   confirmedAt: "desc",
                 },
