@@ -164,6 +164,18 @@ export const applicationRouter = createTRPCRouter({
         });
       }
 
+      const profile = await ctx.db.profile.findUnique({
+        where: { userId: ctx.session.user.id },
+        select: { id: true },
+      });
+
+      if (!profile) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Перед подачей заявки заполните профиль.",
+        });
+      }
+
       try {
         return await ctx.db.eventApplication.create({
           data: {

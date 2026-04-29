@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
@@ -12,12 +13,14 @@ type EventApplicationPanelProps = {
   application: EventApplication;
   canApply: boolean;
   eventSlug: string;
+  hasProfile: boolean;
 };
 
 export function EventApplicationPanel({
   application,
   canApply,
   eventSlug,
+  hasProfile,
 }: EventApplicationPanelProps) {
   const router = useRouter();
   const [message, setMessage] = useState("");
@@ -97,6 +100,23 @@ export function EventApplicationPanel({
       <p className="mt-2 text-sm text-zinc-600">
         Подача заявок на это мероприятие сейчас недоступна.
       </p>
+    );
+  }
+
+  if (!hasProfile) {
+    return (
+      <div className="mt-4 space-y-4">
+        <p className="text-sm leading-6 text-zinc-600">
+          Перед подачей заявки заполните профиль. Это поможет организатору
+          понять ваш опыт.
+        </p>
+        <Link
+          href="/profile/edit"
+          className="inline-flex bg-zinc-950 px-4 py-2 text-sm text-white hover:bg-zinc-800"
+        >
+          Заполнить профиль
+        </Link>
+      </div>
     );
   }
 
