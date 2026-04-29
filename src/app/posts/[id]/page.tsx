@@ -40,6 +40,14 @@ export default async function PostPage({ params }: PostPageProps) {
             <Link href="/feed" className="text-sm text-zinc-600 hover:text-zinc-950">
               Лента
             </Link>
+            {user ? (
+              <Link
+                href={`/reports/new?targetType=POST&targetId=${post.id}`}
+                className="text-sm text-zinc-600 hover:text-zinc-950"
+              >
+                Пожаловаться
+              </Link>
+            ) : null}
           </div>
 
           <p className="mt-4 text-sm leading-6 whitespace-pre-wrap text-zinc-700">
@@ -119,6 +127,14 @@ export default async function PostPage({ params }: PostPageProps) {
                     <span className="text-xs text-zinc-500">
                       {formatFeedDate(comment.createdAt)}
                     </span>
+                    {user ? (
+                      <Link
+                        href={`/reports/new?targetType=COMMENT&targetId=${comment.id}`}
+                        className="text-xs text-zinc-500 hover:text-zinc-950"
+                      >
+                        Пожаловаться
+                      </Link>
+                    ) : null}
                   </div>
                   <p className="mt-3 text-sm leading-6 whitespace-pre-wrap text-zinc-600">
                     {comment.content}

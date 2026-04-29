@@ -5,10 +5,11 @@ import type { RouterOutputs } from "@/trpc/react";
 type PublicPost = RouterOutputs["post"]["listPublic"][number];
 
 type PostCardProps = {
+  isLoggedIn?: boolean;
   post: PublicPost;
 };
 
-export function PostCard({ post }: PostCardProps) {
+export function PostCard({ isLoggedIn = false, post }: PostCardProps) {
   return (
     <article className="border border-zinc-200 bg-white p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -24,6 +25,14 @@ export function PostCard({ post }: PostCardProps) {
         >
           Открыть
         </Link>
+        {isLoggedIn ? (
+          <Link
+            href={`/reports/new?targetType=POST&targetId=${post.id}`}
+            className="text-sm text-zinc-600 hover:text-zinc-950"
+          >
+            Пожаловаться
+          </Link>
+        ) : null}
       </div>
 
       <p className="mt-4 text-sm leading-6 whitespace-pre-wrap text-zinc-700">

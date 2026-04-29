@@ -27,7 +27,7 @@ const manageableTeamRoles = [
 
 type PostRouterDb = typeof database;
 
-const publicPostWhere = {
+export const publicPostWhere = {
   hiddenAt: null,
   AND: [
     {

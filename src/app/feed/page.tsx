@@ -1,10 +1,12 @@
 import Link from "next/link";
 
+import { getCurrentUser } from "@/server/auth/session";
 import { api } from "@/trpc/server";
 
 import { PostCard } from "./_components/post-card";
 
 export default async function FeedPage() {
+  const user = await getCurrentUser();
   const posts = await api.post.listPublic();
 
   return (
@@ -30,7 +32,7 @@ export default async function FeedPage() {
         {posts.length > 0 ? (
           <div className="grid gap-4">
             {posts.map((post) => (
-              <PostCard key={post.id} post={post} />
+              <PostCard key={post.id} isLoggedIn={Boolean(user)} post={post} />
             ))}
           </div>
         ) : (
