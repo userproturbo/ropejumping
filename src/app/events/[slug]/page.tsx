@@ -33,6 +33,7 @@ export default async function EventPage({ params }: EventPageProps) {
         .then(() => true)
         .catch(() => false)
     : false;
+  const profile = user && !canManage ? await api.profile.getMine() : null;
   const canApply =
     event.status === EventStatus.PUBLISHED ||
     event.status === EventStatus.APPLICATIONS_OPEN;
@@ -170,6 +171,7 @@ export default async function EventPage({ params }: EventPageProps) {
               application={application}
               canApply={canApply}
               eventSlug={event.slug}
+              hasProfile={Boolean(profile)}
             />
           )}
         </section>
