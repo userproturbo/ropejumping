@@ -1,6 +1,8 @@
 import type {
   ApplicationStatus,
   EventStatus,
+  ObjectType,
+  ObjectVisibility,
   TeamRole,
   TeamStatus,
 } from "@/generated/prisma/enums";
@@ -40,6 +42,20 @@ const applicationStatusLabels = {
   NO_SHOW: "Не явился",
 } satisfies Record<ApplicationStatus, string>;
 
+const objectTypeLabels = {
+  BRIDGE: "Мост",
+  BUILDING: "Здание",
+  TOWER: "Башня",
+  CLIFF: "Скала",
+  INDUSTRIAL: "Индустриальный объект",
+  OTHER: "Другое",
+} satisfies Record<ObjectType, string>;
+
+const objectVisibilityLabels = {
+  PUBLIC: "Публичный",
+  HIDDEN: "Скрытый",
+} satisfies Record<ObjectVisibility, string>;
+
 export const getTeamStatusLabel = (status: TeamStatus) =>
   teamStatusLabels[status];
 
@@ -50,3 +66,9 @@ export const getEventStatusLabel = (status: EventStatus) =>
 
 export const getApplicationStatusLabel = (status: ApplicationStatus) =>
   applicationStatusLabels[status];
+
+export const getObjectTypeLabel = (type: ObjectType) =>
+  objectTypeLabels[type];
+
+export const getObjectVisibilityLabel = (visibility: ObjectVisibility) =>
+  objectVisibilityLabels[visibility];

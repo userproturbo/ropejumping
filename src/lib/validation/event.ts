@@ -26,6 +26,10 @@ const optionalCapacity = z
   )
   .transform((value) => value ?? null);
 
+const optionalObjectId = z
+  .preprocess(emptyToNull, z.string().cuid().nullable().optional())
+  .transform((value) => value ?? null);
+
 export const eventSlugSchema = z.preprocess(
   (value) => (typeof value === "string" ? value.trim().toLowerCase() : value),
   z
@@ -58,6 +62,7 @@ const eventEditableFieldsSchema = z.object({
   coverImageUrl: nullableString(z.string().url()).transform(
     (value) => value ?? null,
   ),
+  objectId: optionalObjectId,
 });
 
 const eventDateRangeRefinement = (event: {

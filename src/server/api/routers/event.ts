@@ -3,6 +3,7 @@ import { TRPCError } from "@trpc/server";
 import {
   ApplicationStatus,
   EventStatus,
+  ObjectVisibility,
   TeamRole,
   TeamStatus,
 } from "@/generated/prisma/enums";
@@ -36,6 +37,40 @@ const isUniqueConstraintError = (error: unknown) =>
   error instanceof Error && error.message.includes("Unique constraint failed");
 
 type EventRouterDb = typeof database;
+
+const ensurePublicObject = async ({
+  db,
+  objectId,
+}: {
+  db: EventRouterDb;
+  objectId: string | null;
+}) => {
+  if (!objectId) return;
+
+  const object = await db.jumpObject.findFirst({
+    where: {
+      id: objectId,
+      visibility: ObjectVisibility.PUBLIC,
+      createdByTeam: {
+        is: {
+          status: {
+            in: publicTeamStatuses,
+          },
+        },
+      },
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (!object) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Выберите публичный объект из каталога.",
+    });
+  }
+};
 
 const getEventForManagement = async ({
   db,
@@ -145,6 +180,15 @@ export const eventRouter = createTRPCRouter({
             slug: true,
           },
         },
+        object: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            heightMeters: true,
+            region: true,
+          },
+        },
       },
     });
   }),
@@ -183,6 +227,7 @@ export const eventRouter = createTRPCRouter({
               name: true,
               slug: true,
               type: true,
+              heightMeters: true,
               region: true,
             },
           },
@@ -299,6 +344,11 @@ export const eventRouter = createTRPCRouter({
         });
       }
 
+      await ensurePublicObject({
+        db: ctx.db,
+        objectId: input.objectId,
+      });
+
       try {
         return await ctx.db.event.create({
           data: {
@@ -328,6 +378,11 @@ export const eventRouter = createTRPCRouter({
         userId: ctx.session.user.id,
       });
 
+      await ensurePublicObject({
+        db: ctx.db,
+        objectId: input.objectId,
+      });
+
       return ctx.db.event.update({
         where: { id: event.id },
         data: {
@@ -341,6 +396,7 @@ export const eventRouter = createTRPCRouter({
           priceText: input.priceText,
           levelText: input.levelText,
           coverImageUrl: input.coverImageUrl,
+          objectId: input.objectId,
         },
       });
     }),

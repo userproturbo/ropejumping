@@ -1,5 +1,6 @@
 import { applicationRouter } from "@/server/api/routers/application";
 import { eventRouter } from "@/server/api/routers/event";
+import { objectRouter } from "@/server/api/routers/object";
 import { profileRouter } from "@/server/api/routers/profile";
 import { systemRouter } from "@/server/api/routers/system";
 import { teamRouter } from "@/server/api/routers/team";
@@ -13,6 +14,7 @@ import { createCallerFactory, createTRPCRouter } from "@/server/api/trpc";
 export const appRouter = createTRPCRouter({
   application: applicationRouter,
   event: eventRouter,
+  object: objectRouter,
   profile: profileRouter,
   system: systemRouter,
   team: teamRouter,
