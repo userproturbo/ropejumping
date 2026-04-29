@@ -9,6 +9,7 @@ import { api, type RouterOutputs } from "@/trpc/react";
 type EventForCompletion = NonNullable<
   RouterOutputs["event"]["getForCompletion"]
 >;
+type AwardedBadges = RouterOutputs["event"]["complete"]["awardedBadges"];
 
 type CompletionCandidate = {
   applicationMessage: string | null;
@@ -33,10 +34,13 @@ export function EventCompletionForm({ event }: EventCompletionFormProps) {
   const [confirmedUserIds, setConfirmedUserIds] = useState<string[]>(
     existingParticipantIds,
   );
+  const [awardedBadges, setAwardedBadges] = useState<AwardedBadges | null>(
+    null,
+  );
 
   const completeEvent = api.event.complete.useMutation({
-    onSuccess: () => {
-      router.push(`/events/${event.slug}`);
+    onSuccess: (result) => {
+      setAwardedBadges(result.awardedBadges);
       router.refresh();
     },
   });
@@ -51,6 +55,7 @@ export function EventCompletionForm({ event }: EventCompletionFormProps) {
 
   const handleSubmit = (submitEvent: FormEvent<HTMLFormElement>) => {
     submitEvent.preventDefault();
+    setAwardedBadges(null);
 
     completeEvent.mutate({
       eventSlug: event.slug,
@@ -132,6 +137,32 @@ export function EventCompletionForm({ event }: EventCompletionFormProps) {
 
       {completeEvent.error ? (
         <p className="text-sm text-red-700">{completeEvent.error.message}</p>
+      ) : null}
+
+      {awardedBadges ? (
+        <section className="border border-zinc-200 p-4">
+          <h2 className="text-sm font-medium text-zinc-950">
+            Результат пересчёта бейджей
+          </h2>
+          {awardedBadges.some((award) => award.badges.length > 0) ? (
+            <div className="mt-3 grid gap-2 text-sm text-zinc-600">
+              {awardedBadges.map((award) =>
+                award.badges.length > 0 ? (
+                  <p key={award.userId}>
+                    Пользователь получил бейджи:{" "}
+                    {award.badges
+                      .map((userBadge) => userBadge.badge.name)
+                      .join(", ")}
+                  </p>
+                ) : null,
+              )}
+            </div>
+          ) : (
+            <p className="mt-2 text-sm text-zinc-600">
+              Новых бейджей нет.
+            </p>
+          )}
+        </section>
       ) : null}
 
       <div className="flex flex-wrap items-center gap-3">

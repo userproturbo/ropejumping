@@ -1,5 +1,6 @@
 import type {
   ApplicationStatus,
+  BadgeCategory,
   EventStatus,
   ObjectType,
   ObjectVisibility,
@@ -56,6 +57,16 @@ const objectVisibilityLabels = {
   HIDDEN: "Скрытый",
 } satisfies Record<ObjectVisibility, string>;
 
+const badgeCategoryLabels = {
+  PARTICIPATION: "Участие",
+  OBJECTS: "Объекты",
+  HEIGHT: "Высота",
+  EVENT: "События",
+  ROLE: "Роли",
+  CONTENT: "Контент",
+  SPECIAL: "Особые",
+} satisfies Record<BadgeCategory, string>;
+
 export const getTeamStatusLabel = (status: TeamStatus) =>
   teamStatusLabels[status];
 
@@ -72,3 +83,6 @@ export const getObjectTypeLabel = (type: ObjectType) =>
 
 export const getObjectVisibilityLabel = (visibility: ObjectVisibility) =>
   objectVisibilityLabels[visibility];
+
+export const getBadgeCategoryLabel = (category: BadgeCategory) =>
+  badgeCategoryLabels[category];

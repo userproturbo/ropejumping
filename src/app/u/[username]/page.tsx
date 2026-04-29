@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { getBadgeCategoryLabel } from "@/lib/display";
 import { api } from "@/trpc/server";
 
 import { formatEventDateRange } from "../../events/_components/date-format";
@@ -67,6 +68,40 @@ export default async function PublicProfilePage({
         </section>
 
         <section className="mt-6 border border-zinc-200 bg-white p-6">
+          <h2 className="text-xl font-semibold text-zinc-950">Бейджи</h2>
+          {profile.user.badges.length > 0 ? (
+            <div className="mt-5 grid gap-4">
+              {profile.user.badges.map((userBadge) => (
+                <div key={userBadge.id} className="border border-zinc-200 p-4">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <h3 className="font-medium text-zinc-950">
+                        {userBadge.badge.name}
+                      </h3>
+                      <p className="mt-1 text-sm text-zinc-500">
+                        {getBadgeCategoryLabel(userBadge.badge.category)}
+                      </p>
+                    </div>
+                    <span className="text-xs text-zinc-500">
+                      {formatBadgeDate(userBadge.awardedAt)}
+                    </span>
+                  </div>
+                  {userBadge.badge.description ? (
+                    <p className="mt-3 text-sm leading-6 text-zinc-600">
+                      {userBadge.badge.description}
+                    </p>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="mt-2 text-sm text-zinc-600">
+              Пока нет бейджей.
+            </p>
+          )}
+        </section>
+
+        <section className="mt-6 border border-zinc-200 bg-white p-6">
           <h2 className="text-xl font-semibold text-zinc-950">
             История участия
           </h2>
@@ -103,3 +138,8 @@ export default async function PublicProfilePage({
     </main>
   );
 }
+
+const formatBadgeDate = (date: Date) =>
+  new Intl.DateTimeFormat("ru-RU", {
+    dateStyle: "medium",
+  }).format(date);

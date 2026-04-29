@@ -19,6 +19,7 @@ import {
   publicProcedure,
 } from "@/server/api/trpc";
 import type { db as database } from "@/server/db";
+import { recalculateUserBadges } from "@/server/badges/service";
 import {
   canCreateEventForTeam,
   canManageEvent,
@@ -498,7 +499,7 @@ export const eventRouter = createTRPCRouter({
       const confirmedUserIds = Array.from(new Set(input.confirmedUserIds));
       const completedAt = new Date();
 
-      return ctx.db.$transaction(async (tx) => {
+      const completedEvent = await ctx.db.$transaction(async (tx) => {
         const acceptedApplications = await tx.eventApplication.findMany({
           where: {
             eventId: event.id,
@@ -596,5 +597,25 @@ export const eventRouter = createTRPCRouter({
           where: { id: event.id },
         });
       });
+
+      const awardedBadges = await Promise.all(
+        confirmedUserIds.map(async (userId) => {
+          const badges = await recalculateUserBadges(
+            ctx.db,
+            userId,
+            ctx.session.user.id,
+          );
+
+          return {
+            userId,
+            badges,
+          };
+        }),
+      );
+
+      return {
+        event: completedEvent,
+        awardedBadges,
+      };
     }),
 });
