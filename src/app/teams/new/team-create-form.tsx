@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
+import { ImageUploadField } from "@/app/_components/image-upload-field";
 import { api } from "@/trpc/react";
 
 export function TeamCreateForm() {
@@ -89,9 +90,18 @@ export function TeamCreateForm() {
         />
       </div>
 
+      <div className="grid gap-3">
+        <p className="text-sm font-medium text-zinc-950">Логотип команды</p>
+        <ImageUploadField
+          id="teamCreateLogoUpload"
+          value={logoUrl}
+          onChange={setLogoUrl}
+        />
+      </div>
+
       <div className="grid gap-2">
         <label htmlFor="logoUrl" className="text-sm font-medium text-zinc-950">
-          Ссылка на логотип
+          Ссылка на логотип вручную
         </label>
         <input
           id="logoUrl"

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
+import { ImageUploadField } from "@/app/_components/image-upload-field";
 import { ObjectType } from "@/generated/prisma/enums";
 import { getObjectTypeLabel } from "@/lib/display";
 import { api, type RouterOutputs } from "@/trpc/react";
@@ -228,12 +229,21 @@ export function ObjectForm({ object, teams = [] }: ObjectFormProps) {
         />
       </div>
 
+      <div className="grid gap-3">
+        <p className="text-sm font-medium text-zinc-950">Обложка объекта</p>
+        <ImageUploadField
+          id="objectCoverUpload"
+          value={coverImageUrl}
+          onChange={setCoverImageUrl}
+        />
+      </div>
+
       <div className="grid gap-2">
         <label
           htmlFor="coverImageUrl"
           className="text-sm font-medium text-zinc-950"
         >
-          Ссылка на обложку
+          Ссылка на обложку вручную
         </label>
         <input
           id="coverImageUrl"
