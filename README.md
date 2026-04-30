@@ -44,7 +44,8 @@ DATABASE_URL="postgresql://ropejumping:ropejumping@localhost:5432/ropejumping"
 ```
 
 Fill `AUTH_SECRET` and OAuth provider values before using authentication in a real environment.
-Yandex Object Storage variables are placeholders only; upload logic is not implemented yet.
+Yandex Object Storage variables may stay empty for local builds, but image uploads
+require configured storage.
 
 Authentication is configured with Auth.js. OAuth providers are enabled only when
 their environment variables are present, so the app can still build without real
@@ -116,10 +117,24 @@ provider credentials during local foundation work.
 
 - `/feed` показывает простую хронологическую ленту публикаций.
 - `/feed/new` позволяет пользователю с заполненным профилем создать пост с
-  текстом, ссылкой на изображение и необязательной связью с командой,
-  мероприятием или объектом.
+  текстом, загруженным изображением или ссылкой на изображение и необязательной
+  связью с командой, мероприятием или объектом.
 - `/posts/[id]` показывает пост, комментарии и лайки.
-- Алгоритмической ленты, загрузок файлов, репостов, уведомлений и чата пока нет.
+- Алгоритмической ленты, галерей, видео, репостов, уведомлений и чата пока нет.
+
+Загрузка изображений:
+
+- Загрузки используют Yandex Object Storage через presigned `PUT` URL.
+- Для загрузок нужны переменные `YANDEX_OBJECT_STORAGE_ENDPOINT`,
+  `YANDEX_OBJECT_STORAGE_REGION`, `YANDEX_OBJECT_STORAGE_BUCKET`,
+  `YANDEX_OBJECT_STORAGE_ACCESS_KEY_ID`,
+  `YANDEX_OBJECT_STORAGE_SECRET_ACCESS_KEY` и
+  `YANDEX_OBJECT_STORAGE_PUBLIC_URL`.
+- Сейчас поддерживаются только изображения JPEG, PNG, WebP и GIF размером до
+  10 МБ.
+- Пост хранит публичную ссылку на изображение в `Post.imageUrl`.
+- `Media` хранит метаданные загруженного файла: владельца, bucket, key,
+  публичный URL, MIME-тип и размер.
 
 Модерация ленты:
 

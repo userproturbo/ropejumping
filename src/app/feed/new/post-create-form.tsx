@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
+import { ImageUploadField } from "@/app/_components/image-upload-field";
 import { api, type RouterOutputs } from "@/trpc/react";
 
 type TeamOption = RouterOutputs["team"]["getMine"][number];
@@ -73,9 +74,14 @@ export function PostCreateForm({
         />
       </div>
 
+      <div className="grid gap-3">
+        <p className="text-sm font-medium text-zinc-950">Изображение</p>
+        <ImageUploadField value={imageUrl} onChange={setImageUrl} />
+      </div>
+
       <div className="grid gap-2">
         <label htmlFor="imageUrl" className="text-sm font-medium text-zinc-950">
-          Ссылка на изображение
+          Ссылка на изображение вручную
         </label>
         <input
           id="imageUrl"

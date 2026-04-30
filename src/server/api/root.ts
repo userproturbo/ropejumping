@@ -7,6 +7,7 @@ import { profileRouter } from "@/server/api/routers/profile";
 import { reportRouter } from "@/server/api/routers/report";
 import { systemRouter } from "@/server/api/routers/system";
 import { teamRouter } from "@/server/api/routers/team";
+import { uploadRouter } from "@/server/api/routers/upload";
 import { createCallerFactory, createTRPCRouter } from "@/server/api/trpc";
 
 /**
@@ -24,6 +25,7 @@ export const appRouter = createTRPCRouter({
   report: reportRouter,
   system: systemRouter,
   team: teamRouter,
+  upload: uploadRouter,
 });
 
 // export type definition of API
