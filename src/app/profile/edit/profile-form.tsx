@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
+import { ImageUploadField } from "@/app/_components/image-upload-field";
 import { api, type RouterOutputs } from "@/trpc/react";
 
 type Profile = RouterOutputs["profile"]["getMine"];
@@ -100,12 +101,21 @@ export function ProfileForm({ profile }: ProfileFormProps) {
         />
       </div>
 
+      <div className="grid gap-3">
+        <p className="text-sm font-medium text-zinc-950">Аватар</p>
+        <ImageUploadField
+          id="avatarUpload"
+          value={avatarUrl}
+          onChange={setAvatarUrl}
+        />
+      </div>
+
       <div className="grid gap-2">
         <label
           htmlFor="avatarUrl"
           className="text-sm font-medium text-zinc-950"
         >
-          Ссылка на аватар
+          Ссылка на аватар вручную
         </label>
         <input
           id="avatarUrl"

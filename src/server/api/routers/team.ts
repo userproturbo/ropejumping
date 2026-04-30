@@ -170,6 +170,18 @@ export const teamRouter = createTRPCRouter({
   create: protectedProcedure
     .input(teamCreateInputSchema)
     .mutation(async ({ ctx, input }) => {
+      const profile = await ctx.db.profile.findUnique({
+        where: { userId: ctx.session.user.id },
+        select: { id: true },
+      });
+
+      if (!profile) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Перед созданием команды заполните профиль.",
+        });
+      }
+
       const existingTeam = await ctx.db.team.findUnique({
         where: { slug: input.slug },
         select: { id: true },
