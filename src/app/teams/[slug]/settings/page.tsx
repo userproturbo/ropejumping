@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { requireCurrentUser } from "@/server/auth/session";
@@ -34,6 +35,12 @@ export default async function TeamSettingsPage({
             Редактирование основной информации команды. Изменение slug пока
             недоступно.
           </p>
+          <Link
+            href={`/teams/${team.slug}/members`}
+            className="mt-4 inline-flex text-sm font-medium text-zinc-950 hover:text-zinc-600"
+          >
+            Участники команды
+          </Link>
         </div>
 
         <TeamSettingsForm team={team} />
