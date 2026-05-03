@@ -2,6 +2,11 @@ import { TRPCError } from "@trpc/server";
 
 import { TeamRole, TeamStatus } from "@/generated/prisma/enums";
 import {
+  teamMemberAddInputSchema,
+  teamMemberRemoveInputSchema,
+  teamMemberUpdateRoleInputSchema,
+} from "@/lib/validation/team-member";
+import {
   teamCreateInputSchema,
   teamSlugLookupSchema,
   teamUpdateInputSchema,
@@ -59,6 +64,54 @@ const getManageableTeam = async ({
   }
 
   return team;
+};
+
+const getManageableMembership = async ({
+  db,
+  membershipId,
+  userId,
+}: {
+  db: TeamRouterDb;
+  membershipId: string;
+  userId: string;
+}) => {
+  const membership = await db.teamMember.findUnique({
+    where: { id: membershipId },
+    select: {
+      id: true,
+      teamId: true,
+      role: true,
+    },
+  });
+
+  if (!membership) {
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: "Участник команды не найден.",
+    });
+  }
+
+  const canManage = await hasTeamOwnerOrAdminRole({
+    db,
+    teamId: membership.teamId,
+    userId,
+  });
+
+  if (!canManage) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "У вас нет прав на управление участниками этой команды.",
+    });
+  }
+
+  if (membership.role === TeamRole.OWNER) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Владелец защищён от изменения в этой версии.",
+    });
+  }
+
+  return membership;
 };
 
 export const teamRouter = createTRPCRouter({
@@ -253,6 +306,141 @@ export const teamRouter = createTRPCRouter({
 
       return ctx.db.team.findUnique({
         where: { id: team.id },
+      });
+    }),
+
+  getForMembersManagement: protectedProcedure
+    .input(teamSlugLookupSchema)
+    .query(async ({ ctx, input }) => {
+      const team = await getManageableTeam({
+        db: ctx.db,
+        slug: input,
+        userId: ctx.session.user.id,
+      });
+
+      return ctx.db.team.findUniqueOrThrow({
+        where: { id: team.id },
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          members: {
+            orderBy: {
+              createdAt: "asc",
+            },
+            select: {
+              id: true,
+              role: true,
+              createdAt: true,
+              user: {
+                select: {
+                  id: true,
+                  name: true,
+                  image: true,
+                  profile: {
+                    select: {
+                      username: true,
+                      displayName: true,
+                      avatarUrl: true,
+                      city: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+    }),
+
+  addMember: protectedProcedure
+    .input(teamMemberAddInputSchema)
+    .mutation(async ({ ctx, input }) => {
+      const team = await getManageableTeam({
+        db: ctx.db,
+        slug: input.teamSlug,
+        userId: ctx.session.user.id,
+      });
+
+      const profile = await ctx.db.profile.findUnique({
+        where: { username: input.username },
+        select: {
+          userId: true,
+        },
+      });
+
+      if (!profile) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Пользователь с таким username не найден.",
+        });
+      }
+
+      const existingMembership = await ctx.db.teamMember.findUnique({
+        where: {
+          teamId_userId: {
+            teamId: team.id,
+            userId: profile.userId,
+          },
+        },
+        select: { id: true },
+      });
+
+      if (existingMembership) {
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: "Пользователь уже состоит в команде.",
+        });
+      }
+
+      try {
+        return await ctx.db.teamMember.create({
+          data: {
+            teamId: team.id,
+            userId: profile.userId,
+            role: input.role,
+          },
+        });
+      } catch (error) {
+        if (isUniqueConstraintError(error)) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "Пользователь уже состоит в команде.",
+          });
+        }
+
+        throw error;
+      }
+    }),
+
+  updateMemberRole: protectedProcedure
+    .input(teamMemberUpdateRoleInputSchema)
+    .mutation(async ({ ctx, input }) => {
+      const membership = await getManageableMembership({
+        db: ctx.db,
+        membershipId: input.membershipId,
+        userId: ctx.session.user.id,
+      });
+
+      return ctx.db.teamMember.update({
+        where: { id: membership.id },
+        data: {
+          role: input.role,
+        },
+      });
+    }),
+
+  removeMember: protectedProcedure
+    .input(teamMemberRemoveInputSchema)
+    .mutation(async ({ ctx, input }) => {
+      const membership = await getManageableMembership({
+        db: ctx.db,
+        membershipId: input.membershipId,
+        userId: ctx.session.user.id,
+      });
+
+      return ctx.db.teamMember.delete({
+        where: { id: membership.id },
       });
     }),
 });
