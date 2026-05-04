@@ -4,6 +4,7 @@ import { requireCurrentUser } from "@/server/auth/session";
 import { api } from "@/trpc/server";
 
 import { EventEditForm } from "./event-edit-form";
+import { EventStatusManagement } from "./event-status-management";
 
 type EditEventPageProps = {
   params: Promise<{
@@ -34,6 +35,10 @@ export default async function EditEventPage({ params }: EditEventPageProps) {
           </p>
         </div>
 
+        <EventStatusManagement
+          currentStatus={event.status}
+          eventSlug={event.slug}
+        />
         <EventEditForm event={event} objects={objects} />
       </div>
     </main>

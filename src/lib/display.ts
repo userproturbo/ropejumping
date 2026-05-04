@@ -42,7 +42,7 @@ const teamFunctionRoleLabels = {
 
 const eventStatusLabels = {
   DRAFT: "Черновик",
-  PUBLISHED: "Опубликовано",
+  PUBLISHED: "Анонс",
   APPLICATIONS_OPEN: "Набор открыт",
   FULL: "Мест нет",
   APPLICATIONS_CLOSED: "Набор закрыт",

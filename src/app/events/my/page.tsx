@@ -55,7 +55,7 @@ export default async function MyEventsPage() {
                       Команда: {event.team.name}
                     </p>
                   </div>
-                  <span className="text-xs font-medium text-zinc-500">
+                  <span className="border border-zinc-200 px-2 py-1 text-xs font-medium text-zinc-600">
                     {getEventStatusLabel(event.status)}
                   </span>
                 </div>

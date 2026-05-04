@@ -2,7 +2,6 @@ import { TRPCError } from "@trpc/server";
 
 import {
   ApplicationStatus,
-  EventStatus,
   TeamStatus,
 } from "@/generated/prisma/enums";
 import {
@@ -14,11 +13,7 @@ import {
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import type { db as database } from "@/server/db";
 import { canManageEvent } from "@/server/events/permissions";
-
-const applicationOpenEventStatuses = [
-  EventStatus.PUBLISHED,
-  EventStatus.APPLICATIONS_OPEN,
-];
+import { applicationOpenEventStatuses } from "@/server/events/statuses";
 
 const publicTeamStatuses = [TeamStatus.REGULAR, TeamStatus.VERIFIED];
 

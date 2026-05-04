@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { EventStatus } from "@/generated/prisma/enums";
+
 const emptyToNull = (value: unknown) => {
   if (typeof value !== "string") return value;
 
@@ -79,7 +81,24 @@ export const eventUpdateInputSchema = eventEditableFieldsSchema.extend({
   slug: eventSlugSchema,
 }).refine(eventDateRangeRefinement, "Окончание должно быть позже начала.");
 
+const manuallySettableEventStatusSchema = z.nativeEnum(EventStatus).refine(
+  (status) =>
+    status === EventStatus.PUBLISHED ||
+    status === EventStatus.APPLICATIONS_OPEN ||
+    status === EventStatus.FULL ||
+    status === EventStatus.APPLICATIONS_CLOSED ||
+    status === EventStatus.POSTPONED ||
+    status === EventStatus.CANCELLED ||
+    status === EventStatus.ARCHIVED,
+  "Этот статус нельзя установить вручную.",
+);
+
 export const eventSlugLookupSchema = eventSlugSchema;
+
+export const eventStatusUpdateInputSchema = z.object({
+  slug: eventSlugSchema,
+  status: manuallySettableEventStatusSchema,
+});
 
 export const eventCompletionInputSchema = z.object({
   eventSlug: eventSlugSchema,
