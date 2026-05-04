@@ -35,13 +35,26 @@ export default async function TeamSettingsPage({
             Редактирование основной информации команды. Изменение slug пока
             недоступно.
           </p>
-          <Link
-            href={`/teams/${team.slug}/members`}
-            className="mt-4 inline-flex text-sm font-medium text-zinc-950 hover:text-zinc-600"
-          >
-            Участники команды
-          </Link>
         </div>
+
+        <section className="mb-6 border border-zinc-200 bg-white p-5">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-zinc-950">
+                Участники команды
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-zinc-600">
+                Добавляйте участников, меняйте роли и удаляйте людей из команды.
+              </p>
+            </div>
+            <Link
+              href={`/teams/${team.slug}/members`}
+              className="inline-flex items-center justify-center bg-zinc-950 px-4 py-2 text-sm text-white hover:bg-zinc-800"
+            >
+              Управлять участниками
+            </Link>
+          </div>
+        </section>
 
         <TeamSettingsForm team={team} />
       </div>
