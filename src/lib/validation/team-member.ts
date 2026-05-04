@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { TeamRole } from "@/generated/prisma/enums";
+import { TeamFunctionRole, TeamRole } from "@/generated/prisma/enums";
 import { teamSlugSchema } from "@/lib/validation/team";
 
 const manageableTeamMemberRoleSchema = z.nativeEnum(TeamRole).refine(
@@ -20,10 +20,16 @@ const usernameRequiredSchema = z.preprocess(
     .regex(/^[a-z0-9_-]+$/),
 );
 
+export const teamFunctionRolesSchema = z.preprocess(
+  (value) => (Array.isArray(value) ? Array.from(new Set(value)) : value),
+  z.array(z.nativeEnum(TeamFunctionRole)).max(6).default([]),
+);
+
 export const teamMemberAddInputSchema = z.object({
   teamSlug: teamSlugSchema,
   username: usernameRequiredSchema,
   role: manageableTeamMemberRoleSchema,
+  functionRoles: teamFunctionRolesSchema,
 });
 
 export const teamMemberUpdateRoleInputSchema = z.object({
@@ -33,6 +39,11 @@ export const teamMemberUpdateRoleInputSchema = z.object({
 
 export const teamMemberRemoveInputSchema = z.object({
   membershipId: z.string().cuid(),
+});
+
+export const teamMemberUpdateFunctionRolesInputSchema = z.object({
+  membershipId: z.string().cuid(),
+  functionRoles: teamFunctionRolesSchema,
 });
 
 export type TeamMemberAddInput = z.infer<typeof teamMemberAddInputSchema>;

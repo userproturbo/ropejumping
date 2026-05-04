@@ -1,10 +1,17 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { getEventStatusLabel, getTeamRoleLabel, getTeamStatusLabel } from "@/lib/display";
+import {
+  getEventStatusLabel,
+  getTeamFunctionRoleLabel,
+  getTeamRoleLabel,
+  getTeamStatusLabel,
+} from "@/lib/display";
+import { getCurrentUser } from "@/server/auth/session";
 import { api } from "@/trpc/server";
 
 import { formatEventDateRange } from "../../events/_components/date-format";
+import { TeamJoinRequestPanel } from "./team-join-request-panel";
 
 type TeamPageProps = {
   params: Promise<{
@@ -19,6 +26,11 @@ export default async function TeamPage({ params }: TeamPageProps) {
   if (!team) {
     notFound();
   }
+
+  const currentUser = await getCurrentUser();
+  const joinRequestState = currentUser
+    ? await api.teamJoinRequest.getMineForTeam(slug).catch(() => null)
+    : null;
 
   return (
     <main className="min-h-[calc(100vh-4rem)] bg-zinc-50">
@@ -65,6 +77,12 @@ export default async function TeamPage({ params }: TeamPageProps) {
           </div>
         </section>
 
+        <TeamJoinRequestPanel
+          teamSlug={team.slug}
+          isAuthenticated={Boolean(currentUser)}
+          state={joinRequestState}
+        />
+
         <section className="mt-6 border border-zinc-200 bg-white p-6">
           <h2 className="text-xl font-semibold text-zinc-950">Участники</h2>
           <div className="mt-5 grid gap-4">
@@ -101,9 +119,23 @@ export default async function TeamPage({ params }: TeamPageProps) {
                       ) : null}
                     </div>
                   </div>
-                  <span className="text-xs font-medium text-zinc-500">
-                    {getTeamRoleLabel(member.role)}
-                  </span>
+                  <div className="flex flex-col items-end gap-2">
+                    <span className="text-xs font-medium text-zinc-500">
+                      {getTeamRoleLabel(member.role)}
+                    </span>
+                    {member.functionRoles.length > 0 ? (
+                      <div className="flex flex-wrap justify-end gap-2">
+                        {member.functionRoles.map((functionRole) => (
+                          <span
+                            key={functionRole}
+                            className="border border-zinc-200 px-2 py-1 text-xs text-zinc-600"
+                          >
+                            {getTeamFunctionRoleLabel(functionRole)}
+                          </span>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
                 </div>
               );
             })}
