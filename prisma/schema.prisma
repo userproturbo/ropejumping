@@ -29,6 +29,22 @@ enum TeamStatus {
   BLOCKED
 }
 
+enum TeamJoinRequestStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  CANCELLED_BY_USER
+}
+
+enum TeamFunctionRole {
+  OPERATOR
+  PHOTOGRAPHER
+  MEDIC
+  INSTRUCTOR
+  COORDINATOR
+  RADIO_OPERATOR
+}
+
 enum ObjectType {
   BRIDGE
   BUILDING
@@ -156,6 +172,8 @@ model User {
   reports                 Report[]             @relation("ReportsFiled")
   reviewedReports         Report[]             @relation("ReportsReviewed")
   auditLogs               AuditLog[]           @relation("AuditLogActor")
+  teamJoinRequests        TeamJoinRequest[]    @relation("TeamJoinRequests")
+  decidedTeamJoinRequests TeamJoinRequest[]    @relation("TeamJoinRequestDecisions")
 }
 
 model VerificationToken {
@@ -193,22 +211,24 @@ model Team {
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
 
-  members TeamMember[]
-  events  Event[]
-  objects JumpObject[] @relation("TeamObjects")
-  posts   Post[]
+  members      TeamMember[]
+  events       Event[]
+  objects      JumpObject[]      @relation("TeamObjects")
+  posts        Post[]
+  joinRequests TeamJoinRequest[]
 
   @@index([status])
   @@index([region])
 }
 
 model TeamMember {
-  id        String   @id @default(cuid())
-  teamId    String
-  userId    String
-  role      TeamRole @default(MEMBER)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String             @id @default(cuid())
+  teamId        String
+  userId        String
+  role          TeamRole           @default(MEMBER)
+  functionRoles TeamFunctionRole[] @default([])
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
 
   team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -216,6 +236,28 @@ model TeamMember {
   @@unique([teamId, userId])
   @@index([teamId])
   @@index([userId])
+}
+
+model TeamJoinRequest {
+  id          String                @id @default(cuid())
+  teamId      String
+  userId      String
+  status      TeamJoinRequestStatus @default(PENDING)
+  message     String?
+  decidedById String?
+  decidedAt   DateTime?
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+
+  team      Team  @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user      User  @relation("TeamJoinRequests", fields: [userId], references: [id], onDelete: Cascade)
+  decidedBy User? @relation("TeamJoinRequestDecisions", fields: [decidedById], references: [id], onDelete: SetNull)
+
+  @@index([teamId])
+  @@index([userId])
+  @@index([teamId, status])
+  @@index([userId, status])
+  @@index([decidedById])
 }
 
 model JumpObject {

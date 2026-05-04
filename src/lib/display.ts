@@ -4,6 +4,8 @@ import type {
   EventStatus,
   ObjectType,
   ObjectVisibility,
+  TeamFunctionRole,
+  TeamJoinRequestStatus,
   TeamRole,
   TeamStatus,
 } from "@/generated/prisma/enums";
@@ -21,6 +23,22 @@ const teamRoleLabels = {
   ORGANIZER: "Организатор",
   MEMBER: "Участник",
 } satisfies Record<TeamRole, string>;
+
+const teamJoinRequestStatusLabels = {
+  PENDING: "Ожидает решения",
+  ACCEPTED: "Принята",
+  REJECTED: "Отклонена",
+  CANCELLED_BY_USER: "Отменена пользователем",
+} satisfies Record<TeamJoinRequestStatus, string>;
+
+const teamFunctionRoleLabels = {
+  OPERATOR: "Оператор",
+  PHOTOGRAPHER: "Фотограф",
+  MEDIC: "Медик",
+  INSTRUCTOR: "Инструктор",
+  COORDINATOR: "Координатор",
+  RADIO_OPERATOR: "Связист",
+} satisfies Record<TeamFunctionRole, string>;
 
 const eventStatusLabels = {
   DRAFT: "Черновик",
@@ -71,6 +89,13 @@ export const getTeamStatusLabel = (status: TeamStatus) =>
   teamStatusLabels[status];
 
 export const getTeamRoleLabel = (role: TeamRole) => teamRoleLabels[role];
+
+export const getTeamJoinRequestStatusLabel = (
+  status: TeamJoinRequestStatus,
+) => teamJoinRequestStatusLabels[status];
+
+export const getTeamFunctionRoleLabel = (role: TeamFunctionRole) =>
+  teamFunctionRoleLabels[role];
 
 export const getEventStatusLabel = (status: EventStatus) =>
   eventStatusLabels[status];

@@ -80,6 +80,12 @@ export default async function MyTeamsPage() {
                         >
                           Участники
                         </Link>
+                        <Link
+                          href={`/teams/${team.slug}/join-requests`}
+                          className="border border-zinc-300 px-3 py-2 text-zinc-800 hover:border-zinc-950"
+                        >
+                          Заявки
+                        </Link>
                       </>
                     ) : null}
                   </div>

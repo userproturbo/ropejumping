@@ -4,6 +4,7 @@ import { TeamRole, TeamStatus } from "@/generated/prisma/enums";
 import {
   teamMemberAddInputSchema,
   teamMemberRemoveInputSchema,
+  teamMemberUpdateFunctionRolesInputSchema,
   teamMemberUpdateRoleInputSchema,
 } from "@/lib/validation/team-member";
 import {
@@ -114,6 +115,46 @@ const getManageableMembership = async ({
   return membership;
 };
 
+const getMembershipForFunctionRoleManagement = async ({
+  db,
+  membershipId,
+  userId,
+}: {
+  db: TeamRouterDb;
+  membershipId: string;
+  userId: string;
+}) => {
+  const membership = await db.teamMember.findUnique({
+    where: { id: membershipId },
+    select: {
+      id: true,
+      teamId: true,
+    },
+  });
+
+  if (!membership) {
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: "Участник команды не найден.",
+    });
+  }
+
+  const canManage = await hasTeamOwnerOrAdminRole({
+    db,
+    teamId: membership.teamId,
+    userId,
+  });
+
+  if (!canManage) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "У вас нет прав на управление участниками этой команды.",
+    });
+  }
+
+  return membership;
+};
+
 export const teamRouter = createTRPCRouter({
   listPublic: publicProcedure.query(({ ctx }) => {
     return ctx.db.team.findMany({
@@ -198,6 +239,7 @@ export const teamRouter = createTRPCRouter({
             select: {
               id: true,
               role: true,
+              functionRoles: true,
               createdAt: true,
               user: {
                 select: {
@@ -331,6 +373,7 @@ export const teamRouter = createTRPCRouter({
             select: {
               id: true,
               role: true,
+              functionRoles: true,
               createdAt: true,
               user: {
                 select: {
@@ -399,6 +442,7 @@ export const teamRouter = createTRPCRouter({
             teamId: team.id,
             userId: profile.userId,
             role: input.role,
+            functionRoles: input.functionRoles,
           },
         });
       } catch (error) {
@@ -426,6 +470,23 @@ export const teamRouter = createTRPCRouter({
         where: { id: membership.id },
         data: {
           role: input.role,
+        },
+      });
+    }),
+
+  updateMemberFunctionRoles: protectedProcedure
+    .input(teamMemberUpdateFunctionRolesInputSchema)
+    .mutation(async ({ ctx, input }) => {
+      const membership = await getMembershipForFunctionRoleManagement({
+        db: ctx.db,
+        membershipId: input.membershipId,
+        userId: ctx.session.user.id,
+      });
+
+      return ctx.db.teamMember.update({
+        where: { id: membership.id },
+        data: {
+          functionRoles: input.functionRoles,
         },
       });
     }),
