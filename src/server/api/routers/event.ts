@@ -11,6 +11,7 @@ import {
   eventCompletionInputSchema,
   eventCreateInputSchema,
   eventSlugLookupSchema,
+  eventStatusUpdateInputSchema,
   eventUpdateInputSchema,
 } from "@/lib/validation/event";
 import {
@@ -38,6 +39,35 @@ const isUniqueConstraintError = (error: unknown) =>
   error instanceof Error && error.message.includes("Unique constraint failed");
 
 type EventRouterDb = typeof database;
+type EventForOrdering = {
+  startsAt: Date;
+  status: EventStatus;
+};
+
+const eventStatusOrderGroups = {
+  [EventStatus.APPLICATIONS_OPEN]: 1,
+  [EventStatus.PUBLISHED]: 1,
+  [EventStatus.FULL]: 1,
+  [EventStatus.APPLICATIONS_CLOSED]: 1,
+  [EventStatus.POSTPONED]: 1,
+  [EventStatus.CANCELLED]: 2,
+  [EventStatus.COMPLETED]: 3,
+  [EventStatus.ARCHIVED]: 4,
+  [EventStatus.DRAFT]: 5,
+} satisfies Record<EventStatus, number>;
+
+const orderEventsByLifecycle = <TEvent extends EventForOrdering>(
+  events: TEvent[],
+) => {
+  return events.sort((left, right) => {
+    const groupDifference =
+      eventStatusOrderGroups[left.status] - eventStatusOrderGroups[right.status];
+
+    if (groupDifference !== 0) return groupDifference;
+
+    return left.startsAt.getTime() - right.startsAt.getTime();
+  });
+};
 
 const ensurePublicObject = async ({
   db,
@@ -153,8 +183,8 @@ const ensureCanManageEventBySlug = async ({
 };
 
 export const eventRouter = createTRPCRouter({
-  listPublic: publicProcedure.query(({ ctx }) => {
-    return ctx.db.event.findMany({
+  listPublic: publicProcedure.query(async ({ ctx }) => {
+    const events = await ctx.db.event.findMany({
       where: {
         status: {
           in: publicEventStatuses,
@@ -192,6 +222,8 @@ export const eventRouter = createTRPCRouter({
         },
       },
     });
+
+    return orderEventsByLifecycle(events);
   }),
 
   getBySlug: publicProcedure
@@ -258,8 +290,8 @@ export const eventRouter = createTRPCRouter({
       });
     }),
 
-  getMine: protectedProcedure.query(({ ctx }) => {
-    return ctx.db.event.findMany({
+  getMine: protectedProcedure.query(async ({ ctx }) => {
+    const events = await ctx.db.event.findMany({
       where: {
         OR: [
           {
@@ -292,6 +324,8 @@ export const eventRouter = createTRPCRouter({
         },
       },
     });
+
+    return orderEventsByLifecycle(events);
   }),
 
   getForEdit: protectedProcedure
@@ -398,6 +432,31 @@ export const eventRouter = createTRPCRouter({
           levelText: input.levelText,
           coverImageUrl: input.coverImageUrl,
           objectId: input.objectId,
+        },
+      });
+    }),
+
+  updateStatus: protectedProcedure
+    .input(eventStatusUpdateInputSchema)
+    .mutation(async ({ ctx, input }) => {
+      const event = await ensureCanManageEventBySlug({
+        db: ctx.db,
+        slug: input.slug,
+        userId: ctx.session.user.id,
+      });
+
+      if (event.status === EventStatus.COMPLETED) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message:
+            "Завершённое мероприятие нельзя изменить через управление статусом.",
+        });
+      }
+
+      return ctx.db.event.update({
+        where: { id: event.id },
+        data: {
+          status: input.status,
         },
       });
     }),

@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { EventStatus } from "@/generated/prisma/enums";
 import { getEventStatusLabel, getObjectTypeLabel } from "@/lib/display";
 import { getCurrentUser } from "@/server/auth/session";
+import { applicationOpenEventStatuses } from "@/server/events/statuses";
 import { api } from "@/trpc/server";
 
 import { formatEventDateRange } from "../_components/date-format";
@@ -13,6 +14,29 @@ type EventPageProps = {
   params: Promise<{
     slug: string;
   }>;
+};
+
+const getApplicationUnavailableMessage = (status: EventStatus) => {
+  switch (status) {
+    case EventStatus.FULL:
+      return "Мест нет.";
+    case EventStatus.APPLICATIONS_CLOSED:
+      return "Приём заявок закрыт.";
+    case EventStatus.POSTPONED:
+      return "Мероприятие перенесено.";
+    case EventStatus.CANCELLED:
+      return "Мероприятие отменено.";
+    case EventStatus.ARCHIVED:
+      return "Мероприятие в архиве.";
+    case EventStatus.COMPLETED:
+      return "Мероприятие завершено.";
+    case EventStatus.PUBLISHED:
+      return "Мероприятие опубликовано. Приём заявок ещё не открыт.";
+    case EventStatus.DRAFT:
+      return "Приём заявок пока недоступен.";
+    default:
+      return null;
+  }
 };
 
 export default async function EventPage({ params }: EventPageProps) {
@@ -34,9 +58,10 @@ export default async function EventPage({ params }: EventPageProps) {
         .catch(() => false)
     : false;
   const profile = user && !canManage ? await api.profile.getMine() : null;
-  const canApply =
-    event.status === EventStatus.PUBLISHED ||
-    event.status === EventStatus.APPLICATIONS_OPEN;
+  const canApply = applicationOpenEventStatuses.includes(event.status);
+  const applicationUnavailableMessage = canApply
+    ? null
+    : getApplicationUnavailableMessage(event.status);
 
   return (
     <main className="min-h-[calc(100vh-4rem)] bg-zinc-50">
@@ -169,7 +194,29 @@ export default async function EventPage({ params }: EventPageProps) {
 
         <section className="mt-6 border border-zinc-200 bg-white p-6">
           <h2 className="text-xl font-semibold text-zinc-950">Заявки</h2>
-          {!user ? (
+          {applicationUnavailableMessage ? (
+            <>
+              <p className="mt-2 text-sm text-zinc-600">
+                {applicationUnavailableMessage}
+              </p>
+              {canManage ? (
+                <div className="mt-4 flex flex-wrap gap-3">
+                  <Link
+                    href={`/events/${event.slug}/applications`}
+                    className="inline-flex border border-zinc-300 px-4 py-2 text-sm text-zinc-800 hover:border-zinc-950"
+                  >
+                    Управление заявками
+                  </Link>
+                  <Link
+                    href={`/events/${event.slug}/complete`}
+                    className="inline-flex border border-zinc-300 px-4 py-2 text-sm text-zinc-800 hover:border-zinc-950"
+                  >
+                    Завершить мероприятие
+                  </Link>
+                </div>
+              ) : null}
+            </>
+          ) : !user ? (
             <Link
               href={`/api/auth/signin?callbackUrl=${encodeURIComponent(`/events/${event.slug}`)}`}
               className="mt-4 inline-flex border border-zinc-300 px-4 py-2 text-sm text-zinc-800 hover:border-zinc-950"
