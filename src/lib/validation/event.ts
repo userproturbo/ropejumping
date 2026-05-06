@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { EventStatus } from "@/generated/prisma/enums";
+import { EventStatus, TeamFunctionRole } from "@/generated/prisma/enums";
 
 const emptyToNull = (value: unknown) => {
   if (typeof value !== "string") return value;
@@ -103,6 +103,20 @@ export const eventStatusUpdateInputSchema = z.object({
 export const eventCompletionInputSchema = z.object({
   eventSlug: eventSlugSchema,
   confirmedUserIds: z.array(z.string().cuid()),
+});
+
+export const eventCrewMemberInputSchema = z.object({
+  eventSlug: eventSlugSchema,
+  teamMemberId: z.string().cuid(),
+  functionRoles: z.array(z.nativeEnum(TeamFunctionRole)).min(1).max(6),
+  note: z
+    .preprocess(emptyToNull, z.string().max(500).nullable().optional())
+    .transform((value) => value ?? null),
+});
+
+export const eventCrewMemberRemoveInputSchema = z.object({
+  eventSlug: eventSlugSchema,
+  crewMemberId: z.string().cuid(),
 });
 
 export type EventCreateInput = z.infer<typeof eventCreateInputSchema>;

@@ -2,7 +2,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { EventStatus } from "@/generated/prisma/enums";
-import { getEventStatusLabel, getObjectTypeLabel } from "@/lib/display";
+import {
+  getEventStatusLabel,
+  getObjectTypeLabel,
+  getTeamFunctionRoleLabel,
+} from "@/lib/display";
 import { getCurrentUser } from "@/server/auth/session";
 import { applicationOpenEventStatuses } from "@/server/events/statuses";
 import { api } from "@/trpc/server";
@@ -62,6 +66,7 @@ export default async function EventPage({ params }: EventPageProps) {
   const applicationUnavailableMessage = canApply
     ? null
     : getApplicationUnavailableMessage(event.status);
+  const shouldShowCrewSection = event.crewMembers.length > 0 || canManage;
 
   return (
     <main className="min-h-[calc(100vh-4rem)] bg-zinc-50">
@@ -192,6 +197,90 @@ export default async function EventPage({ params }: EventPageProps) {
           )}
         </section>
 
+        {shouldShowCrewSection ? (
+          <section className="mt-6 border border-zinc-200 bg-white p-6">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <h2 className="text-xl font-semibold text-zinc-950">
+                Команда проведения
+              </h2>
+              {canManage ? (
+                <Link
+                  href={`/events/${event.slug}/crew`}
+                  className="text-sm text-zinc-600 hover:text-zinc-950"
+                >
+                  Управлять составом
+                </Link>
+              ) : null}
+            </div>
+
+            {event.crewMembers.length > 0 ? (
+              <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                {event.crewMembers.map((crewMember) => {
+                  const profile = crewMember.teamMember.user.profile;
+                  const avatarUrl =
+                    profile?.avatarUrl ?? crewMember.teamMember.user.image;
+                  const displayName =
+                    profile?.displayName ??
+                    profile?.username ??
+                    crewMember.teamMember.user.name ??
+                    "Участник без имени";
+
+                  return (
+                    <article
+                      key={crewMember.id}
+                      className="border border-zinc-200 p-4"
+                    >
+                      <div className="flex min-w-0 items-start gap-3">
+                        {avatarUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={avatarUrl}
+                            alt=""
+                            className="h-12 w-12 border border-zinc-200 object-cover"
+                          />
+                        ) : null}
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium text-zinc-950">
+                            {displayName}
+                          </p>
+                          {profile?.username ? (
+                            <Link
+                              href={`/u/${profile.username}`}
+                              className="mt-1 block text-sm text-zinc-500 hover:text-zinc-950"
+                            >
+                              @{profile.username}
+                            </Link>
+                          ) : null}
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {crewMember.functionRoles.map((functionRole) => (
+                              <span
+                                key={functionRole}
+                                className="border border-zinc-200 px-2 py-1 text-xs text-zinc-600"
+                              >
+                                {getTeamFunctionRoleLabel(functionRole)}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+
+                      {crewMember.note ? (
+                        <p className="mt-4 text-sm leading-6 whitespace-pre-wrap text-zinc-600">
+                          {crewMember.note}
+                        </p>
+                      ) : null}
+                    </article>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="mt-2 text-sm text-zinc-600">
+                Состав пока не добавлен.
+              </p>
+            )}
+          </section>
+        ) : null}
+
         <section className="mt-6 border border-zinc-200 bg-white p-6">
           <h2 className="text-xl font-semibold text-zinc-950">Заявки</h2>
           {applicationUnavailableMessage ? (
@@ -212,6 +301,12 @@ export default async function EventPage({ params }: EventPageProps) {
                     className="inline-flex border border-zinc-300 px-4 py-2 text-sm text-zinc-800 hover:border-zinc-950"
                   >
                     Завершить мероприятие
+                  </Link>
+                  <Link
+                    href={`/events/${event.slug}/crew`}
+                    className="inline-flex border border-zinc-300 px-4 py-2 text-sm text-zinc-800 hover:border-zinc-950"
+                  >
+                    Управлять составом
                   </Link>
                 </div>
               ) : null}
@@ -236,6 +331,12 @@ export default async function EventPage({ params }: EventPageProps) {
                 className="inline-flex border border-zinc-300 px-4 py-2 text-sm text-zinc-800 hover:border-zinc-950"
               >
                 Завершить мероприятие
+              </Link>
+              <Link
+                href={`/events/${event.slug}/crew`}
+                className="inline-flex border border-zinc-300 px-4 py-2 text-sm text-zinc-800 hover:border-zinc-950"
+              >
+                Управлять составом
               </Link>
             </div>
           ) : (

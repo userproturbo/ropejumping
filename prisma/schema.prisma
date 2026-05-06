@@ -222,13 +222,14 @@ model Team {
 }
 
 model TeamMember {
-  id            String             @id @default(cuid())
-  teamId        String
-  userId        String
-  role          TeamRole           @default(MEMBER)
-  functionRoles TeamFunctionRole[] @default([])
-  createdAt     DateTime           @default(now())
-  updatedAt     DateTime           @updatedAt
+  id                   String             @id @default(cuid())
+  teamId               String
+  userId               String
+  role                 TeamRole           @default(MEMBER)
+  functionRoles        TeamFunctionRole[] @default([])
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+  eventCrewMemberships EventCrewMember[]
 
   team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -313,6 +314,7 @@ model Event {
   createdBy      User                 @relation("CreatedEvents", fields: [createdById], references: [id])
   applications   EventApplication[]
   participations EventParticipation[]
+  crewMembers    EventCrewMember[]
   posts          Post[]
 
   @@index([status])
@@ -362,6 +364,23 @@ model EventParticipation {
   @@index([eventId])
   @@index([userId])
   @@index([confirmedById])
+}
+
+model EventCrewMember {
+  id            String             @id @default(cuid())
+  eventId       String
+  teamMemberId  String
+  functionRoles TeamFunctionRole[] @default([])
+  note          String?
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  event      Event      @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  teamMember TeamMember @relation(fields: [teamMemberId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, teamMemberId])
+  @@index([eventId])
+  @@index([teamMemberId])
 }
 
 model Badge {
