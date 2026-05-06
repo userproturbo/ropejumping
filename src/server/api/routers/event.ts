@@ -10,6 +10,8 @@ import {
 import {
   eventCompletionInputSchema,
   eventCreateInputSchema,
+  eventCrewMemberInputSchema,
+  eventCrewMemberRemoveInputSchema,
   eventSlugLookupSchema,
   eventStatusUpdateInputSchema,
   eventUpdateInputSchema,
@@ -286,6 +288,37 @@ export const eventRouter = createTRPCRouter({
               },
             },
           },
+          crewMembers: {
+            orderBy: {
+              createdAt: "asc",
+            },
+            select: {
+              id: true,
+              teamMemberId: true,
+              functionRoles: true,
+              note: true,
+              teamMember: {
+                select: {
+                  id: true,
+                  user: {
+                    select: {
+                      id: true,
+                      name: true,
+                      image: true,
+                      profile: {
+                        select: {
+                          username: true,
+                          displayName: true,
+                          city: true,
+                          avatarUrl: true,
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
         },
       });
     }),
@@ -348,6 +381,196 @@ export const eventRouter = createTRPCRouter({
             },
           },
         },
+      });
+    }),
+
+  getCrewManagement: protectedProcedure
+    .input(eventSlugLookupSchema)
+    .query(async ({ ctx, input }) => {
+      const manageableEvent = await getEventForManagement({
+        db: ctx.db,
+        slug: input,
+        userId: ctx.session.user.id,
+      });
+
+      const event = await ctx.db.event.findUniqueOrThrow({
+        where: { id: manageableEvent.id },
+        select: {
+          id: true,
+          title: true,
+          slug: true,
+          team: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              members: {
+                orderBy: {
+                  createdAt: "asc",
+                },
+                select: {
+                  id: true,
+                  role: true,
+                  functionRoles: true,
+                  user: {
+                    select: {
+                      id: true,
+                      name: true,
+                      image: true,
+                      profile: {
+                        select: {
+                          username: true,
+                          displayName: true,
+                          city: true,
+                          avatarUrl: true,
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          crewMembers: {
+            orderBy: {
+              createdAt: "asc",
+            },
+            select: {
+              id: true,
+              teamMemberId: true,
+              functionRoles: true,
+              note: true,
+              teamMember: {
+                select: {
+                  id: true,
+                  role: true,
+                  functionRoles: true,
+                  user: {
+                    select: {
+                      id: true,
+                      name: true,
+                      image: true,
+                      profile: {
+                        select: {
+                          username: true,
+                          displayName: true,
+                          city: true,
+                          avatarUrl: true,
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+
+      return {
+        event: {
+          id: event.id,
+          title: event.title,
+          slug: event.slug,
+        },
+        team: {
+          id: event.team.id,
+          name: event.team.name,
+          slug: event.team.slug,
+        },
+        teamMembers: event.team.members,
+        crewMembers: event.crewMembers,
+      };
+    }),
+
+  upsertCrewMember: protectedProcedure
+    .input(eventCrewMemberInputSchema)
+    .mutation(async ({ ctx, input }) => {
+      const manageableEvent = await getEventForManagement({
+        db: ctx.db,
+        slug: input.eventSlug,
+        userId: ctx.session.user.id,
+      });
+
+      const event = await ctx.db.event.findUniqueOrThrow({
+        where: { id: manageableEvent.id },
+        select: {
+          id: true,
+          teamId: true,
+        },
+      });
+
+      const teamMember = await ctx.db.teamMember.findFirst({
+        where: {
+          id: input.teamMemberId,
+          teamId: event.teamId,
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      if (!teamMember) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Можно добавить только участника команды этого мероприятия.",
+        });
+      }
+
+      return ctx.db.eventCrewMember.upsert({
+        where: {
+          eventId_teamMemberId: {
+            eventId: event.id,
+            teamMemberId: teamMember.id,
+          },
+        },
+        create: {
+          eventId: event.id,
+          teamMemberId: teamMember.id,
+          functionRoles: input.functionRoles,
+          note: input.note,
+        },
+        update: {
+          functionRoles: input.functionRoles,
+          note: input.note,
+        },
+        select: {
+          id: true,
+          teamMemberId: true,
+          functionRoles: true,
+          note: true,
+        },
+      });
+    }),
+
+  removeCrewMember: protectedProcedure
+    .input(eventCrewMemberRemoveInputSchema)
+    .mutation(async ({ ctx, input }) => {
+      const event = await getEventForManagement({
+        db: ctx.db,
+        slug: input.eventSlug,
+        userId: ctx.session.user.id,
+      });
+
+      const crewMember = await ctx.db.eventCrewMember.findFirst({
+        where: {
+          id: input.crewMemberId,
+          eventId: event.id,
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      if (!crewMember) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Участник состава не найден.",
+        });
+      }
+
+      return ctx.db.eventCrewMember.delete({
+        where: { id: crewMember.id },
       });
     }),
 
