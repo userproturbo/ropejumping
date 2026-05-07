@@ -5,6 +5,7 @@ import type {
   ObjectType,
   ObjectVisibility,
   TeamFunctionRole,
+  TeamInvitationStatus,
   TeamJoinRequestStatus,
   TeamRole,
   TeamStatus,
@@ -30,6 +31,13 @@ const teamJoinRequestStatusLabels = {
   REJECTED: "Отклонена",
   CANCELLED_BY_USER: "Отменена пользователем",
 } satisfies Record<TeamJoinRequestStatus, string>;
+
+const teamInvitationStatusLabels = {
+  PENDING: "Ожидает ответа",
+  ACCEPTED: "Принято",
+  REJECTED: "Отклонено",
+  CANCELLED_BY_TEAM: "Отменено командой",
+} satisfies Record<TeamInvitationStatus, string>;
 
 const teamFunctionRoleLabels = {
   OPERATOR: "Оператор",
@@ -93,6 +101,9 @@ export const getTeamRoleLabel = (role: TeamRole) => teamRoleLabels[role];
 export const getTeamJoinRequestStatusLabel = (
   status: TeamJoinRequestStatus,
 ) => teamJoinRequestStatusLabels[status];
+
+export const getTeamInvitationStatusLabel = (status: TeamInvitationStatus) =>
+  teamInvitationStatusLabels[status];
 
 export const getTeamFunctionRoleLabel = (role: TeamFunctionRole) =>
   teamFunctionRoleLabels[role];

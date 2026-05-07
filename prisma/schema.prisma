@@ -36,6 +36,13 @@ enum TeamJoinRequestStatus {
   CANCELLED_BY_USER
 }
 
+enum TeamInvitationStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  CANCELLED_BY_TEAM
+}
+
 enum TeamFunctionRole {
   OPERATOR
   PHOTOGRAPHER
@@ -174,6 +181,8 @@ model User {
   auditLogs               AuditLog[]           @relation("AuditLogActor")
   teamJoinRequests        TeamJoinRequest[]    @relation("TeamJoinRequests")
   decidedTeamJoinRequests TeamJoinRequest[]    @relation("TeamJoinRequestDecisions")
+  teamInvitationsReceived TeamInvitation[]     @relation("TeamInvitationsReceived")
+  teamInvitationsSent     TeamInvitation[]     @relation("TeamInvitationsSent")
 }
 
 model VerificationToken {
@@ -216,6 +225,7 @@ model Team {
   objects      JumpObject[]      @relation("TeamObjects")
   posts        Post[]
   joinRequests TeamJoinRequest[]
+  invitations  TeamInvitation[]
 
   @@index([status])
   @@index([region])
@@ -259,6 +269,30 @@ model TeamJoinRequest {
   @@index([teamId, status])
   @@index([userId, status])
   @@index([decidedById])
+}
+
+model TeamInvitation {
+  id            String               @id @default(cuid())
+  teamId        String
+  invitedUserId String
+  invitedById   String?
+  role          TeamRole             @default(MEMBER)
+  functionRoles TeamFunctionRole[]   @default([])
+  status        TeamInvitationStatus @default(PENDING)
+  message       String?
+  decidedAt     DateTime?
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+
+  team        Team  @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  invitedUser User  @relation("TeamInvitationsReceived", fields: [invitedUserId], references: [id], onDelete: Cascade)
+  invitedBy   User? @relation("TeamInvitationsSent", fields: [invitedById], references: [id], onDelete: SetNull)
+
+  @@index([teamId])
+  @@index([invitedUserId])
+  @@index([invitedById])
+  @@index([teamId, status])
+  @@index([invitedUserId, status])
 }
 
 model JumpObject {

@@ -21,6 +21,8 @@ export default async function TeamMembersPage({ params }: TeamMembersPageProps) 
     notFound();
   }
 
+  const invitations = await api.teamInvitation.getForTeamManagement(slug);
+
   return (
     <main className="min-h-[calc(100vh-4rem)] bg-zinc-50">
       <div className="mx-auto w-full max-w-5xl px-6 py-10">
@@ -31,7 +33,7 @@ export default async function TeamMembersPage({ params }: TeamMembersPageProps) 
           <p className="mt-2 text-sm text-zinc-600">{team.name}</p>
         </div>
 
-        <TeamMembersManagement team={team} />
+        <TeamMembersManagement invitations={invitations} team={team} />
       </div>
     </main>
   );

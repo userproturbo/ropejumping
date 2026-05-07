@@ -4,13 +4,23 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
-import { TeamFunctionRole, TeamRole } from "@/generated/prisma/enums";
-import { getTeamFunctionRoleLabel, getTeamRoleLabel } from "@/lib/display";
+import {
+  TeamFunctionRole,
+  TeamInvitationStatus,
+  TeamRole,
+} from "@/generated/prisma/enums";
+import {
+  getTeamFunctionRoleLabel,
+  getTeamInvitationStatusLabel,
+  getTeamRoleLabel,
+} from "@/lib/display";
 import { api, type RouterOutputs } from "@/trpc/react";
 
 type TeamForMembersManagement =
   RouterOutputs["team"]["getForMembersManagement"];
 type TeamMemberForManagement = TeamForMembersManagement["members"][number];
+type TeamInvitationForManagement =
+  RouterOutputs["teamInvitation"]["getForTeamManagement"][number];
 type ManageableTeamRole =
   | typeof TeamRole.ADMIN
   | typeof TeamRole.ORGANIZER
@@ -32,20 +42,41 @@ const teamFunctionRoles = [
 ] satisfies TeamFunctionRole[];
 
 type TeamMembersManagementProps = {
+  invitations: TeamInvitationForManagement[];
   team: TeamForMembersManagement;
 };
 
-export function TeamMembersManagement({ team }: TeamMembersManagementProps) {
+export function TeamMembersManagement({
+  invitations,
+  team,
+}: TeamMembersManagementProps) {
   const router = useRouter();
   const [username, setUsername] = useState("");
   const [role, setRole] = useState<ManageableTeamRole>(TeamRole.MEMBER);
   const [functionRoles, setFunctionRoles] = useState<TeamFunctionRole[]>([]);
+  const [inviteUsername, setInviteUsername] = useState("");
+  const [inviteRole, setInviteRole] = useState<ManageableTeamRole>(
+    TeamRole.MEMBER,
+  );
+  const [inviteFunctionRoles, setInviteFunctionRoles] = useState<
+    TeamFunctionRole[]
+  >([]);
+  const [inviteMessage, setInviteMessage] = useState("");
 
   const addMember = api.team.addMember.useMutation({
     onSuccess: () => {
       setUsername("");
       setRole(TeamRole.MEMBER);
       setFunctionRoles([]);
+      router.refresh();
+    },
+  });
+  const createInvitation = api.teamInvitation.create.useMutation({
+    onSuccess: () => {
+      setInviteUsername("");
+      setInviteRole(TeamRole.MEMBER);
+      setInviteFunctionRoles([]);
+      setInviteMessage("");
       router.refresh();
     },
   });
@@ -61,8 +92,138 @@ export function TeamMembersManagement({ team }: TeamMembersManagementProps) {
     });
   };
 
+  const handleCreateInvitation = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    createInvitation.mutate({
+      teamSlug: team.slug,
+      username: inviteUsername,
+      role: inviteRole,
+      functionRoles: inviteFunctionRoles,
+      message: inviteMessage,
+    });
+  };
+
   return (
     <div className="grid gap-6">
+      <section className="border border-zinc-200 bg-white p-6">
+        <h2 className="text-xl font-semibold text-zinc-950">
+          Пригласить участника
+        </h2>
+
+        <form onSubmit={handleCreateInvitation} className="mt-5 grid gap-4">
+          <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_220px]">
+            <div className="grid gap-2">
+              <label
+                htmlFor="inviteUsername"
+                className="text-sm font-medium text-zinc-950"
+              >
+                Username пользователя
+              </label>
+              <input
+                id="inviteUsername"
+                name="inviteUsername"
+                value={inviteUsername}
+                onChange={(event) =>
+                  setInviteUsername(event.target.value.toLowerCase())
+                }
+                required
+                minLength={3}
+                maxLength={32}
+                pattern="[a-z0-9_-]*"
+                className="border border-zinc-300 px-3 py-2 text-zinc-950 outline-none focus:border-zinc-950"
+                placeholder="username"
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <label
+                htmlFor="inviteRole"
+                className="text-sm font-medium text-zinc-950"
+              >
+                Роль доступа
+              </label>
+              <select
+                id="inviteRole"
+                name="inviteRole"
+                value={inviteRole}
+                onChange={(event) =>
+                  setInviteRole(event.target.value as ManageableTeamRole)
+                }
+                className="border border-zinc-300 px-3 py-2 text-zinc-950 outline-none focus:border-zinc-950"
+              >
+                {manageableRoles.map((roleOption) => (
+                  <option key={roleOption} value={roleOption}>
+                    {getTeamRoleLabel(roleOption)}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <FunctionRoleCheckboxes
+            idPrefix="inviteFunctionRole"
+            selected={inviteFunctionRoles}
+            onChange={setInviteFunctionRoles}
+          />
+
+          <div className="grid gap-2">
+            <label
+              htmlFor="inviteMessage"
+              className="text-sm font-medium text-zinc-950"
+            >
+              Сообщение
+            </label>
+            <textarea
+              id="inviteMessage"
+              name="inviteMessage"
+              value={inviteMessage}
+              onChange={(event) => setInviteMessage(event.target.value)}
+              maxLength={1000}
+              rows={4}
+              className="resize-y border border-zinc-300 px-3 py-2 text-zinc-950 outline-none focus:border-zinc-950"
+            />
+          </div>
+
+          <div>
+            <button
+              type="submit"
+              disabled={createInvitation.isPending}
+              className="bg-zinc-950 px-4 py-2 text-sm text-white disabled:cursor-not-allowed disabled:bg-zinc-400"
+            >
+              {createInvitation.isPending
+                ? "Отправка..."
+                : "Отправить приглашение"}
+            </button>
+          </div>
+        </form>
+
+        {createInvitation.error ? (
+          <p className="mt-3 text-sm text-red-700">
+            {createInvitation.error.message}
+          </p>
+        ) : null}
+      </section>
+
+      <section className="border border-zinc-200 bg-white p-6">
+        <h2 className="text-xl font-semibold text-zinc-950">Приглашения</h2>
+
+        {invitations.length > 0 ? (
+          <div className="mt-5 grid gap-4">
+            {invitations.map((invitation) => (
+              <TeamInvitationCard
+                key={invitation.id}
+                invitation={invitation}
+              />
+            ))}
+          </div>
+        ) : (
+          <p className="mt-2 text-sm text-zinc-600">
+            Приглашений пока нет.
+          </p>
+        )}
+      </section>
+
       <section className="border border-zinc-200 bg-white p-6">
         <h2 className="text-xl font-semibold text-zinc-950">
           Добавить участника
@@ -175,6 +336,92 @@ export function TeamMembersManagement({ team }: TeamMembersManagementProps) {
         </div>
       </section>
     </div>
+  );
+}
+
+function TeamInvitationCard({
+  invitation,
+}: {
+  invitation: TeamInvitationForManagement;
+}) {
+  const router = useRouter();
+  const cancelInvitation = api.teamInvitation.cancel.useMutation({
+    onSuccess: () => {
+      router.refresh();
+    },
+  });
+  const profile = invitation.invitedUser.profile;
+  const displayName =
+    profile?.displayName ??
+    profile?.username ??
+    invitation.invitedUser.name ??
+    "Участник без имени";
+
+  return (
+    <article className="border border-zinc-200 p-4">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="min-w-0">
+          <p className="truncate text-sm font-medium text-zinc-950">
+            {displayName}
+          </p>
+          {profile?.username ? (
+            <Link
+              href={`/u/${profile.username}`}
+              className="mt-1 block text-sm text-zinc-500 hover:text-zinc-950"
+            >
+              @{profile.username}
+            </Link>
+          ) : null}
+          <div className="mt-2 flex flex-wrap gap-3 text-sm text-zinc-600">
+            <span>{getTeamRoleLabel(invitation.role)}</span>
+            <span>{formatDate(invitation.createdAt)}</span>
+          </div>
+        </div>
+        <span className="text-xs font-medium text-zinc-500">
+          {getTeamInvitationStatusLabel(invitation.status)}
+        </span>
+      </div>
+
+      {invitation.functionRoles.length > 0 ? (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {invitation.functionRoles.map((functionRole) => (
+            <span
+              key={functionRole}
+              className="border border-zinc-200 px-2 py-1 text-xs text-zinc-600"
+            >
+              {getTeamFunctionRoleLabel(functionRole)}
+            </span>
+          ))}
+        </div>
+      ) : null}
+
+      {invitation.message ? (
+        <p className="mt-3 text-sm leading-6 whitespace-pre-wrap text-zinc-600">
+          {invitation.message}
+        </p>
+      ) : null}
+
+      {invitation.status === TeamInvitationStatus.PENDING ? (
+        <button
+          type="button"
+          disabled={cancelInvitation.isPending}
+          onClick={() =>
+            cancelInvitation.mutate({
+              invitationId: invitation.id,
+            })
+          }
+          className="mt-4 border border-zinc-300 px-4 py-2 text-sm text-zinc-800 hover:border-zinc-950 disabled:cursor-not-allowed disabled:text-zinc-400"
+        >
+          {cancelInvitation.isPending ? "Отмена..." : "Отменить приглашение"}
+        </button>
+      ) : null}
+
+      {cancelInvitation.error ? (
+        <p className="mt-3 text-sm text-red-700">
+          {cancelInvitation.error.message}
+        </p>
+      ) : null}
+    </article>
   );
 }
 
@@ -406,6 +653,12 @@ function TeamMemberCard({
     </article>
   );
 }
+
+const formatDate = (date: Date) =>
+  new Intl.DateTimeFormat("ru-RU", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
 
 function FunctionRoleCheckboxes({
   idPrefix,
