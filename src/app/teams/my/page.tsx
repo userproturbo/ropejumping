@@ -4,12 +4,16 @@ import { getTeamRoleLabel, getTeamStatusLabel } from "@/lib/display";
 import { requireCurrentUser } from "@/server/auth/session";
 import { api } from "@/trpc/server";
 
+import { TeamInvitationsPanel } from "./team-invitations-panel";
 import { TeamLeaveButton } from "./team-leave-button";
 
 export default async function MyTeamsPage() {
   await requireCurrentUser("/teams/my");
 
-  const teams = await api.team.getMine();
+  const [teams, invitations] = await Promise.all([
+    api.team.getMine(),
+    api.teamInvitation.getMine(),
+  ]);
 
   return (
     <main className="min-h-[calc(100vh-4rem)] bg-zinc-50">
@@ -30,6 +34,8 @@ export default async function MyTeamsPage() {
             Создать команду
           </Link>
         </div>
+
+        <TeamInvitationsPanel invitations={invitations} />
 
         {teams.length > 0 ? (
           <div className="grid gap-4">
