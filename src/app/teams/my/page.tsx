@@ -4,6 +4,8 @@ import { getTeamRoleLabel, getTeamStatusLabel } from "@/lib/display";
 import { requireCurrentUser } from "@/server/auth/session";
 import { api } from "@/trpc/server";
 
+import { TeamLeaveButton } from "./team-leave-button";
+
 export default async function MyTeamsPage() {
   await requireCurrentUser("/teams/my");
 
@@ -35,6 +37,7 @@ export default async function MyTeamsPage() {
               const canManageMembers =
                 team.currentUserRole === "OWNER" ||
                 team.currentUserRole === "ADMIN";
+              const canLeave = team.currentUserRole !== "OWNER";
 
               return (
                 <section
@@ -88,6 +91,13 @@ export default async function MyTeamsPage() {
                         </Link>
                       </>
                     ) : null}
+                    {canLeave ? (
+                      <TeamLeaveButton teamSlug={team.slug} />
+                    ) : (
+                      <p className="text-sm text-zinc-500">
+                        Передайте владение, чтобы выйти.
+                      </p>
+                    )}
                   </div>
                 </section>
               );

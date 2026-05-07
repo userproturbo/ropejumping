@@ -7,6 +7,7 @@ import {
 } from "@/generated/prisma/enums";
 import {
   teamMemberAddInputSchema,
+  teamLeaveInputSchema,
   teamMemberRemoveInputSchema,
   teamMemberUpdateFunctionRolesInputSchema,
   teamMemberUpdateRoleInputSchema,
@@ -607,5 +608,43 @@ export const teamRouter = createTRPCRouter({
       return ctx.db.teamMember.delete({
         where: { id: membership.id },
       });
+    }),
+
+  leaveMine: protectedProcedure
+    .input(teamLeaveInputSchema)
+    .mutation(async ({ ctx, input }) => {
+      const membership = await ctx.db.teamMember.findFirst({
+        where: {
+          userId: ctx.session.user.id,
+          team: {
+            slug: input.teamSlug,
+          },
+        },
+        select: {
+          id: true,
+          role: true,
+        },
+      });
+
+      if (!membership) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Вы не состоите в этой команде.",
+        });
+      }
+
+      if (membership.role === TeamRole.OWNER) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message:
+            "Владелец не может выйти из команды. Сначала передайте владение другому участнику.",
+        });
+      }
+
+      await ctx.db.teamMember.delete({
+        where: { id: membership.id },
+      });
+
+      return { success: true };
     }),
 });
