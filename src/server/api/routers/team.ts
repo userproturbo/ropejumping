@@ -1,6 +1,10 @@
 import { TRPCError } from "@trpc/server";
 
-import { TeamRole, TeamStatus } from "@/generated/prisma/enums";
+import {
+  ObjectVisibility,
+  TeamRole,
+  TeamStatus,
+} from "@/generated/prisma/enums";
 import {
   teamMemberAddInputSchema,
   teamMemberRemoveInputSchema,
@@ -17,6 +21,7 @@ import {
   protectedProcedure,
   publicProcedure,
 } from "@/server/api/trpc";
+import { publicPostWhere } from "@/server/api/routers/post";
 import type { db as database } from "@/server/db";
 import { publicEventStatuses } from "@/server/events/statuses";
 import { hasTeamOwnerOrAdminRole } from "@/server/teams/permissions";
@@ -230,6 +235,21 @@ export const teamRouter = createTRPCRouter({
               status: true,
               region: true,
               capacity: true,
+              coverImageUrl: true,
+              _count: {
+                select: {
+                  applications: true,
+                },
+              },
+              object: {
+                select: {
+                  id: true,
+                  name: true,
+                  slug: true,
+                  heightMeters: true,
+                  region: true,
+                },
+              },
             },
           },
           members: {
@@ -252,6 +272,90 @@ export const teamRouter = createTRPCRouter({
                       displayName: true,
                       avatarUrl: true,
                       city: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+          objects: {
+            where: {
+              visibility: ObjectVisibility.PUBLIC,
+            },
+            orderBy: {
+              createdAt: "desc",
+            },
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              type: true,
+              heightMeters: true,
+              region: true,
+              coverImageUrl: true,
+              createdAt: true,
+              events: {
+                where: {
+                  status: {
+                    in: publicEventStatuses,
+                  },
+                  team: {
+                    status: {
+                      in: publicTeamStatuses,
+                    },
+                  },
+                },
+                select: {
+                  id: true,
+                },
+              },
+            },
+          },
+          posts: {
+            where: publicPostWhere,
+            orderBy: {
+              createdAt: "desc",
+            },
+            take: 5,
+            select: {
+              id: true,
+              content: true,
+              imageUrl: true,
+              createdAt: true,
+              author: {
+                select: {
+                  id: true,
+                  name: true,
+                  image: true,
+                  profile: {
+                    select: {
+                      username: true,
+                      displayName: true,
+                      avatarUrl: true,
+                    },
+                  },
+                },
+              },
+              event: {
+                select: {
+                  id: true,
+                  title: true,
+                  slug: true,
+                },
+              },
+              object: {
+                select: {
+                  id: true,
+                  name: true,
+                  slug: true,
+                },
+              },
+              _count: {
+                select: {
+                  likes: true,
+                  comments: {
+                    where: {
+                      hiddenAt: null,
                     },
                   },
                 },
