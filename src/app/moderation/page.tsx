@@ -26,7 +26,7 @@ export default async function ModerationPage() {
               Модерация
             </h1>
             <p className="mt-2 text-sm text-zinc-600">
-              Открытые жалобы на посты и комментарии.
+              Открытые жалобы на посты, комментарии и объекты.
             </p>
           </div>
           <Link

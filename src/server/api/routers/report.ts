@@ -1,6 +1,10 @@
 import { TRPCError } from "@trpc/server";
 
-import { ReportStatus } from "@/generated/prisma/enums";
+import {
+  ObjectVisibility,
+  ReportStatus,
+  TeamStatus,
+} from "@/generated/prisma/enums";
 import {
   hideTargetInputSchema,
   reportActionInputSchema,
@@ -13,6 +17,8 @@ import type { db as database } from "@/server/db";
 import { requireModerator } from "@/server/moderation/permissions";
 
 type ReportRouterDb = typeof database;
+
+const publicTeamStatuses = [TeamStatus.REGULAR, TeamStatus.VERIFIED];
 
 const reporterInclude = {
   select: {
@@ -33,6 +39,17 @@ const reporterInclude = {
 const reportInclude = {
   reporter: reporterInclude,
   reviewedBy: reporterInclude,
+};
+
+const publicReportableObjectWhere = {
+  visibility: ObjectVisibility.PUBLIC,
+  createdByTeam: {
+    is: {
+      status: {
+        in: publicTeamStatuses,
+      },
+    },
+  },
 };
 
 const ensureProfile = async (db: ReportRouterDb, userId: string) => {
@@ -73,6 +90,25 @@ const ensureReportableTarget = async (
     return;
   }
 
+  if (targetType === "OBJECT") {
+    const object = await db.jumpObject.findFirst({
+      where: {
+        id: targetId,
+        ...publicReportableObjectWhere,
+      },
+      select: { id: true },
+    });
+
+    if (!object) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "Объект не найден.",
+      });
+    }
+
+    return;
+  }
+
   const comment = await db.comment.findFirst({
     where: {
       id: targetId,
@@ -88,6 +124,50 @@ const ensureReportableTarget = async (
       message: "Комментарий не найден.",
     });
   }
+};
+
+const addReportTargetPreviews = async <
+  TReport extends {
+    targetId: string;
+    targetType: string;
+  },
+>(
+  db: ReportRouterDb,
+  reports: TReport[],
+) => {
+  const objectIds = reports
+    .filter((report) => report.targetType === "OBJECT")
+    .map((report) => report.targetId);
+
+  if (objectIds.length === 0) {
+    return reports.map((report) => ({
+      ...report,
+      targetObject: null,
+    }));
+  }
+
+  const objects = await db.jumpObject.findMany({
+    where: {
+      id: {
+        in: objectIds,
+      },
+    },
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      visibility: true,
+    },
+  });
+  const objectById = new Map(objects.map((object) => [object.id, object]));
+
+  return reports.map((report) => ({
+    ...report,
+    targetObject:
+      report.targetType === "OBJECT"
+        ? (objectById.get(report.targetId) ?? null)
+        : null,
+  }));
 };
 
 const reviewReport = async (
@@ -126,10 +206,10 @@ export const reportRouter = createTRPCRouter({
       });
     }),
 
-  listOpen: protectedProcedure.query(({ ctx }) => {
+  listOpen: protectedProcedure.query(async ({ ctx }) => {
     requireModerator(ctx);
 
-    return ctx.db.report.findMany({
+    const reports = await ctx.db.report.findMany({
       where: {
         status: ReportStatus.OPEN,
       },
@@ -138,12 +218,14 @@ export const reportRouter = createTRPCRouter({
       },
       include: reportInclude,
     });
+
+    return addReportTargetPreviews(ctx.db, reports);
   }),
 
-  listReviewed: protectedProcedure.query(({ ctx }) => {
+  listReviewed: protectedProcedure.query(async ({ ctx }) => {
     requireModerator(ctx);
 
-    return ctx.db.report.findMany({
+    const reports = await ctx.db.report.findMany({
       where: {
         status: {
           in: [
@@ -156,6 +238,8 @@ export const reportRouter = createTRPCRouter({
       orderBy: [{ reviewedAt: "desc" }, { createdAt: "desc" }],
       include: reportInclude,
     });
+
+    return addReportTargetPreviews(ctx.db, reports);
   }),
 
   resolve: protectedProcedure
@@ -194,6 +278,15 @@ export const reportRouter = createTRPCRouter({
           where: { id: input.targetId },
           data: {
             hiddenAt: new Date(),
+          },
+        });
+      }
+
+      if (input.targetType === "OBJECT") {
+        return ctx.db.jumpObject.update({
+          where: { id: input.targetId },
+          data: {
+            visibility: ObjectVisibility.HIDDEN,
           },
         });
       }
