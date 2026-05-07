@@ -22,7 +22,7 @@ export default async function NewPostPage() {
       manageableRoles.includes(team.currentUserRole) &&
       publicTeamStatuses.includes(team.status),
   );
-  const events = await api.event.listPublic();
+  const { events } = await api.event.listPublic();
   const objects = await api.object.listPublic();
 
   return (

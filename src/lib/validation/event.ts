@@ -32,6 +32,35 @@ const optionalObjectId = z
   .preprocess(emptyToNull, z.string().cuid().nullable().optional())
   .transform((value) => value ?? null);
 
+const getFirstString = (value: unknown) => {
+  if (typeof value === "string") return value;
+
+  if (!Array.isArray(value)) return undefined;
+
+  const firstValue: unknown = value[0];
+  return typeof firstValue === "string" ? firstValue : undefined;
+};
+
+const optionalFilterString = z.preprocess((value) => {
+  const rawValue = getFirstString(value);
+
+  if (typeof rawValue !== "string") return undefined;
+
+  const trimmed = rawValue.trim();
+  return trimmed === "" ? undefined : trimmed;
+}, z.string().optional());
+
+const applicationsOpenFilter = z.preprocess((value) => {
+  const rawValue = getFirstString(value);
+
+  if (typeof rawValue !== "string") return undefined;
+
+  const normalizedValue = rawValue.trim().toLowerCase();
+  return normalizedValue === "1" || normalizedValue === "true"
+    ? "1"
+    : undefined;
+}, z.literal("1").optional());
+
 export const eventSlugSchema = z.preprocess(
   (value) => (typeof value === "string" ? value.trim().toLowerCase() : value),
   z
@@ -94,6 +123,13 @@ const manuallySettableEventStatusSchema = z.nativeEnum(EventStatus).refine(
 );
 
 export const eventSlugLookupSchema = eventSlugSchema;
+
+export const eventPublicListInputSchema = z.object({
+  status: optionalFilterString,
+  region: optionalFilterString,
+  q: optionalFilterString,
+  applicationsOpen: applicationsOpenFilter,
+});
 
 export const eventStatusUpdateInputSchema = z.object({
   slug: eventSlugSchema,

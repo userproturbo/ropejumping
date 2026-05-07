@@ -7,11 +7,13 @@ import {
   TeamRole,
   TeamStatus,
 } from "@/generated/prisma/enums";
+import type { Prisma } from "@/generated/prisma/client";
 import {
   eventCompletionInputSchema,
   eventCreateInputSchema,
   eventCrewMemberInputSchema,
   eventCrewMemberRemoveInputSchema,
+  eventPublicListInputSchema,
   eventSlugLookupSchema,
   eventStatusUpdateInputSchema,
   eventUpdateInputSchema,
@@ -46,29 +48,108 @@ type EventForOrdering = {
   status: EventStatus;
 };
 
+const upcomingPublicEventStatuses = [
+  EventStatus.PUBLISHED,
+  EventStatus.APPLICATIONS_OPEN,
+  EventStatus.FULL,
+  EventStatus.APPLICATIONS_CLOSED,
+  EventStatus.POSTPONED,
+];
+
+const publicEventStatusGroups = {
+  all: publicEventStatuses,
+  upcoming: upcomingPublicEventStatuses,
+  "applications-open": [EventStatus.APPLICATIONS_OPEN],
+  completed: [EventStatus.COMPLETED],
+  archived: [EventStatus.ARCHIVED],
+  cancelled: [EventStatus.CANCELLED],
+} satisfies Record<string, EventStatus[]>;
+
+const publicEventStatusFilterValues = new Set<string>([
+  ...Object.keys(publicEventStatusGroups),
+  ...publicEventStatuses,
+]);
+
+const directPublicEventStatuses = new Set<EventStatus>(publicEventStatuses);
+
 const eventStatusOrderGroups = {
   [EventStatus.APPLICATIONS_OPEN]: 1,
-  [EventStatus.PUBLISHED]: 1,
-  [EventStatus.FULL]: 1,
-  [EventStatus.APPLICATIONS_CLOSED]: 1,
-  [EventStatus.POSTPONED]: 1,
-  [EventStatus.CANCELLED]: 2,
-  [EventStatus.COMPLETED]: 3,
-  [EventStatus.ARCHIVED]: 4,
-  [EventStatus.DRAFT]: 5,
+  [EventStatus.PUBLISHED]: 2,
+  [EventStatus.FULL]: 3,
+  [EventStatus.APPLICATIONS_CLOSED]: 4,
+  [EventStatus.POSTPONED]: 5,
+  [EventStatus.CANCELLED]: 6,
+  [EventStatus.COMPLETED]: 7,
+  [EventStatus.ARCHIVED]: 8,
+  [EventStatus.DRAFT]: 9,
 } satisfies Record<EventStatus, number>;
+
+const activeDateOrderedStatuses = new Set<EventStatus>(upcomingPublicEventStatuses);
+const newestFirstDateOrderedStatuses = new Set<EventStatus>([
+  EventStatus.CANCELLED,
+  EventStatus.COMPLETED,
+  EventStatus.ARCHIVED,
+]);
 
 const orderEventsByLifecycle = <TEvent extends EventForOrdering>(
   events: TEvent[],
 ) => {
+  const now = Date.now();
+
   return events.sort((left, right) => {
     const groupDifference =
       eventStatusOrderGroups[left.status] - eventStatusOrderGroups[right.status];
 
     if (groupDifference !== 0) return groupDifference;
 
-    return left.startsAt.getTime() - right.startsAt.getTime();
+    const leftStartsAt = left.startsAt.getTime();
+    const rightStartsAt = right.startsAt.getTime();
+
+    if (activeDateOrderedStatuses.has(left.status)) {
+      const leftIsFuture = leftStartsAt >= now;
+      const rightIsFuture = rightStartsAt >= now;
+
+      if (leftIsFuture !== rightIsFuture) return leftIsFuture ? -1 : 1;
+
+      return leftIsFuture
+        ? leftStartsAt - rightStartsAt
+        : rightStartsAt - leftStartsAt;
+    }
+
+    if (newestFirstDateOrderedStatuses.has(left.status)) {
+      return rightStartsAt - leftStartsAt;
+    }
+
+    return leftStartsAt - rightStartsAt;
   });
+};
+
+const normalizePublicEventStatusFilter = (status: string | undefined) => {
+  if (!status) return "all";
+
+  return publicEventStatusFilterValues.has(status) ? status : "all";
+};
+
+const getPublicEventStatusesForFilter = ({
+  status,
+  applicationsOpen,
+}: {
+  status: string;
+  applicationsOpen: boolean;
+}) => {
+  if (applicationsOpen) return [EventStatus.APPLICATIONS_OPEN];
+
+  if (status in publicEventStatusGroups) {
+    return publicEventStatusGroups[
+      status as keyof typeof publicEventStatusGroups
+    ];
+  }
+
+  if (directPublicEventStatuses.has(status as EventStatus)) {
+    return [status as EventStatus];
+  }
+
+  return publicEventStatuses;
 };
 
 const ensurePublicObject = async ({
@@ -185,9 +266,18 @@ const ensureCanManageEventBySlug = async ({
 };
 
 export const eventRouter = createTRPCRouter({
-  listPublic: publicProcedure.query(async ({ ctx }) => {
-    const events = await ctx.db.event.findMany({
-      where: {
+  listPublic: publicProcedure
+    .input(eventPublicListInputSchema.optional())
+    .query(async ({ ctx, input }) => {
+      const normalizedStatus = normalizePublicEventStatusFilter(input?.status);
+      const applicationsOpen = input?.applicationsOpen === "1";
+      const region = input?.region ?? "";
+      const q = input?.q ?? "";
+      const statuses = getPublicEventStatusesForFilter({
+        status: normalizedStatus,
+        applicationsOpen,
+      });
+      const publicEventsWhere: Prisma.EventWhereInput = {
         status: {
           in: publicEventStatuses,
         },
@@ -196,37 +286,121 @@ export const eventRouter = createTRPCRouter({
             in: publicTeamStatuses,
           },
         },
-      },
-      orderBy: {
-        startsAt: "asc",
-      },
-      include: {
-        _count: {
-          select: {
-            applications: true,
-          },
+      };
+      const filteredEventsWhere: Prisma.EventWhereInput = {
+        ...publicEventsWhere,
+        status: {
+          in: statuses,
         },
-        team: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
+      };
+
+      if (region) {
+        filteredEventsWhere.region = region;
+      }
+
+      if (q) {
+        filteredEventsWhere.OR = [
+          {
+            title: {
+              contains: q,
+              mode: "insensitive",
+            },
           },
-        },
-        object: {
+          {
+            description: {
+              contains: q,
+              mode: "insensitive",
+            },
+          },
+          {
+            region: {
+              contains: q,
+              mode: "insensitive",
+            },
+          },
+          {
+            team: {
+              name: {
+                contains: q,
+                mode: "insensitive",
+              },
+            },
+          },
+          {
+            object: {
+              is: {
+                name: {
+                  contains: q,
+                  mode: "insensitive",
+                },
+              },
+            },
+          },
+        ];
+      }
+
+      const [events, regionRows] = await Promise.all([
+        ctx.db.event.findMany({
+          where: filteredEventsWhere,
+          include: {
+            _count: {
+              select: {
+                applications: true,
+              },
+            },
+            team: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+              },
+            },
+            object: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+                heightMeters: true,
+                region: true,
+              },
+            },
+          },
+        }),
+        ctx.db.event.findMany({
+          where: {
+            ...publicEventsWhere,
+            region: {
+              not: null,
+            },
+          },
+          distinct: ["region"],
           select: {
-            id: true,
-            name: true,
-            slug: true,
-            heightMeters: true,
             region: true,
           },
-        },
-      },
-    });
+        }),
+      ]);
 
-    return orderEventsByLifecycle(events);
-  }),
+      const availableRegions = Array.from(
+        new Set(
+          regionRows
+            .map((event) => event.region?.trim())
+            .filter((eventRegion): eventRegion is string =>
+              Boolean(eventRegion),
+            ),
+        ),
+      ).sort((left, right) => left.localeCompare(right, "ru"));
+
+      return {
+        events: orderEventsByLifecycle(events),
+        availableRegions,
+        filters: {
+          status: normalizedStatus,
+          region,
+          q,
+          applicationsOpen,
+        },
+      };
+    }),
 
   getBySlug: publicProcedure
     .input(eventSlugLookupSchema)

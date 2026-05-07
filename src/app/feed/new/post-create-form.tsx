@@ -8,7 +8,7 @@ import { ImageUploadField } from "@/app/_components/image-upload-field";
 import { api, type RouterOutputs } from "@/trpc/react";
 
 type TeamOption = RouterOutputs["team"]["getMine"][number];
-type EventOption = RouterOutputs["event"]["listPublic"][number];
+type EventOption = RouterOutputs["event"]["listPublic"]["events"][number];
 type ObjectOption = RouterOutputs["object"]["listPublic"][number];
 
 type PostCreateFormProps = {
