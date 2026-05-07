@@ -30,6 +30,7 @@ export function ModerationActions({
   const isPending =
     hideTarget.isPending || resolve.isPending || dismiss.isPending;
   const error = hideTarget.error ?? resolve.error ?? dismiss.error;
+  const hideButtonLabel = getHideButtonLabel(targetType);
 
   return (
     <div className="mt-4 flex flex-wrap items-center gap-3">
@@ -39,7 +40,7 @@ export function ModerationActions({
         onClick={() => hideTarget.mutate({ targetType, targetId })}
         className="border border-zinc-300 px-3 py-2 text-sm text-zinc-800 hover:border-zinc-950 disabled:cursor-not-allowed disabled:text-zinc-400"
       >
-        Скрыть контент
+        {hideButtonLabel}
       </button>
       <button
         type="button"
@@ -61,3 +62,10 @@ export function ModerationActions({
     </div>
   );
 }
+
+const getHideButtonLabel = (targetType: ReportTargetType) => {
+  if (targetType === "POST") return "Скрыть пост";
+  if (targetType === "COMMENT") return "Скрыть комментарий";
+
+  return "Скрыть объект";
+};

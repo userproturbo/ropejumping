@@ -14,13 +14,14 @@ type ReportCardProps = {
 
 export function ReportCard({ report, showActions = false }: ReportCardProps) {
   const targetType = getReportTargetType(report.targetType);
+  const targetTitle = getTargetTitle(report);
 
   return (
     <article className="border border-zinc-200 bg-white p-5">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h2 className="text-lg font-semibold text-zinc-950">
-            {getTargetTypeLabel(report.targetType)}: {report.targetId}
+            {getTargetTypeLabel(report.targetType)}: {targetTitle}
           </h2>
           <p className="mt-1 text-sm text-zinc-500">
             {formatModerationDate(report.createdAt)}
@@ -69,6 +70,18 @@ export function ReportCard({ report, showActions = false }: ReportCardProps) {
           Открыть пост
         </Link>
       ) : null}
+      {report.targetType === "OBJECT" && report.targetObject ? (
+        report.targetObject.visibility === "PUBLIC" ? (
+          <Link
+            href={`/objects/${report.targetObject.slug}`}
+            className="mt-4 inline-flex text-sm text-zinc-600 hover:text-zinc-950"
+          >
+            Открыть объект
+          </Link>
+        ) : (
+          <p className="mt-4 text-sm text-zinc-500">Объект уже скрыт.</p>
+        )
+      ) : null}
 
       {showActions && targetType ? (
         <ModerationActions
@@ -82,7 +95,9 @@ export function ReportCard({ report, showActions = false }: ReportCardProps) {
 }
 
 const getReportTargetType = (value: string): ReportTargetType | null => {
-  if (value === "POST" || value === "COMMENT") return value;
+  if (value === "POST" || value === "COMMENT" || value === "OBJECT") {
+    return value;
+  }
 
   return null;
 };
@@ -90,8 +105,17 @@ const getReportTargetType = (value: string): ReportTargetType | null => {
 const getTargetTypeLabel = (targetType: string) => {
   if (targetType === "POST") return "Пост";
   if (targetType === "COMMENT") return "Комментарий";
+  if (targetType === "OBJECT") return "Объект";
 
   return targetType;
+};
+
+const getTargetTitle = (report: OpenReport) => {
+  if (report.targetType === "OBJECT" && report.targetObject) {
+    return report.targetObject.name;
+  }
+
+  return report.targetId;
 };
 
 const getReportStatusLabel = (status: string) => {

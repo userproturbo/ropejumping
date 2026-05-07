@@ -21,7 +21,12 @@ export default async function ObjectPage({ params }: ObjectPageProps) {
     notFound();
   }
 
-  const canEdit = object.createdById === user?.id;
+  const canEdit = user
+    ? await api.object
+        .getForEdit(slug)
+        .then(() => true)
+        .catch(() => false)
+    : false;
 
   return (
     <main className="min-h-[calc(100vh-4rem)] bg-zinc-50">
@@ -45,14 +50,22 @@ export default async function ObjectPage({ params }: ObjectPageProps) {
                 {getObjectTypeLabel(object.type)}
               </p>
             </div>
-            {canEdit ? (
+            <div className="flex flex-wrap gap-3">
               <Link
-                href={`/objects/${object.slug}/edit`}
+                href={`/reports/new?targetType=OBJECT&targetId=${object.id}`}
                 className="border border-zinc-300 px-4 py-2 text-sm text-zinc-800 hover:border-zinc-950"
               >
-                Редактировать
+                Пожаловаться на объект
               </Link>
-            ) : null}
+              {canEdit ? (
+                <Link
+                  href={`/objects/${object.slug}/edit`}
+                  className="border border-zinc-300 px-4 py-2 text-sm text-zinc-800 hover:border-zinc-950"
+                >
+                  Редактировать
+                </Link>
+              ) : null}
+            </div>
           </div>
 
           <dl className="mt-6 grid gap-4 text-sm sm:grid-cols-2">
@@ -92,9 +105,16 @@ export default async function ObjectPage({ params }: ObjectPageProps) {
 
         <section className="mt-6 border border-amber-200 bg-amber-50 p-6">
           <p className="text-sm leading-6 text-amber-900">
-            Точное расположение, способы доступа и технические детали объекта не
-            публикуются.
+            Точное расположение, способы доступа, точки крепления, схемы и
+            технические инструкции объекта не публикуются. Если вы заметили
+            опасные детали в описании, отправьте жалобу модераторам.
           </p>
+          <Link
+            href={`/reports/new?targetType=OBJECT&targetId=${object.id}`}
+            className="mt-4 inline-flex text-sm font-medium text-amber-950 hover:text-zinc-950"
+          >
+            Пожаловаться на объект
+          </Link>
         </section>
 
         <section className="mt-6 border border-zinc-200 bg-white p-6">

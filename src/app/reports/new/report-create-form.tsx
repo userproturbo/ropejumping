@@ -26,6 +26,8 @@ export function ReportCreateForm({
       setDetails("");
     },
   });
+  const targetTypeLabel = getTargetTypeLabel(targetType);
+  const returnHref = targetType === "POST" ? `/posts/${targetId}` : getFallbackHref(targetType);
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -49,7 +51,7 @@ export function ReportCreateForm({
           Жалоба отправлена. Спасибо, что помогаете поддерживать порядок.
         </p>
         <Link
-          href={targetType === "POST" ? `/posts/${targetId}` : "/feed"}
+          href={returnHref}
           className="mt-5 inline-flex border border-zinc-300 px-4 py-2 text-sm text-zinc-800 hover:border-zinc-950"
         >
           Вернуться
@@ -64,6 +66,7 @@ export function ReportCreateForm({
       className="space-y-6 border border-zinc-200 bg-white p-6"
     >
       <div className="grid gap-2">
+        <p className="text-sm text-zinc-600">Цель жалобы: {targetTypeLabel}</p>
         <label htmlFor="reason" className="text-sm font-medium text-zinc-950">
           Причина
         </label>
@@ -106,10 +109,23 @@ export function ReportCreateForm({
         >
           {createReport.isPending ? "Отправка..." : "Отправить жалобу"}
         </button>
-        <Link href="/feed" className="text-sm text-zinc-600 hover:text-zinc-950">
+        <Link
+          href={getFallbackHref(targetType)}
+          className="text-sm text-zinc-600 hover:text-zinc-950"
+        >
           Отмена
         </Link>
       </div>
     </form>
   );
 }
+
+const getTargetTypeLabel = (targetType: ReportTargetType) => {
+  if (targetType === "POST") return "пост";
+  if (targetType === "COMMENT") return "комментарий";
+
+  return "объект";
+};
+
+const getFallbackHref = (targetType: ReportTargetType) =>
+  targetType === "OBJECT" ? "/objects" : "/feed";

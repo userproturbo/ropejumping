@@ -17,10 +17,18 @@ type NewReportPageProps = {
 export default async function NewReportPage({
   searchParams,
 }: NewReportPageProps) {
-  await requireCurrentUser("/reports/new");
+  const params = await searchParams;
+  const callbackUrl =
+    params.targetType && params.targetId
+      ? `/reports/new?${new URLSearchParams({
+          targetType: params.targetType,
+          targetId: params.targetId,
+        }).toString()}`
+      : "/reports/new";
+
+  await requireCurrentUser(callbackUrl);
 
   const profile = await api.profile.getMine();
-  const params = await searchParams;
   const parsedTargetType = reportTargetTypeSchema.safeParse(params.targetType);
 
   if (!parsedTargetType.success || !params.targetId) {
@@ -35,7 +43,7 @@ export default async function NewReportPage({
             Жалоба
           </h1>
           <p className="mt-2 text-sm text-zinc-600">
-            Отправьте жалобу на пост или комментарий.
+            Отправьте жалобу на пост, комментарий или объект.
           </p>
         </div>
 

@@ -11,7 +11,7 @@ const detailsSchema = z
   .preprocess(emptyToNull, z.string().max(1000).nullable().optional())
   .transform((value) => value ?? null);
 
-export const reportTargetTypeSchema = z.enum(["POST", "COMMENT"]);
+export const reportTargetTypeSchema = z.enum(["POST", "COMMENT", "OBJECT"]);
 
 export const reportCreateInputSchema = z.object({
   targetType: reportTargetTypeSchema,
