@@ -11,6 +11,7 @@ import {
   teamMemberRemoveInputSchema,
   teamMemberUpdateFunctionRolesInputSchema,
   teamMemberUpdateRoleInputSchema,
+  teamOwnershipTransferInputSchema,
 } from "@/lib/validation/team-member";
 import {
   teamCreateInputSchema,
@@ -465,7 +466,7 @@ export const teamRouter = createTRPCRouter({
         userId: ctx.session.user.id,
       });
 
-      return ctx.db.team.findUniqueOrThrow({
+      const teamForManagement = await ctx.db.team.findUniqueOrThrow({
         where: { id: team.id },
         select: {
           id: true,
@@ -499,6 +500,22 @@ export const teamRouter = createTRPCRouter({
           },
         },
       });
+      const currentMembership = teamForManagement.members.find(
+        (membership) => membership.user.id === ctx.session.user.id,
+      );
+
+      if (!currentMembership) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "У вас нет прав на управление участниками этой команды.",
+        });
+      }
+
+      return {
+        ...teamForManagement,
+        currentUserRole: currentMembership.role,
+        currentUserMembershipId: currentMembership.id,
+      };
     }),
 
   addMember: protectedProcedure
@@ -608,6 +625,83 @@ export const teamRouter = createTRPCRouter({
       return ctx.db.teamMember.delete({
         where: { id: membership.id },
       });
+    }),
+
+  transferOwnership: protectedProcedure
+    .input(teamOwnershipTransferInputSchema)
+    .mutation(async ({ ctx, input }) => {
+      const targetMembership = await ctx.db.teamMember.findUnique({
+        where: { id: input.newOwnerMembershipId },
+        select: {
+          id: true,
+          teamId: true,
+          userId: true,
+          role: true,
+          team: {
+            select: {
+              id: true,
+              slug: true,
+              name: true,
+            },
+          },
+        },
+      });
+
+      if (!targetMembership) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Участник команды не найден.",
+        });
+      }
+
+      const currentOwnerMembership = await ctx.db.teamMember.findUnique({
+        where: {
+          teamId_userId: {
+            teamId: targetMembership.teamId,
+            userId: ctx.session.user.id,
+          },
+        },
+        select: {
+          id: true,
+          teamId: true,
+          userId: true,
+          role: true,
+        },
+      });
+
+      if (currentOwnerMembership?.role !== TeamRole.OWNER) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Передать владение может только текущий владелец команды.",
+        });
+      }
+
+      if (currentOwnerMembership.id === targetMembership.id) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Нельзя передать владение самому себе.",
+        });
+      }
+
+      if (currentOwnerMembership.teamId !== targetMembership.teamId) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Передать владение может только текущий владелец команды.",
+        });
+      }
+
+      await ctx.db.$transaction([
+        ctx.db.teamMember.update({
+          where: { id: currentOwnerMembership.id },
+          data: { role: TeamRole.ADMIN },
+        }),
+        ctx.db.teamMember.update({
+          where: { id: targetMembership.id },
+          data: { role: TeamRole.OWNER },
+        }),
+      ]);
+
+      return { success: true };
     }),
 
   leaveMine: protectedProcedure

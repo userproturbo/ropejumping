@@ -45,6 +45,10 @@ export const teamLeaveInputSchema = z.object({
   teamSlug: teamSlugSchema,
 });
 
+export const teamOwnershipTransferInputSchema = z.object({
+  newOwnerMembershipId: z.string().cuid(),
+});
+
 export const teamMemberUpdateFunctionRolesInputSchema = z.object({
   membershipId: z.string().cuid(),
   functionRoles: teamFunctionRolesSchema,

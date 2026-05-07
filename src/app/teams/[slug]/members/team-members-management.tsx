@@ -150,7 +150,12 @@ export function TeamMembersManagement({ team }: TeamMembersManagementProps) {
 
         <div className="mt-5 grid gap-4">
           {team.members.map((member) => (
-            <TeamMemberCard key={member.id} member={member} />
+            <TeamMemberCard
+              key={member.id}
+              canTransferOwnership={team.currentUserRole === TeamRole.OWNER}
+              currentUserMembershipId={team.currentUserMembershipId}
+              member={member}
+            />
           ))}
         </div>
 
@@ -173,7 +178,15 @@ export function TeamMembersManagement({ team }: TeamMembersManagementProps) {
   );
 }
 
-function TeamMemberCard({ member }: { member: TeamMemberForManagement }) {
+function TeamMemberCard({
+  canTransferOwnership,
+  currentUserMembershipId,
+  member,
+}: {
+  canTransferOwnership: boolean;
+  currentUserMembershipId: string;
+  member: TeamMemberForManagement;
+}) {
   const router = useRouter();
   const [role, setRole] = useState<ManageableTeamRole>(
     member.role === TeamRole.OWNER ? TeamRole.MEMBER : member.role,
@@ -197,6 +210,11 @@ function TeamMemberCard({ member }: { member: TeamMemberForManagement }) {
       router.refresh();
     },
   });
+  const transferOwnership = api.team.transferOwnership.useMutation({
+    onSuccess: () => {
+      router.refresh();
+    },
+  });
   const updateFunctionRoles = api.team.updateMemberFunctionRoles.useMutation({
     onSuccess: () => {
       router.refresh();
@@ -205,6 +223,7 @@ function TeamMemberCard({ member }: { member: TeamMemberForManagement }) {
   const isPending =
     updateRole.isPending ||
     removeMember.isPending ||
+    transferOwnership.isPending ||
     updateFunctionRoles.isPending;
   const functionRolesChanged =
     functionRoles.length !== member.functionRoles.length ||
@@ -314,6 +333,31 @@ function TeamMemberCard({ member }: { member: TeamMemberForManagement }) {
               >
                 {removeMember.isPending ? "Удаление..." : "Удалить из команды"}
               </button>
+
+              {canTransferOwnership && member.id !== currentUserMembershipId ? (
+                <button
+                  type="button"
+                  disabled={isPending}
+                  onClick={() => {
+                    if (
+                      !window.confirm(
+                        "Вы уверены, что хотите передать владение командой этому участнику? Вы станете администратором.",
+                      )
+                    ) {
+                      return;
+                    }
+
+                    transferOwnership.mutate({
+                      newOwnerMembershipId: member.id,
+                    });
+                  }}
+                  className="border border-zinc-300 px-4 py-2 text-sm text-zinc-800 hover:border-zinc-950 disabled:cursor-not-allowed disabled:text-zinc-400"
+                >
+                  {transferOwnership.isPending
+                    ? "Передача..."
+                    : "Передать владение"}
+                </button>
+              ) : null}
             </div>
           )}
         </div>
@@ -353,6 +397,11 @@ function TeamMemberCard({ member }: { member: TeamMemberForManagement }) {
       ) : null}
       {removeMember.error ? (
         <p className="mt-3 text-sm text-red-700">{removeMember.error.message}</p>
+      ) : null}
+      {transferOwnership.error ? (
+        <p className="mt-3 text-sm text-red-700">
+          {transferOwnership.error.message}
+        </p>
       ) : null}
     </article>
   );
