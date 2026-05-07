@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
+import { TeamRole } from "@/generated/prisma/enums";
+import { getTeamRoleLabel } from "@/lib/display";
 import { api, type RouterOutputs } from "@/trpc/react";
 
 type JoinRequestState = RouterOutputs["teamJoinRequest"]["getMineForTeam"];
@@ -29,6 +31,11 @@ export function TeamJoinRequestPanel({
     },
   });
   const cancelRequest = api.teamJoinRequest.cancelMine.useMutation({
+    onSuccess: () => {
+      router.refresh();
+    },
+  });
+  const leaveTeam = api.team.leaveMine.useMutation({
     onSuccess: () => {
       router.refresh();
     },
@@ -73,11 +80,44 @@ export function TeamJoinRequestPanel({
   }
 
   if (state.membership) {
+    const isOwner = state.membership.role === TeamRole.OWNER;
+
     return (
       <section className="mt-6 border border-zinc-200 bg-white p-6">
         <p className="text-sm text-zinc-700">
           Вы уже состоите в этой команде.
         </p>
+        <p className="mt-2 text-sm text-zinc-500">
+          Ваша роль: {getTeamRoleLabel(state.membership.role)}
+        </p>
+
+        {isOwner ? (
+          <p className="mt-4 text-sm text-zinc-500">
+            Владелец не может выйти из команды. Сначала передайте владение
+            другому участнику.
+          </p>
+        ) : (
+          <button
+            type="button"
+            disabled={leaveTeam.isPending}
+            onClick={() => {
+              if (!window.confirm("Вы уверены, что хотите выйти из команды?")) {
+                return;
+              }
+
+              leaveTeam.mutate({ teamSlug });
+            }}
+            className="mt-4 border border-zinc-300 px-4 py-2 text-sm text-zinc-800 hover:border-zinc-950 disabled:cursor-not-allowed disabled:text-zinc-400"
+          >
+            {leaveTeam.isPending ? "Выход..." : "Выйти из команды"}
+          </button>
+        )}
+
+        {leaveTeam.error ? (
+          <p className="mt-3 text-sm text-red-700">
+            {leaveTeam.error.message}
+          </p>
+        ) : null}
       </section>
     );
   }
