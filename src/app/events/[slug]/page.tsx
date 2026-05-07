@@ -67,6 +67,9 @@ export default async function EventPage({ params }: EventPageProps) {
     ? null
     : getApplicationUnavailableMessage(event.status);
   const shouldShowCrewSection = event.crewMembers.length > 0 || canManage;
+  const shouldShowAcceptedParticipantsSection =
+    event.status !== EventStatus.COMPLETED &&
+    (event.applications.length > 0 || canManage);
 
   return (
     <main className="min-h-[calc(100vh-4rem)] bg-zinc-50">
@@ -276,6 +279,79 @@ export default async function EventPage({ params }: EventPageProps) {
             ) : (
               <p className="mt-2 text-sm text-zinc-600">
                 Состав пока не добавлен.
+              </p>
+            )}
+          </section>
+        ) : null}
+
+        {shouldShowAcceptedParticipantsSection ? (
+          <section className="mt-6 border border-zinc-200 bg-white p-6">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <h2 className="text-xl font-semibold text-zinc-950">
+                Принятые участники
+              </h2>
+              {canManage ? (
+                <Link
+                  href={`/events/${event.slug}/applications`}
+                  className="text-sm text-zinc-600 hover:text-zinc-950"
+                >
+                  Управление заявками
+                </Link>
+              ) : null}
+            </div>
+
+            {event.applications.length > 0 ? (
+              <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                {event.applications.map((acceptedApplication) => {
+                  const { profile } = acceptedApplication.user;
+                  const avatarUrl =
+                    profile?.avatarUrl ?? acceptedApplication.user.image;
+                  const displayName =
+                    profile?.displayName ??
+                    profile?.username ??
+                    acceptedApplication.user.name ??
+                    "Участник без имени";
+
+                  return (
+                    <article
+                      key={acceptedApplication.id}
+                      className="border border-zinc-200 p-4"
+                    >
+                      <div className="flex min-w-0 items-start gap-3">
+                        {avatarUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={avatarUrl}
+                            alt=""
+                            className="h-12 w-12 border border-zinc-200 object-cover"
+                          />
+                        ) : null}
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium text-zinc-950">
+                            {displayName}
+                          </p>
+                          {profile?.username ? (
+                            <Link
+                              href={`/u/${profile.username}`}
+                              className="mt-1 block text-sm text-zinc-500 hover:text-zinc-950"
+                            >
+                              @{profile.username}
+                            </Link>
+                          ) : null}
+                          {profile?.city ? (
+                            <p className="mt-2 text-sm text-zinc-600">
+                              {profile.city}
+                            </p>
+                          ) : null}
+                        </div>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="mt-2 text-sm text-zinc-600">
+                Принятых участников пока нет.
               </p>
             )}
           </section>

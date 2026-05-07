@@ -266,6 +266,33 @@ export const eventRouter = createTRPCRouter({
               region: true,
             },
           },
+          applications: {
+            where: {
+              status: ApplicationStatus.ACCEPTED,
+            },
+            orderBy: {
+              createdAt: "asc",
+            },
+            select: {
+              id: true,
+              createdAt: true,
+              user: {
+                select: {
+                  id: true,
+                  name: true,
+                  image: true,
+                  profile: {
+                    select: {
+                      username: true,
+                      displayName: true,
+                      city: true,
+                      avatarUrl: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
           participations: {
             orderBy: {
               createdAt: "asc",
