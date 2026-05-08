@@ -3,6 +3,7 @@ import { TRPCError } from "@trpc/server";
 import {
   ApplicationStatus,
   NotificationType,
+  TeamRole,
   TeamStatus,
 } from "@/generated/prisma/enums";
 import {
@@ -15,7 +16,10 @@ import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import type { db as database } from "@/server/db";
 import { canManageEvent } from "@/server/events/permissions";
 import { applicationOpenEventStatuses } from "@/server/events/statuses";
-import { createNotification } from "@/server/notifications/service";
+import {
+  createNotification,
+  createNotificationsForUsers,
+} from "@/server/notifications/service";
 
 const publicTeamStatuses = [TeamStatus.REGULAR, TeamStatus.VERIFIED];
 
@@ -146,6 +150,22 @@ export const applicationRouter = createTRPCRouter({
         select: {
           id: true,
           createdById: true,
+          title: true,
+          slug: true,
+          team: {
+            select: {
+              members: {
+                where: {
+                  role: {
+                    in: [TeamRole.OWNER, TeamRole.ADMIN, TeamRole.ORGANIZER],
+                  },
+                },
+                select: {
+                  userId: true,
+                },
+              },
+            },
+          },
         },
       });
 
@@ -182,13 +202,29 @@ export const applicationRouter = createTRPCRouter({
       }
 
       try {
-        return await ctx.db.eventApplication.create({
-          data: {
-            eventId: event.id,
-            userId: ctx.session.user.id,
-            message: input.message,
-            status: ApplicationStatus.PENDING,
-          },
+        return await ctx.db.$transaction(async (tx) => {
+          const application = await tx.eventApplication.create({
+            data: {
+              eventId: event.id,
+              userId: ctx.session.user.id,
+              message: input.message,
+              status: ApplicationStatus.PENDING,
+            },
+          });
+
+          await createNotificationsForUsers(
+            tx,
+            event.team.members.map((member) => member.userId),
+            {
+              excludeUserId: ctx.session.user.id,
+              type: NotificationType.EVENT_APPLICATION_RECEIVED,
+              title: "Новая заявка на мероприятие",
+              body: `Поступила новая заявка на мероприятие «${event.title}».`,
+              href: `/events/${event.slug}/applications`,
+            },
+          );
+
+          return application;
         });
       } catch (error) {
         if (isUniqueConstraintError(error)) {
