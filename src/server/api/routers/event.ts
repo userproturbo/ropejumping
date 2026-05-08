@@ -3,11 +3,13 @@ import { TRPCError } from "@trpc/server";
 import {
   ApplicationStatus,
   EventStatus,
+  NotificationType,
   ObjectVisibility,
   TeamRole,
   TeamStatus,
 } from "@/generated/prisma/enums";
 import type { Prisma } from "@/generated/prisma/client";
+import { getEventStatusLabel } from "@/lib/display";
 import {
   eventCompletionInputSchema,
   eventCreateInputSchema,
@@ -30,6 +32,7 @@ import {
   canManageEvent,
 } from "@/server/events/permissions";
 import { publicEventStatuses } from "@/server/events/statuses";
+import { createNotifications } from "@/server/notifications/service";
 
 const manageableTeamRoles = [
   TeamRole.OWNER,
@@ -239,6 +242,8 @@ const ensureCanManageEventBySlug = async ({
     select: {
       id: true,
       status: true,
+      title: true,
+      slug: true,
     },
   });
 
@@ -877,11 +882,44 @@ export const eventRouter = createTRPCRouter({
         });
       }
 
-      return ctx.db.event.update({
-        where: { id: event.id },
-        data: {
-          status: input.status,
+      const recipients = await ctx.db.eventApplication.findMany({
+        where: {
+          eventId: event.id,
+          status: {
+            in: [
+              ApplicationStatus.ACCEPTED,
+              ApplicationStatus.CONFIRMED_PARTICIPATION,
+            ],
+          },
+          userId: {
+            not: ctx.session.user.id,
+          },
         },
+        select: {
+          userId: true,
+        },
+      });
+
+      return ctx.db.$transaction(async (tx) => {
+        const updatedEvent = await tx.event.update({
+          where: { id: event.id },
+          data: {
+            status: input.status,
+          },
+        });
+
+        await createNotifications(
+          tx,
+          recipients.map((recipient) => ({
+            userId: recipient.userId,
+            type: NotificationType.EVENT_STATUS_CHANGED,
+            title: "Статус мероприятия изменён",
+            body: `Статус мероприятия «${event.title}» изменён: ${getEventStatusLabel(input.status)}.`,
+            href: `/events/${event.slug}`,
+          })),
+        );
+
+        return updatedEvent;
       });
     }),
 

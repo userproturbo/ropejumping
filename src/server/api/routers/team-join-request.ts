@@ -1,6 +1,7 @@
 import { TRPCError } from "@trpc/server";
 
 import {
+  NotificationType,
   TeamJoinRequestStatus,
   TeamRole,
   TeamStatus,
@@ -12,6 +13,7 @@ import {
 } from "@/lib/validation/team-join-request";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import type { db as database } from "@/server/db";
+import { createNotification } from "@/server/notifications/service";
 import { hasTeamOwnerOrAdminRole } from "@/server/teams/permissions";
 
 const publicTeamStatuses = [TeamStatus.REGULAR, TeamStatus.VERIFIED];
@@ -78,6 +80,12 @@ const getRequestForManagement = async ({
       teamId: true,
       userId: true,
       status: true,
+      team: {
+        select: {
+          name: true,
+          slug: true,
+        },
+      },
     },
   });
 
@@ -380,7 +388,7 @@ export const teamJoinRequestRouter = createTRPCRouter({
             },
           });
 
-          return tx.teamJoinRequest.update({
+          const updatedRequest = await tx.teamJoinRequest.update({
             where: { id: request.id },
             data: {
               status: TeamJoinRequestStatus.ACCEPTED,
@@ -388,6 +396,16 @@ export const teamJoinRequestRouter = createTRPCRouter({
               decidedAt: new Date(),
             },
           });
+
+          await createNotification(tx, {
+            userId: request.userId,
+            type: NotificationType.TEAM_JOIN_REQUEST_ACCEPTED,
+            title: "Заявка в команду принята",
+            body: `Ваша заявка в команду «${request.team.name}» принята.`,
+            href: `/teams/${request.team.slug}`,
+          });
+
+          return updatedRequest;
         });
       } catch (error) {
         if (isUniqueConstraintError(error)) {
@@ -410,13 +428,25 @@ export const teamJoinRequestRouter = createTRPCRouter({
         userId: ctx.session.user.id,
       });
 
-      return ctx.db.teamJoinRequest.update({
-        where: { id: request.id },
-        data: {
-          status: TeamJoinRequestStatus.REJECTED,
-          decidedById: ctx.session.user.id,
-          decidedAt: new Date(),
-        },
+      return ctx.db.$transaction(async (tx) => {
+        const updatedRequest = await tx.teamJoinRequest.update({
+          where: { id: request.id },
+          data: {
+            status: TeamJoinRequestStatus.REJECTED,
+            decidedById: ctx.session.user.id,
+            decidedAt: new Date(),
+          },
+        });
+
+        await createNotification(tx, {
+          userId: request.userId,
+          type: NotificationType.TEAM_JOIN_REQUEST_REJECTED,
+          title: "Заявка в команду отклонена",
+          body: `Ваша заявка в команду «${request.team.name}» отклонена.`,
+          href: `/teams/${request.team.slug}`,
+        });
+
+        return updatedRequest;
       });
     }),
 });

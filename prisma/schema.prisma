@@ -43,6 +43,17 @@ enum TeamInvitationStatus {
   CANCELLED_BY_TEAM
 }
 
+enum NotificationType {
+  EVENT_APPLICATION_ACCEPTED
+  EVENT_APPLICATION_REJECTED
+  TEAM_JOIN_REQUEST_ACCEPTED
+  TEAM_JOIN_REQUEST_REJECTED
+  TEAM_INVITATION_RECEIVED
+  REPORT_RESOLVED
+  REPORT_DISMISSED
+  EVENT_STATUS_CHANGED
+}
+
 enum TeamFunctionRole {
   OPERATOR
   PHOTOGRAPHER
@@ -183,6 +194,7 @@ model User {
   decidedTeamJoinRequests TeamJoinRequest[]    @relation("TeamJoinRequestDecisions")
   teamInvitationsReceived TeamInvitation[]     @relation("TeamInvitationsReceived")
   teamInvitationsSent     TeamInvitation[]     @relation("TeamInvitationsSent")
+  notifications           Notification[]       @relation("UserNotifications")
 }
 
 model VerificationToken {
@@ -293,6 +305,23 @@ model TeamInvitation {
   @@index([invitedById])
   @@index([teamId, status])
   @@index([invitedUserId, status])
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  type      NotificationType
+  title     String
+  body      String?
+  href      String?
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  user User @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, readAt])
+  @@index([createdAt])
 }
 
 model JumpObject {

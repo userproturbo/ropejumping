@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { signOut } from "@/server/auth";
 import { getCurrentUser } from "@/server/auth/session";
 import { isModeratorUser } from "@/server/moderation/permissions";
+import { api } from "@/trpc/server";
 
 import { SiteMobileMenu } from "./site-mobile-menu";
 
@@ -29,7 +30,17 @@ const moderatorLink = { href: "/moderation", label: "Модерация" };
 export async function SiteHeader() {
   const user = await getCurrentUser();
   const isModerator = isModeratorUser(user);
-  const availableUserLinks = user ? userLinks : [];
+  const unreadNotifications = user
+    ? await api.notification.getUnreadCount()
+    : { count: 0 };
+  const notificationLink = {
+    href: "/notifications",
+    label:
+      unreadNotifications.count > 0
+        ? `Уведомления (${unreadNotifications.count})`
+        : "Уведомления",
+  };
+  const availableUserLinks = user ? [notificationLink, ...userLinks] : [];
   const availableModeratorLinks = isModerator ? [moderatorLink] : [];
   const mobileLinks = [
     ...mainLinks,
