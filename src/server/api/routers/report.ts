@@ -1,6 +1,7 @@
 import { TRPCError } from "@trpc/server";
 
 import {
+  NotificationType,
   ObjectVisibility,
   ReportStatus,
   TeamStatus,
@@ -15,6 +16,7 @@ import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { publicPostWhere } from "@/server/api/routers/post";
 import type { db as database } from "@/server/db";
 import { requireModerator } from "@/server/moderation/permissions";
+import { createNotification } from "@/server/notifications/service";
 
 type ReportRouterDb = typeof database;
 
@@ -176,14 +178,38 @@ const reviewReport = async (
   reviewerId: string,
   status: ReportStatus,
 ) => {
-  return db.report.update({
-    where: { id: reportId },
-    data: {
-      status,
-      reviewedById: reviewerId,
-      reviewedAt: new Date(),
-    },
-    include: reportInclude,
+  return db.$transaction(async (tx) => {
+    const report = await tx.report.update({
+      where: { id: reportId },
+      data: {
+        status,
+        reviewedById: reviewerId,
+        reviewedAt: new Date(),
+      },
+      include: reportInclude,
+    });
+
+    if (status === ReportStatus.RESOLVED) {
+      await createNotification(tx, {
+        userId: report.reporter.id,
+        type: NotificationType.REPORT_RESOLVED,
+        title: "Жалоба рассмотрена",
+        body: "Ваша жалоба была рассмотрена и отмечена как решённая.",
+        href: null,
+      });
+    }
+
+    if (status === ReportStatus.DISMISSED) {
+      await createNotification(tx, {
+        userId: report.reporter.id,
+        type: NotificationType.REPORT_DISMISSED,
+        title: "Жалоба отклонена",
+        body: "Ваша жалоба была рассмотрена и отклонена.",
+        href: null,
+      });
+    }
+
+    return report;
   });
 };
 

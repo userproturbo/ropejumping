@@ -2,6 +2,7 @@ import { TRPCError } from "@trpc/server";
 
 import {
   ApplicationStatus,
+  NotificationType,
   TeamStatus,
 } from "@/generated/prisma/enums";
 import {
@@ -14,6 +15,7 @@ import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import type { db as database } from "@/server/db";
 import { canManageEvent } from "@/server/events/permissions";
 import { applicationOpenEventStatuses } from "@/server/events/statuses";
+import { createNotification } from "@/server/notifications/service";
 
 const publicTeamStatuses = [TeamStatus.REGULAR, TeamStatus.VERIFIED];
 
@@ -39,8 +41,16 @@ const ensureCanManageApplicationEvent = async ({
   const application = await db.eventApplication.findUnique({
     where: { id: applicationId },
     select: {
+      id: true,
       eventId: true,
       status: true,
+      userId: true,
+      event: {
+        select: {
+          title: true,
+          slug: true,
+        },
+      },
     },
   });
 
@@ -300,14 +310,36 @@ export const applicationRouter = createTRPCRouter({
         userId: ctx.session.user.id,
       });
 
-      return ctx.db.eventApplication.update({
-        where: { id: input.applicationId },
-        data: {
-          status: ApplicationStatus.ACCEPTED,
-          decidedById: ctx.session.user.id,
-          decidedAt: new Date(),
-          organizerNote: input.organizerNote,
-        },
+      return ctx.db.$transaction(async (tx) => {
+        const application = await tx.eventApplication.update({
+          where: { id: input.applicationId },
+          data: {
+            status: ApplicationStatus.ACCEPTED,
+            decidedById: ctx.session.user.id,
+            decidedAt: new Date(),
+            organizerNote: input.organizerNote,
+          },
+          select: {
+            id: true,
+            userId: true,
+            event: {
+              select: {
+                title: true,
+                slug: true,
+              },
+            },
+          },
+        });
+
+        await createNotification(tx, {
+          userId: application.userId,
+          type: NotificationType.EVENT_APPLICATION_ACCEPTED,
+          title: "Заявка на мероприятие принята",
+          body: `Ваша заявка на мероприятие «${application.event.title}» принята.`,
+          href: `/events/${application.event.slug}`,
+        });
+
+        return application;
       });
     }),
 
@@ -320,14 +352,36 @@ export const applicationRouter = createTRPCRouter({
         userId: ctx.session.user.id,
       });
 
-      return ctx.db.eventApplication.update({
-        where: { id: input.applicationId },
-        data: {
-          status: ApplicationStatus.REJECTED,
-          decidedById: ctx.session.user.id,
-          decidedAt: new Date(),
-          organizerNote: input.organizerNote,
-        },
+      return ctx.db.$transaction(async (tx) => {
+        const application = await tx.eventApplication.update({
+          where: { id: input.applicationId },
+          data: {
+            status: ApplicationStatus.REJECTED,
+            decidedById: ctx.session.user.id,
+            decidedAt: new Date(),
+            organizerNote: input.organizerNote,
+          },
+          select: {
+            id: true,
+            userId: true,
+            event: {
+              select: {
+                title: true,
+                slug: true,
+              },
+            },
+          },
+        });
+
+        await createNotification(tx, {
+          userId: application.userId,
+          type: NotificationType.EVENT_APPLICATION_REJECTED,
+          title: "Заявка на мероприятие отклонена",
+          body: `Ваша заявка на мероприятие «${application.event.title}» отклонена.`,
+          href: `/events/${application.event.slug}`,
+        });
+
+        return application;
       });
     }),
 });

@@ -1,12 +1,16 @@
 import { TRPCError } from "@trpc/server";
 
-import { TeamInvitationStatus } from "@/generated/prisma/enums";
+import {
+  NotificationType,
+  TeamInvitationStatus,
+} from "@/generated/prisma/enums";
 import {
   teamInvitationActionInputSchema,
   teamInvitationCreateInputSchema,
 } from "@/lib/validation/team-invitation";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import type { db as database } from "@/server/db";
+import { createNotification } from "@/server/notifications/service";
 import { hasTeamOwnerOrAdminRole } from "@/server/teams/permissions";
 
 type TeamInvitationRouterDb = typeof database;
@@ -150,16 +154,28 @@ export const teamInvitationRouter = createTRPCRouter({
         });
       }
 
-      return ctx.db.teamInvitation.create({
-        data: {
-          teamId: team.id,
-          invitedUserId: profile.userId,
-          invitedById: ctx.session.user.id,
-          role: input.role,
-          functionRoles: input.functionRoles,
-          message: input.message,
-          status: TeamInvitationStatus.PENDING,
-        },
+      return ctx.db.$transaction(async (tx) => {
+        const invitation = await tx.teamInvitation.create({
+          data: {
+            teamId: team.id,
+            invitedUserId: profile.userId,
+            invitedById: ctx.session.user.id,
+            role: input.role,
+            functionRoles: input.functionRoles,
+            message: input.message,
+            status: TeamInvitationStatus.PENDING,
+          },
+        });
+
+        await createNotification(tx, {
+          userId: profile.userId,
+          type: NotificationType.TEAM_INVITATION_RECEIVED,
+          title: "Приглашение в команду",
+          body: `Вас пригласили в команду «${team.name}».`,
+          href: "/teams/my",
+        });
+
+        return invitation;
       });
     }),
 
