@@ -3,6 +3,7 @@ import { TRPCError } from "@trpc/server";
 import {
   NotificationType,
   TeamInvitationStatus,
+  TeamRole,
 } from "@/generated/prisma/enums";
 import {
   teamInvitationActionInputSchema,
@@ -10,7 +11,10 @@ import {
 } from "@/lib/validation/team-invitation";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import type { db as database } from "@/server/db";
-import { createNotification } from "@/server/notifications/service";
+import {
+  createNotification,
+  createNotificationsForUsers,
+} from "@/server/notifications/service";
 import { hasTeamOwnerOrAdminRole } from "@/server/teams/permissions";
 
 type TeamInvitationRouterDb = typeof database;
@@ -273,6 +277,33 @@ export const teamInvitationRouter = createTRPCRouter({
           role: true,
           functionRoles: true,
           status: true,
+          invitedUser: {
+            select: {
+              name: true,
+              profile: {
+                select: {
+                  username: true,
+                  displayName: true,
+                },
+              },
+            },
+          },
+          team: {
+            select: {
+              name: true,
+              slug: true,
+              members: {
+                where: {
+                  role: {
+                    in: [TeamRole.OWNER, TeamRole.ADMIN],
+                  },
+                },
+                select: {
+                  userId: true,
+                },
+              },
+            },
+          },
         },
       });
 
@@ -325,6 +356,18 @@ export const teamInvitationRouter = createTRPCRouter({
             },
           }),
         ]);
+
+        await createNotificationsForUsers(
+          ctx.db,
+          invitation.team.members.map((member) => member.userId),
+          {
+            excludeUserId: ctx.session.user.id,
+            type: NotificationType.TEAM_INVITATION_ACCEPTED,
+            title: "Приглашение в команду принято",
+            body: `${getUserDisplayName(invitation.invitedUser)} принял приглашение в команду «${invitation.team.name}».`,
+            href: `/teams/${invitation.team.slug}/members`,
+          },
+        );
       } catch (error) {
         if (isUniqueConstraintError(error)) {
           throw new TRPCError({
@@ -350,6 +393,33 @@ export const teamInvitationRouter = createTRPCRouter({
         select: {
           id: true,
           status: true,
+          invitedUser: {
+            select: {
+              name: true,
+              profile: {
+                select: {
+                  username: true,
+                  displayName: true,
+                },
+              },
+            },
+          },
+          team: {
+            select: {
+              name: true,
+              slug: true,
+              members: {
+                where: {
+                  role: {
+                    in: [TeamRole.OWNER, TeamRole.ADMIN],
+                  },
+                },
+                select: {
+                  userId: true,
+                },
+              },
+            },
+          },
         },
       });
 
@@ -374,6 +444,18 @@ export const teamInvitationRouter = createTRPCRouter({
           decidedAt: new Date(),
         },
       });
+
+      await createNotificationsForUsers(
+        ctx.db,
+        invitation.team.members.map((member) => member.userId),
+        {
+          excludeUserId: ctx.session.user.id,
+          type: NotificationType.TEAM_INVITATION_REJECTED,
+          title: "Приглашение в команду отклонено",
+          body: `${getUserDisplayName(invitation.invitedUser)} отклонил приглашение в команду «${invitation.team.name}».`,
+          href: `/teams/${invitation.team.slug}/members`,
+        },
+      );
 
       return { success: true };
     }),
@@ -428,3 +510,15 @@ export const teamInvitationRouter = createTRPCRouter({
       return { success: true };
     }),
 });
+
+const getUserDisplayName = (user: {
+  name: string | null;
+  profile: {
+    username: string | null;
+    displayName: string | null;
+  } | null;
+}) =>
+  user.profile?.displayName ??
+  user.profile?.username ??
+  user.name ??
+  "Пользователь";

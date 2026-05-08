@@ -13,7 +13,10 @@ import {
 } from "@/lib/validation/team-join-request";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import type { db as database } from "@/server/db";
-import { createNotification } from "@/server/notifications/service";
+import {
+  createNotification,
+  createNotificationsForUsers,
+} from "@/server/notifications/service";
 import { hasTeamOwnerOrAdminRole } from "@/server/teams/permissions";
 
 const publicTeamStatuses = [TeamStatus.REGULAR, TeamStatus.VERIFIED];
@@ -209,6 +212,18 @@ export const teamJoinRequestRouter = createTRPCRouter({
         },
         select: {
           id: true,
+          name: true,
+          slug: true,
+          members: {
+            where: {
+              role: {
+                in: [TeamRole.OWNER, TeamRole.ADMIN],
+              },
+            },
+            select: {
+              userId: true,
+            },
+          },
         },
       });
 
@@ -252,12 +267,28 @@ export const teamJoinRequestRouter = createTRPCRouter({
         });
       }
 
-      return ctx.db.teamJoinRequest.create({
-        data: {
-          teamId: team.id,
-          userId: ctx.session.user.id,
-          message: input.message,
-        },
+      return ctx.db.$transaction(async (tx) => {
+        const request = await tx.teamJoinRequest.create({
+          data: {
+            teamId: team.id,
+            userId: ctx.session.user.id,
+            message: input.message,
+          },
+        });
+
+        await createNotificationsForUsers(
+          tx,
+          team.members.map((member) => member.userId),
+          {
+            excludeUserId: ctx.session.user.id,
+            type: NotificationType.TEAM_JOIN_REQUEST_RECEIVED,
+            title: "Новая заявка в команду",
+            body: `Поступила новая заявка в команду «${team.name}».`,
+            href: `/teams/${team.slug}/join-requests`,
+          },
+        );
+
+        return request;
       });
     }),
 

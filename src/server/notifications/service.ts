@@ -45,3 +45,32 @@ export const createNotifications = async (
     })),
   });
 };
+
+export const createNotificationsForUsers = async (
+  db: NotificationDb,
+  userIds: string[],
+  input: {
+    type: NotificationType;
+    title: string;
+    body?: string | null;
+    href?: string | null;
+    excludeUserId?: string;
+  },
+) => {
+  const recipientIds = Array.from(new Set(userIds)).filter(
+    (userId) => userId !== input.excludeUserId,
+  );
+
+  if (recipientIds.length === 0) return { count: 0 };
+
+  return createNotifications(
+    db,
+    recipientIds.map((userId) => ({
+      userId,
+      type: input.type,
+      title: input.title,
+      body: input.body ?? null,
+      href: input.href ?? null,
+    })),
+  );
+};
