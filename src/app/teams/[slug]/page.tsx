@@ -299,8 +299,11 @@ export default async function TeamPage({ params }: TeamPageProps) {
             <h2 className="text-xl font-semibold text-zinc-950">
               Последние посты команды
             </h2>
-            <Link href="/feed" className="text-sm text-zinc-600 hover:text-zinc-950">
-              Вся лента
+            <Link
+              href={`/feed?team=${team.slug}`}
+              className="text-sm text-zinc-600 hover:text-zinc-950"
+            >
+              Все посты команды
             </Link>
           </div>
 

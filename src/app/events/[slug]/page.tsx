@@ -188,6 +188,25 @@ export default async function EventPage({ params }: EventPageProps) {
         </section>
 
         <section className="mt-6 border border-zinc-200 bg-white p-6">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <h2 className="text-xl font-semibold text-zinc-950">
+                Публикации
+              </h2>
+              <p className="mt-2 text-sm text-zinc-600">
+                Обсуждение и публикации, связанные с этим мероприятием.
+              </p>
+            </div>
+            <Link
+              href={`/feed?event=${event.slug}`}
+              className="inline-flex border border-zinc-300 px-4 py-2 text-sm text-zinc-800 hover:border-zinc-950"
+            >
+              Посты мероприятия
+            </Link>
+          </div>
+        </section>
+
+        <section className="mt-6 border border-zinc-200 bg-white p-6">
           <h2 className="text-xl font-semibold text-zinc-950">Требования</h2>
           {event.requirementsText ? (
             <p className="mt-3 text-sm leading-6 whitespace-pre-wrap text-zinc-600">
