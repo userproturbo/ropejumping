@@ -126,6 +126,12 @@ enum ReportStatus {
   DISMISSED
 }
 
+enum PostPinTargetType {
+  TEAM
+  EVENT
+  OBJECT
+}
+
 enum AuditAction {
   TEAM_CREATED
   TEAM_UPDATED
@@ -201,6 +207,7 @@ model User {
   teamInvitationsReceived TeamInvitation[]     @relation("TeamInvitationsReceived")
   teamInvitationsSent     TeamInvitation[]     @relation("TeamInvitationsSent")
   notifications           Notification[]       @relation("UserNotifications")
+  createdPostPins         PostPin[]            @relation("PostPinsCreated")
 }
 
 model VerificationToken {
@@ -502,6 +509,7 @@ model Post {
   object   JumpObject? @relation(fields: [objectId], references: [id], onDelete: SetNull)
   comments Comment[]
   likes    PostLike[]
+  pins     PostPin[]
 
   @@index([authorId])
   @@index([teamId])
@@ -541,6 +549,24 @@ model PostLike {
   @@unique([postId, userId])
   @@index([postId])
   @@index([userId])
+}
+
+model PostPin {
+  id         String            @id @default(cuid())
+  postId     String
+  targetType PostPinTargetType
+  targetId   String
+  pinnedById String?
+  createdAt  DateTime          @default(now())
+
+  post     Post  @relation(fields: [postId], references: [id], onDelete: Cascade)
+  pinnedBy User? @relation("PostPinsCreated", fields: [pinnedById], references: [id], onDelete: SetNull)
+
+  @@unique([postId, targetType, targetId])
+  @@index([postId])
+  @@index([targetType, targetId])
+  @@index([pinnedById])
+  @@index([createdAt])
 }
 
 model Media {
