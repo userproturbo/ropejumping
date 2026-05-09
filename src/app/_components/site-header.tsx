@@ -18,6 +18,7 @@ const mainLinks = [
 
 const userLinks = [
   { href: "/feed/new", label: "Создать пост" },
+  { href: "/posts/my", label: "Мои публикации" },
   { href: "/teams/my", label: "Мои команды" },
   { href: "/events/my", label: "Мои мероприятия" },
   { href: "/applications/my", label: "Мои заявки" },
