@@ -10,6 +10,8 @@ import {
   hideTargetInputSchema,
   reportActionInputSchema,
   reportCreateInputSchema,
+  reportListInputSchema,
+  type ReportListStatus,
   type ReportTargetType,
 } from "@/lib/validation/report";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
@@ -213,6 +215,37 @@ const reviewReport = async (
   });
 };
 
+const getReportStatusWhere = (
+  status: ReportListStatus,
+): ReportStatus | { in: ReportStatus[] } | undefined => {
+  if (status === "OPEN") return ReportStatus.OPEN;
+  if (status === "RESOLVED") return ReportStatus.RESOLVED;
+  if (status === "DISMISSED") return ReportStatus.DISMISSED;
+  if (status === "REVIEWED") {
+    return {
+      in: [ReportStatus.REVIEWED, ReportStatus.RESOLVED, ReportStatus.DISMISSED],
+    };
+  }
+
+  return undefined;
+};
+
+const getReportOrderBy = (status: ReportListStatus) => {
+  if (status === "OPEN") {
+    return {
+      createdAt: "asc" as const,
+    };
+  }
+
+  if (status === "ALL") {
+    return {
+      createdAt: "desc" as const,
+    };
+  }
+
+  return [{ reviewedAt: "desc" as const }, { createdAt: "desc" as const }];
+};
+
 export const reportRouter = createTRPCRouter({
   create: protectedProcedure
     .input(reportCreateInputSchema)
@@ -267,6 +300,71 @@ export const reportRouter = createTRPCRouter({
 
     return addReportTargetPreviews(ctx.db, reports);
   }),
+
+  listForModeration: protectedProcedure
+    .input(reportListInputSchema.optional())
+    .query(async ({ ctx, input }) => {
+      requireModerator(ctx);
+
+      const status = input?.status ?? "OPEN";
+      const targetType = input?.targetType;
+      const statusWhere = getReportStatusWhere(status);
+      const where = {
+        ...(statusWhere ? { status: statusWhere } : {}),
+        ...(targetType ? { targetType } : {}),
+      };
+
+      const [reports, open, reviewed, resolved, dismissed, all] =
+        await Promise.all([
+          ctx.db.report.findMany({
+            where,
+            orderBy: getReportOrderBy(status),
+            include: reportInclude,
+          }),
+          ctx.db.report.count({
+            where: {
+              status: ReportStatus.OPEN,
+            },
+          }),
+          ctx.db.report.count({
+            where: {
+              status: {
+                in: [
+                  ReportStatus.REVIEWED,
+                  ReportStatus.RESOLVED,
+                  ReportStatus.DISMISSED,
+                ],
+              },
+            },
+          }),
+          ctx.db.report.count({
+            where: {
+              status: ReportStatus.RESOLVED,
+            },
+          }),
+          ctx.db.report.count({
+            where: {
+              status: ReportStatus.DISMISSED,
+            },
+          }),
+          ctx.db.report.count(),
+        ]);
+
+      return {
+        reports: await addReportTargetPreviews(ctx.db, reports),
+        filters: {
+          status,
+          targetType: targetType ?? "",
+        },
+        counts: {
+          open,
+          reviewed,
+          resolved,
+          dismissed,
+          all,
+        },
+      };
+    }),
 
   resolve: protectedProcedure
     .input(reportActionInputSchema)
