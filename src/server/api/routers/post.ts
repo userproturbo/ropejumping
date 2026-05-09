@@ -490,6 +490,56 @@ export const postRouter = createTRPCRouter({
     });
   }),
 
+  getMine: protectedProcedure.query(({ ctx }) => {
+    return ctx.db.post.findMany({
+      where: {
+        authorId: ctx.session.user.id,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+      select: {
+        id: true,
+        content: true,
+        imageUrl: true,
+        createdAt: true,
+        updatedAt: true,
+        hiddenAt: true,
+        team: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          },
+        },
+        event: {
+          select: {
+            id: true,
+            title: true,
+            slug: true,
+          },
+        },
+        object: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          },
+        },
+        _count: {
+          select: {
+            likes: true,
+            comments: {
+              where: {
+                hiddenAt: null,
+              },
+            },
+          },
+        },
+      },
+    });
+  }),
+
   create: protectedProcedure
     .input(postCreateInputSchema)
     .mutation(async ({ ctx, input }) => {
