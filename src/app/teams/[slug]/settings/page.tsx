@@ -49,6 +49,12 @@ export default async function TeamSettingsPage({
             </div>
             <div className="flex flex-wrap gap-3">
               <Link
+                href={`/teams/${team.slug}/activity`}
+                className="inline-flex items-center justify-center border border-zinc-300 px-4 py-2 text-sm text-zinc-800 hover:border-zinc-950"
+              >
+                Журнал действий
+              </Link>
+              <Link
                 href={`/teams/${team.slug}/members`}
                 className="inline-flex items-center justify-center bg-zinc-950 px-4 py-2 text-sm text-white hover:bg-zinc-800"
               >

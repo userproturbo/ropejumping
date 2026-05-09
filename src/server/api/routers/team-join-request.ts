@@ -1,6 +1,7 @@
 import { TRPCError } from "@trpc/server";
 
 import {
+  AuditAction,
   NotificationType,
   TeamJoinRequestStatus,
   TeamRole,
@@ -12,6 +13,7 @@ import {
   teamJoinRequestTeamSlugInputSchema,
 } from "@/lib/validation/team-join-request";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
+import { createAuditLog } from "@/server/audit/service";
 import type { db as database } from "@/server/db";
 import {
   createNotification,
@@ -436,6 +438,16 @@ export const teamJoinRequestRouter = createTRPCRouter({
             href: `/teams/${request.team.slug}`,
           });
 
+          await createAuditLog(tx, {
+            actorId: ctx.session.user.id,
+            action: AuditAction.TEAM_JOIN_REQUEST_ACCEPTED,
+            targetType: "TEAM",
+            targetId: request.teamId,
+            metadata: {
+              requesterUserId: request.userId,
+            },
+          });
+
           return updatedRequest;
         });
       } catch (error) {
@@ -475,6 +487,16 @@ export const teamJoinRequestRouter = createTRPCRouter({
           title: "Заявка в команду отклонена",
           body: `Ваша заявка в команду «${request.team.name}» отклонена.`,
           href: `/teams/${request.team.slug}`,
+        });
+
+        await createAuditLog(tx, {
+          actorId: ctx.session.user.id,
+          action: AuditAction.TEAM_JOIN_REQUEST_REJECTED,
+          targetType: "TEAM",
+          targetId: request.teamId,
+          metadata: {
+            requesterUserId: request.userId,
+          },
         });
 
         return updatedRequest;
