@@ -52,6 +52,16 @@ export const postCreateInputSchema = z.object({
 
 export const postIdInputSchema = z.string().cuid();
 
+export const postUpdateInputSchema = z.object({
+  postId: z.string().cuid(),
+  content: z.string().trim().min(1).max(2000),
+  imageUrl: optionalUrl,
+});
+
+export const postDeleteInputSchema = z.object({
+  postId: z.string().cuid(),
+});
+
 export const postPublicListInputSchema = z.object({
   q: optionalFilterString,
   team: optionalSlugFilter,
@@ -62,6 +72,15 @@ export const postPublicListInputSchema = z.object({
 export const commentCreateInputSchema = z.object({
   postId: z.string().cuid(),
   content: z.string().trim().min(1).max(1000),
+});
+
+export const commentUpdateInputSchema = z.object({
+  commentId: z.string().cuid(),
+  content: z.string().trim().min(1).max(1000),
+});
+
+export const commentDeleteInputSchema = z.object({
+  commentId: z.string().cuid(),
 });
 
 export type PostCreateInput = z.infer<typeof postCreateInputSchema>;

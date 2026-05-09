@@ -5,6 +5,8 @@ import { getCurrentUser } from "@/server/auth/session";
 import { api } from "@/trpc/server";
 
 import { formatFeedDate, getAuthorName } from "../../feed/_components/post-card";
+import { CommentAuthorActions } from "../_components/comment-author-actions";
+import { PostAuthorActions } from "../_components/post-author-actions";
 import { PostInteractions } from "../_components/post-interactions";
 
 type PostPageProps = {
@@ -23,6 +25,7 @@ export default async function PostPage({ params }: PostPageProps) {
   }
 
   const profile = user ? await api.profile.getMine() : null;
+  const isPostAuthor = user?.id === post.author.id;
 
   return (
     <main className="min-h-[calc(100vh-4rem)] bg-zinc-50">
@@ -89,9 +92,18 @@ export default async function PostPage({ params }: PostPageProps) {
               </Link>
             ) : null}
           </div>
+
+          {isPostAuthor ? (
+            <PostAuthorActions
+              initialContent={post.content}
+              initialImageUrl={post.imageUrl}
+              postId={post.id}
+            />
+          ) : null}
         </article>
 
         <PostInteractions
+          key={`${post.id}-${post._count.likes}-${post._count.comments}-${post.likes.length}`}
           canComment={Boolean(profile)}
           initialCommentsCount={post._count.comments}
           initialLiked={post.likes.length > 0}
@@ -139,6 +151,12 @@ export default async function PostPage({ params }: PostPageProps) {
                   <p className="mt-3 text-sm leading-6 whitespace-pre-wrap text-zinc-600">
                     {comment.content}
                   </p>
+                  {user?.id === comment.author.id ? (
+                    <CommentAuthorActions
+                      commentId={comment.id}
+                      initialContent={comment.content}
+                    />
+                  ) : null}
                 </article>
               ))}
             </div>
