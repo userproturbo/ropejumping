@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { PostPinTargetType } from "@/generated/prisma/enums";
+
 const emptyToNull = (value: unknown) => {
   if (typeof value !== "string") return value;
 
@@ -60,6 +62,19 @@ export const postUpdateInputSchema = z.object({
 
 export const postDeleteInputSchema = z.object({
   postId: z.string().cuid(),
+});
+
+export const postPinTargetTypeSchema = z.nativeEnum(PostPinTargetType);
+
+export const postPinInputSchema = z.object({
+  postId: z.string().cuid(),
+  targetType: postPinTargetTypeSchema,
+  targetId: z.string().cuid(),
+});
+
+export const postPinListInputSchema = z.object({
+  targetType: postPinTargetTypeSchema,
+  targetId: z.string().cuid(),
 });
 
 export const postPublicListInputSchema = z.object({

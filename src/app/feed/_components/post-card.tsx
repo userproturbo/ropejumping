@@ -2,19 +2,36 @@ import Link from "next/link";
 
 import type { RouterOutputs } from "@/trpc/react";
 
+import { PostPinButton } from "./post-pin-button";
+
 type PublicPost = RouterOutputs["post"]["listPublic"]["posts"][number];
+type PinTarget = NonNullable<RouterOutputs["post"]["listPublic"]["currentPinTarget"]>;
 
 type PostCardProps = {
+  currentPinTarget?: PinTarget | null;
+  currentUserCanPin?: boolean;
   isLoggedIn?: boolean;
   post: PublicPost;
 };
 
-export function PostCard({ isLoggedIn = false, post }: PostCardProps) {
+export function PostCard({
+  currentPinTarget = null,
+  currentUserCanPin = false,
+  isLoggedIn = false,
+  post,
+}: PostCardProps) {
   return (
     <article className="border border-zinc-200 bg-white p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="font-medium text-zinc-950">{getAuthorName(post.author)}</p>
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="font-medium text-zinc-950">{getAuthorName(post.author)}</p>
+            {post.isPinnedInCurrentFilter ? (
+              <span className="border border-amber-200 px-2 py-1 text-xs text-amber-800">
+                Закреплено
+              </span>
+            ) : null}
+          </div>
           <p className="mt-1 text-sm text-zinc-500">
             {formatFeedDate(post.createdAt)}
           </p>
@@ -32,6 +49,13 @@ export function PostCard({ isLoggedIn = false, post }: PostCardProps) {
           >
             Пожаловаться
           </Link>
+        ) : null}
+        {currentUserCanPin && currentPinTarget ? (
+          <PostPinButton
+            isPinned={post.isPinnedInCurrentFilter}
+            postId={post.id}
+            target={currentPinTarget}
+          />
         ) : null}
       </div>
 

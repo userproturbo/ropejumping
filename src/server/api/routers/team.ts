@@ -2,6 +2,7 @@ import { TRPCError } from "@trpc/server";
 
 import {
   ObjectVisibility,
+  PostPinTargetType,
   TeamRole,
   TeamStatus,
 } from "@/generated/prisma/enums";
@@ -307,8 +308,8 @@ export const teamRouter = createTRPCRouter({
 
   getBySlug: publicProcedure
     .input(teamSlugLookupSchema)
-    .query(({ ctx, input }) => {
-      return ctx.db.team.findFirst({
+    .query(async ({ ctx, input }) => {
+      const team = await ctx.db.team.findFirst({
         where: {
           slug: input,
           status: {
@@ -415,7 +416,6 @@ export const teamRouter = createTRPCRouter({
             orderBy: {
               createdAt: "desc",
             },
-            take: 5,
             select: {
               id: true,
               content: true,
@@ -449,6 +449,17 @@ export const teamRouter = createTRPCRouter({
                   slug: true,
                 },
               },
+              pins: {
+                where: {
+                  targetType: PostPinTargetType.TEAM,
+                },
+                select: {
+                  id: true,
+                  targetId: true,
+                  targetType: true,
+                  createdAt: true,
+                },
+              },
               _count: {
                 select: {
                   likes: true,
@@ -463,6 +474,22 @@ export const teamRouter = createTRPCRouter({
           },
         },
       });
+
+      if (!team) return null;
+
+      return {
+        ...team,
+        posts: team.posts
+          .sort((left, right) => {
+            const leftPinned = left.pins.some((pin) => pin.targetId === team.id);
+            const rightPinned = right.pins.some((pin) => pin.targetId === team.id);
+
+            if (leftPinned !== rightPinned) return leftPinned ? -1 : 1;
+
+            return right.createdAt.getTime() - left.createdAt.getTime();
+          })
+          .slice(0, 5),
+      };
     }),
 
   create: protectedProcedure

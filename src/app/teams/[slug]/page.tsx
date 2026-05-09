@@ -316,6 +316,7 @@ export default async function TeamPage({ params }: TeamPageProps) {
                   profile?.username ??
                   post.author.name ??
                   "Участник без имени";
+                const isPinned = post.pins.some((pin) => pin.targetId === team.id);
 
                 return (
                   <Link
@@ -325,9 +326,16 @@ export default async function TeamPage({ params }: TeamPageProps) {
                   >
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <p className="text-sm font-medium text-zinc-950">
-                          {authorDisplayName}
-                        </p>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="text-sm font-medium text-zinc-950">
+                            {authorDisplayName}
+                          </p>
+                          {isPinned ? (
+                            <span className="border border-amber-200 px-2 py-1 text-xs text-amber-800">
+                              Закреплено
+                            </span>
+                          ) : null}
+                        </div>
                         <div className="mt-1 flex flex-wrap gap-2 text-xs text-zinc-500">
                           {profile?.username ? <span>@{profile.username}</span> : null}
                           <span>{formatPostDate.format(post.createdAt)}</span>

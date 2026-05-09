@@ -3,6 +3,7 @@ import { TRPCError } from "@trpc/server";
 import {
   NotificationType,
   ObjectVisibility,
+  PostPinTargetType,
   TeamRole,
   TeamStatus,
 } from "@/generated/prisma/enums";
@@ -14,6 +15,7 @@ import {
   postCreateInputSchema,
   postDeleteInputSchema,
   postIdInputSchema,
+  postPinInputSchema,
   postPublicListInputSchema,
   postUpdateInputSchema,
 } from "@/lib/validation/post";
@@ -34,6 +36,15 @@ const manageableTeamRoles = [
 ];
 
 type PostRouterDb = typeof database;
+
+type PinTargetContext = {
+  targetId: string;
+  targetType: PostPinTargetType;
+};
+
+type InternalPinTargetContext = PinTargetContext & {
+  teamIdForPermission: string;
+};
 
 export const publicPostWhere = {
   hiddenAt: null,
@@ -132,6 +143,289 @@ const getPublicPostWhere = (
   ...publicPostWhere,
   AND: [...publicPostWhere.AND, ...filterClauses],
 });
+
+const emptyPinsWhere = {
+  id: {
+    in: [],
+  },
+};
+
+const getPinsWhereForTarget = (target: PinTargetContext | null) =>
+  target
+    ? {
+        targetType: target.targetType,
+        targetId: target.targetId,
+      }
+    : emptyPinsWhere;
+
+const resolvePinTargetFromFilters = async ({
+  db,
+  event,
+  object,
+  team,
+}: {
+  db: PostRouterDb;
+  event: string;
+  object: string;
+  team: string;
+}): Promise<InternalPinTargetContext | null> => {
+  const activeEntityFilters = [team, event, object].filter(Boolean);
+
+  if (activeEntityFilters.length !== 1) return null;
+
+  if (team) {
+    const targetTeam = await db.team.findFirst({
+      where: {
+        slug: team,
+        status: {
+          in: publicTeamStatuses,
+        },
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    return targetTeam
+      ? {
+          targetType: PostPinTargetType.TEAM,
+          targetId: targetTeam.id,
+          teamIdForPermission: targetTeam.id,
+        }
+      : null;
+  }
+
+  if (event) {
+    const targetEvent = await db.event.findFirst({
+      where: {
+        slug: event,
+        status: {
+          in: publicEventStatuses,
+        },
+        team: {
+          status: {
+            in: publicTeamStatuses,
+          },
+        },
+      },
+      select: {
+        id: true,
+        teamId: true,
+      },
+    });
+
+    return targetEvent
+      ? {
+          targetType: PostPinTargetType.EVENT,
+          targetId: targetEvent.id,
+          teamIdForPermission: targetEvent.teamId,
+        }
+      : null;
+  }
+
+  if (object) {
+    const targetObject = await db.jumpObject.findFirst({
+      where: {
+        slug: object,
+        visibility: ObjectVisibility.PUBLIC,
+        createdByTeam: {
+          is: {
+            status: {
+              in: publicTeamStatuses,
+            },
+          },
+        },
+      },
+      select: {
+        id: true,
+        createdByTeamId: true,
+      },
+    });
+
+    return targetObject?.createdByTeamId
+      ? {
+          targetType: PostPinTargetType.OBJECT,
+          targetId: targetObject.id,
+          teamIdForPermission: targetObject.createdByTeamId,
+        }
+      : null;
+  }
+
+  return null;
+};
+
+const canManagePinTarget = async ({
+  db,
+  target,
+  userId,
+}: {
+  db: PostRouterDb;
+  target: InternalPinTargetContext;
+  userId: string;
+}) => {
+  const membership = await db.teamMember.findFirst({
+    where: {
+      teamId: target.teamIdForPermission,
+      userId,
+      role: {
+        in: manageableTeamRoles,
+      },
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  return Boolean(membership);
+};
+
+const getValidatedPinTarget = async ({
+  db,
+  targetId,
+  targetType,
+}: {
+  db: PostRouterDb;
+  targetId: string;
+  targetType: PostPinTargetType;
+}): Promise<InternalPinTargetContext> => {
+  if (targetType === PostPinTargetType.TEAM) {
+    const team = await db.team.findFirst({
+      where: {
+        id: targetId,
+        status: {
+          in: publicTeamStatuses,
+        },
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (!team) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "Команда не найдена.",
+      });
+    }
+
+    return {
+      targetType,
+      targetId: team.id,
+      teamIdForPermission: team.id,
+    };
+  }
+
+  if (targetType === PostPinTargetType.EVENT) {
+    const event = await db.event.findFirst({
+      where: {
+        id: targetId,
+        status: {
+          in: publicEventStatuses,
+        },
+        team: {
+          status: {
+            in: publicTeamStatuses,
+          },
+        },
+      },
+      select: {
+        id: true,
+        teamId: true,
+      },
+    });
+
+    if (!event) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "Мероприятие не найдено.",
+      });
+    }
+
+    return {
+      targetType,
+      targetId: event.id,
+      teamIdForPermission: event.teamId,
+    };
+  }
+
+  const object = await db.jumpObject.findFirst({
+    where: {
+      id: targetId,
+      visibility: ObjectVisibility.PUBLIC,
+      createdByTeam: {
+        is: {
+          status: {
+            in: publicTeamStatuses,
+          },
+        },
+      },
+    },
+    select: {
+      id: true,
+      createdByTeamId: true,
+    },
+  });
+
+  if (!object?.createdByTeamId) {
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: "Объект не найден.",
+    });
+  }
+
+  return {
+    targetType,
+    targetId: object.id,
+    teamIdForPermission: object.createdByTeamId,
+  };
+};
+
+const validatePostCanBePinnedToTarget = async ({
+  db,
+  postId,
+  target,
+}: {
+  db: PostRouterDb;
+  postId: string;
+  target: PinTargetContext;
+}) => {
+  const post = await db.post.findFirst({
+    where: {
+      id: postId,
+      ...publicPostWhere,
+    },
+    select: {
+      id: true,
+      teamId: true,
+      eventId: true,
+      objectId: true,
+    },
+  });
+
+  if (!post) {
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: "Пост не найден.",
+    });
+  }
+
+  const isLinkedToTarget =
+    (target.targetType === PostPinTargetType.TEAM &&
+      post.teamId === target.targetId) ||
+    (target.targetType === PostPinTargetType.EVENT &&
+      post.eventId === target.targetId) ||
+    (target.targetType === PostPinTargetType.OBJECT &&
+      post.objectId === target.targetId);
+
+  if (!isLinkedToTarget) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Пост не связан с выбранной сущностью.",
+    });
+  }
+
+  return post;
+};
 
 const ensureProfile = async (db: PostRouterDb, userId: string) => {
   const profile = await db.profile.findUnique({
@@ -239,6 +533,26 @@ export const postRouter = createTRPCRouter({
       const event = input?.event ?? "";
       const object = input?.object ?? "";
       const filterClauses: Prisma.PostWhereInput[] = [];
+      const internalPinTarget = await resolvePinTargetFromFilters({
+        db: ctx.db,
+        team,
+        event,
+        object,
+      });
+      const currentPinTarget = internalPinTarget
+        ? {
+            targetType: internalPinTarget.targetType,
+            targetId: internalPinTarget.targetId,
+          }
+        : null;
+      const currentUserCanPin =
+        internalPinTarget && ctx.session?.user?.id
+          ? await canManagePinTarget({
+              db: ctx.db,
+              target: internalPinTarget,
+              userId: ctx.session.user.id,
+            })
+          : false;
 
       if (team) {
         filterClauses.push({
@@ -354,6 +668,15 @@ export const postRouter = createTRPCRouter({
             include: {
               author: authorInclude,
               ...linkedEntityInclude,
+              pins: {
+                where: getPinsWhereForTarget(currentPinTarget),
+                select: {
+                  id: true,
+                  targetType: true,
+                  targetId: true,
+                  createdAt: true,
+                },
+              },
               _count: {
                 select: {
                   likes: true,
@@ -431,12 +754,27 @@ export const postRouter = createTRPCRouter({
             },
           }),
         ]);
+      const orderedPosts = currentPinTarget
+        ? posts.sort((left, right) => {
+            const leftPinned = left.pins.length > 0;
+            const rightPinned = right.pins.length > 0;
+
+            if (leftPinned !== rightPinned) return leftPinned ? -1 : 1;
+
+            return right.createdAt.getTime() - left.createdAt.getTime();
+          })
+        : posts;
 
       return {
-        posts,
+        posts: orderedPosts.map((post) => ({
+          ...post,
+          isPinnedInCurrentFilter: post.pins.length > 0,
+        })),
         availableTeams,
         availableEvents,
         availableObjects,
+        currentPinTarget,
+        currentUserCanPin,
         filters: {
           q,
           team,
@@ -642,6 +980,93 @@ export const postRouter = createTRPCRouter({
         },
         data: {
           hiddenAt: new Date(),
+        },
+      });
+
+      return { success: true };
+    }),
+
+  pin: protectedProcedure
+    .input(postPinInputSchema)
+    .mutation(async ({ ctx, input }) => {
+      const target = await getValidatedPinTarget({
+        db: ctx.db,
+        targetType: input.targetType,
+        targetId: input.targetId,
+      });
+
+      const canManage = await canManagePinTarget({
+        db: ctx.db,
+        target,
+        userId: ctx.session.user.id,
+      });
+
+      if (!canManage) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "У вас нет прав закреплять посты здесь.",
+        });
+      }
+
+      await validatePostCanBePinnedToTarget({
+        db: ctx.db,
+        postId: input.postId,
+        target,
+      });
+
+      await ctx.db.postPin.upsert({
+        where: {
+          postId_targetType_targetId: {
+            postId: input.postId,
+            targetType: target.targetType,
+            targetId: target.targetId,
+          },
+        },
+        create: {
+          postId: input.postId,
+          targetType: target.targetType,
+          targetId: target.targetId,
+          pinnedById: ctx.session.user.id,
+        },
+        update: {},
+      });
+
+      return { success: true };
+    }),
+
+  unpin: protectedProcedure
+    .input(postPinInputSchema)
+    .mutation(async ({ ctx, input }) => {
+      const target = await getValidatedPinTarget({
+        db: ctx.db,
+        targetType: input.targetType,
+        targetId: input.targetId,
+      });
+
+      const canManage = await canManagePinTarget({
+        db: ctx.db,
+        target,
+        userId: ctx.session.user.id,
+      });
+
+      if (!canManage) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "У вас нет прав откреплять посты здесь.",
+        });
+      }
+
+      await validatePostCanBePinnedToTarget({
+        db: ctx.db,
+        postId: input.postId,
+        target,
+      });
+
+      await ctx.db.postPin.deleteMany({
+        where: {
+          postId: input.postId,
+          targetType: target.targetType,
+          targetId: target.targetId,
         },
       });
 

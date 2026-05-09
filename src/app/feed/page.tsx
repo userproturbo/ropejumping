@@ -26,6 +26,8 @@ export default async function FeedPage({ searchParams }: FeedPageProps) {
     availableTeams,
     availableEvents,
     availableObjects,
+    currentPinTarget,
+    currentUserCanPin,
     filters,
   } = await api.post.listPublic({
     q: getSearchParamValue(resolvedSearchParams, "q"),
@@ -160,7 +162,13 @@ export default async function FeedPage({ searchParams }: FeedPageProps) {
         {posts.length > 0 ? (
           <div className="grid gap-4">
             {posts.map((post) => (
-              <PostCard key={post.id} isLoggedIn={Boolean(user)} post={post} />
+              <PostCard
+                key={post.id}
+                currentPinTarget={currentPinTarget}
+                currentUserCanPin={currentUserCanPin}
+                isLoggedIn={Boolean(user)}
+                post={post}
+              />
             ))}
           </div>
         ) : (

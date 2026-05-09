@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   commentCreateInputSchema,
   postCreateInputSchema,
+  postPinInputSchema,
   postPublicListInputSchema,
   postUpdateInputSchema,
 } from "@/lib/validation/post";
@@ -81,5 +82,22 @@ describe("post validation", () => {
     expect(result.team).toBeUndefined();
     expect(result.event).toBe("event-slug");
     expect(result.object).toBeUndefined();
+  });
+
+  it("validates post pin input", () => {
+    expect(
+      postPinInputSchema.safeParse({
+        postId: cuid,
+        targetType: "TEAM",
+        targetId: cuid,
+      }).success,
+    ).toBe(true);
+    expect(
+      postPinInputSchema.safeParse({
+        postId: cuid,
+        targetType: "GLOBAL",
+        targetId: cuid,
+      }).success,
+    ).toBe(false);
   });
 });
