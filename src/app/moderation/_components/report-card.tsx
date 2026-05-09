@@ -5,10 +5,11 @@ import type { RouterOutputs } from "@/trpc/react";
 
 import { ModerationActions } from "./moderation-actions";
 
-type OpenReport = RouterOutputs["report"]["listOpen"][number];
+type ModerationReport =
+  RouterOutputs["report"]["listForModeration"]["reports"][number];
 
 type ReportCardProps = {
-  report: OpenReport;
+  report: ModerationReport;
   showActions?: boolean;
 };
 
@@ -57,6 +58,15 @@ export function ReportCard({ report, showActions = false }: ReportCardProps) {
             <dt className="font-medium text-zinc-950">Проверено</dt>
             <dd className="mt-1 text-zinc-600">
               {formatModerationDate(report.reviewedAt)}
+            </dd>
+          </div>
+        ) : null}
+        {report.reviewedBy ? (
+          <div>
+            <dt className="font-medium text-zinc-950">Проверил</dt>
+            <dd className="mt-1 text-zinc-600">
+              {getUserName(report.reviewedBy)}
+              {report.reviewedBy.email ? ` (${report.reviewedBy.email})` : ""}
             </dd>
           </div>
         ) : null}
@@ -110,7 +120,7 @@ const getTargetTypeLabel = (targetType: string) => {
   return targetType;
 };
 
-const getTargetTitle = (report: OpenReport) => {
+const getTargetTitle = (report: ModerationReport) => {
   if (report.targetType === "OBJECT" && report.targetObject) {
     return report.targetObject.name;
   }
@@ -127,7 +137,7 @@ const getReportStatusLabel = (status: string) => {
   return status;
 };
 
-const getUserName = (user: OpenReport["reporter"]) =>
+const getUserName = (user: ModerationReport["reporter"]) =>
   user.profile?.displayName ??
   user.profile?.username ??
   user.name ??
