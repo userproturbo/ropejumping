@@ -1,6 +1,7 @@
 import { TRPCError } from "@trpc/server";
 
 import {
+  NotificationType,
   ObjectVisibility,
   TeamRole,
   TeamStatus,
@@ -17,6 +18,7 @@ import {
 } from "@/server/api/trpc";
 import type { db as database } from "@/server/db";
 import { publicEventStatuses } from "@/server/events/statuses";
+import { createNotification } from "@/server/notifications/service";
 
 const publicTeamStatuses = [TeamStatus.REGULAR, TeamStatus.VERIFIED];
 const manageableTeamRoles = [
@@ -324,6 +326,7 @@ export const postRouter = createTRPCRouter({
         },
         select: {
           id: true,
+          authorId: true,
         },
       });
 
@@ -334,12 +337,26 @@ export const postRouter = createTRPCRouter({
         });
       }
 
-      return ctx.db.comment.create({
-        data: {
-          postId: input.postId,
-          authorId: ctx.session.user.id,
-          content: input.content,
-        },
+      return ctx.db.$transaction(async (tx) => {
+        const comment = await tx.comment.create({
+          data: {
+            postId: input.postId,
+            authorId: ctx.session.user.id,
+            content: input.content,
+          },
+        });
+
+        if (post.authorId !== ctx.session.user.id) {
+          await createNotification(tx, {
+            userId: post.authorId,
+            type: NotificationType.POST_COMMENTED,
+            title: "Новый комментарий",
+            body: "К вашему посту оставили новый комментарий.",
+            href: `/posts/${post.id}`,
+          });
+        }
+
+        return comment;
       });
     }),
 
@@ -353,6 +370,7 @@ export const postRouter = createTRPCRouter({
         },
         select: {
           id: true,
+          authorId: true,
         },
       });
 
@@ -385,11 +403,23 @@ export const postRouter = createTRPCRouter({
         return { liked: false };
       }
 
-      await ctx.db.postLike.create({
-        data: {
-          postId: input,
-          userId: ctx.session.user.id,
-        },
+      await ctx.db.$transaction(async (tx) => {
+        await tx.postLike.create({
+          data: {
+            postId: input,
+            userId: ctx.session.user.id,
+          },
+        });
+
+        if (post.authorId !== ctx.session.user.id) {
+          await createNotification(tx, {
+            userId: post.authorId,
+            type: NotificationType.POST_LIKED,
+            title: "Новый лайк",
+            body: "Ваш пост понравился другому участнику.",
+            href: `/posts/${post.id}`,
+          });
+        }
       });
 
       return { liked: true };
