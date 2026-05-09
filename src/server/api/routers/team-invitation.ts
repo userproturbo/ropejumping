@@ -1,6 +1,7 @@
 import { TRPCError } from "@trpc/server";
 
 import {
+  AuditAction,
   NotificationType,
   TeamInvitationStatus,
   TeamRole,
@@ -10,6 +11,7 @@ import {
   teamInvitationCreateInputSchema,
 } from "@/lib/validation/team-invitation";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
+import { createAuditLog } from "@/server/audit/service";
 import type { db as database } from "@/server/db";
 import {
   createNotification,
@@ -179,6 +181,18 @@ export const teamInvitationRouter = createTRPCRouter({
           href: "/teams/my",
         });
 
+        await createAuditLog(tx, {
+          actorId: ctx.session.user.id,
+          action: AuditAction.TEAM_INVITATION_CREATED,
+          targetType: "TEAM",
+          targetId: team.id,
+          metadata: {
+            invitedUserId: profile.userId,
+            role: input.role,
+            functionRoles: input.functionRoles,
+          },
+        });
+
         return invitation;
       });
     }),
@@ -339,23 +353,32 @@ export const teamInvitationRouter = createTRPCRouter({
       }
 
       try {
-        await ctx.db.$transaction([
-          ctx.db.teamMember.create({
+        await ctx.db.$transaction(async (tx) => {
+          await tx.teamMember.create({
             data: {
               teamId: invitation.teamId,
               userId: ctx.session.user.id,
               role: invitation.role,
               functionRoles: invitation.functionRoles,
             },
-          }),
-          ctx.db.teamInvitation.update({
+          });
+          await tx.teamInvitation.update({
             where: { id: invitation.id },
             data: {
               status: TeamInvitationStatus.ACCEPTED,
               decidedAt: new Date(),
             },
-          }),
-        ]);
+          });
+          await createAuditLog(tx, {
+            actorId: ctx.session.user.id,
+            action: AuditAction.TEAM_INVITATION_ACCEPTED,
+            targetType: "TEAM",
+            targetId: invitation.teamId,
+            metadata: {
+              invitedUserId: invitation.invitedUserId,
+            },
+          });
+        });
 
         await createNotificationsForUsers(
           ctx.db,
@@ -392,6 +415,8 @@ export const teamInvitationRouter = createTRPCRouter({
         },
         select: {
           id: true,
+          teamId: true,
+          invitedUserId: true,
           status: true,
           invitedUser: {
             select: {
@@ -437,12 +462,24 @@ export const teamInvitationRouter = createTRPCRouter({
         });
       }
 
-      await ctx.db.teamInvitation.update({
-        where: { id: invitation.id },
-        data: {
-          status: TeamInvitationStatus.REJECTED,
-          decidedAt: new Date(),
-        },
+      await ctx.db.$transaction(async (tx) => {
+        await tx.teamInvitation.update({
+          where: { id: invitation.id },
+          data: {
+            status: TeamInvitationStatus.REJECTED,
+            decidedAt: new Date(),
+          },
+        });
+
+        await createAuditLog(tx, {
+          actorId: ctx.session.user.id,
+          action: AuditAction.TEAM_INVITATION_REJECTED,
+          targetType: "TEAM",
+          targetId: invitation.teamId,
+          metadata: {
+            invitedUserId: invitation.invitedUserId,
+          },
+        });
       });
 
       await createNotificationsForUsers(
@@ -468,6 +505,7 @@ export const teamInvitationRouter = createTRPCRouter({
         select: {
           id: true,
           teamId: true,
+          invitedUserId: true,
           status: true,
         },
       });
@@ -499,12 +537,24 @@ export const teamInvitationRouter = createTRPCRouter({
         });
       }
 
-      await ctx.db.teamInvitation.update({
-        where: { id: invitation.id },
-        data: {
-          status: TeamInvitationStatus.CANCELLED_BY_TEAM,
-          decidedAt: new Date(),
-        },
+      await ctx.db.$transaction(async (tx) => {
+        await tx.teamInvitation.update({
+          where: { id: invitation.id },
+          data: {
+            status: TeamInvitationStatus.CANCELLED_BY_TEAM,
+            decidedAt: new Date(),
+          },
+        });
+
+        await createAuditLog(tx, {
+          actorId: ctx.session.user.id,
+          action: AuditAction.TEAM_INVITATION_CANCELLED,
+          targetType: "TEAM",
+          targetId: invitation.teamId,
+          metadata: {
+            invitedUserId: invitation.invitedUserId,
+          },
+        });
       });
 
       return { success: true };

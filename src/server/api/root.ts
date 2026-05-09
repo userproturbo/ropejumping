@@ -1,3 +1,4 @@
+import { auditRouter } from "@/server/api/routers/audit";
 import { applicationRouter } from "@/server/api/routers/application";
 import { badgeRouter } from "@/server/api/routers/badge";
 import { eventRouter } from "@/server/api/routers/event";
@@ -19,6 +20,7 @@ import { createCallerFactory, createTRPCRouter } from "@/server/api/trpc";
  * All routers added in /api/routers should be manually added here.
  */
 export const appRouter = createTRPCRouter({
+  audit: auditRouter,
   application: applicationRouter,
   badge: badgeRouter,
   event: eventRouter,

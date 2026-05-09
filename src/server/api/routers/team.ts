@@ -1,6 +1,7 @@
 import { TRPCError } from "@trpc/server";
 
 import {
+  AuditAction,
   ObjectVisibility,
   PostPinTargetType,
   TeamRole,
@@ -26,6 +27,7 @@ import {
   protectedProcedure,
   publicProcedure,
 } from "@/server/api/trpc";
+import { createAuditLog } from "@/server/audit/service";
 import { publicPostWhere } from "@/server/api/routers/post";
 import type { db as database } from "@/server/db";
 import { publicEventStatuses } from "@/server/events/statuses";
@@ -94,7 +96,9 @@ const getManageableMembership = async ({
     select: {
       id: true,
       teamId: true,
+      userId: true,
       role: true,
+      functionRoles: true,
     },
   });
 
@@ -142,6 +146,8 @@ const getMembershipForFunctionRoleManagement = async ({
     select: {
       id: true,
       teamId: true,
+      userId: true,
+      functionRoles: true,
     },
   });
 
@@ -556,14 +562,46 @@ export const teamRouter = createTRPCRouter({
         userId: ctx.session.user.id,
       });
 
-      return ctx.db.team.update({
+      const currentTeam = await ctx.db.team.findUniqueOrThrow({
         where: { id: team.id },
-        data: {
-          name: input.name,
-          description: input.description,
-          region: input.region,
-          logoUrl: input.logoUrl,
+        select: {
+          name: true,
+          description: true,
+          region: true,
+          logoUrl: true,
+          slug: true,
         },
+      });
+      const changedFields = [
+        currentTeam.name !== input.name ? "name" : null,
+        currentTeam.description !== input.description ? "description" : null,
+        currentTeam.region !== input.region ? "region" : null,
+        currentTeam.logoUrl !== input.logoUrl ? "logoUrl" : null,
+      ].filter((field): field is string => field !== null);
+
+      return ctx.db.$transaction(async (tx) => {
+        const updatedTeam = await tx.team.update({
+          where: { id: team.id },
+          data: {
+            name: input.name,
+            description: input.description,
+            region: input.region,
+            logoUrl: input.logoUrl,
+          },
+        });
+
+        await createAuditLog(tx, {
+          actorId: ctx.session.user.id,
+          action: AuditAction.TEAM_UPDATED,
+          targetType: "TEAM",
+          targetId: team.id,
+          metadata: {
+            teamSlug: currentTeam.slug,
+            changedFields,
+          },
+        });
+
+        return updatedTeam;
       });
     }),
 
@@ -683,13 +721,29 @@ export const teamRouter = createTRPCRouter({
       }
 
       try {
-        return await ctx.db.teamMember.create({
-          data: {
-            teamId: team.id,
-            userId: profile.userId,
-            role: input.role,
-            functionRoles: input.functionRoles,
-          },
+        return await ctx.db.$transaction(async (tx) => {
+          const member = await tx.teamMember.create({
+            data: {
+              teamId: team.id,
+              userId: profile.userId,
+              role: input.role,
+              functionRoles: input.functionRoles,
+            },
+          });
+
+          await createAuditLog(tx, {
+            actorId: ctx.session.user.id,
+            action: AuditAction.TEAM_MEMBER_ADDED,
+            targetType: "TEAM",
+            targetId: team.id,
+            metadata: {
+              targetUserId: profile.userId,
+              role: input.role,
+              functionRoles: input.functionRoles,
+            },
+          });
+
+          return member;
         });
       } catch (error) {
         if (isUniqueConstraintError(error)) {
@@ -712,11 +766,27 @@ export const teamRouter = createTRPCRouter({
         userId: ctx.session.user.id,
       });
 
-      return ctx.db.teamMember.update({
-        where: { id: membership.id },
-        data: {
-          role: input.role,
-        },
+      return ctx.db.$transaction(async (tx) => {
+        const updatedMember = await tx.teamMember.update({
+          where: { id: membership.id },
+          data: {
+            role: input.role,
+          },
+        });
+
+        await createAuditLog(tx, {
+          actorId: ctx.session.user.id,
+          action: AuditAction.TEAM_MEMBER_ROLE_UPDATED,
+          targetType: "TEAM",
+          targetId: membership.teamId,
+          metadata: {
+            targetUserId: membership.userId,
+            previousRole: membership.role,
+            newRole: input.role,
+          },
+        });
+
+        return updatedMember;
       });
     }),
 
@@ -729,11 +799,27 @@ export const teamRouter = createTRPCRouter({
         userId: ctx.session.user.id,
       });
 
-      return ctx.db.teamMember.update({
-        where: { id: membership.id },
-        data: {
-          functionRoles: input.functionRoles,
-        },
+      return ctx.db.$transaction(async (tx) => {
+        const updatedMember = await tx.teamMember.update({
+          where: { id: membership.id },
+          data: {
+            functionRoles: input.functionRoles,
+          },
+        });
+
+        await createAuditLog(tx, {
+          actorId: ctx.session.user.id,
+          action: AuditAction.TEAM_MEMBER_FUNCTION_ROLES_UPDATED,
+          targetType: "TEAM",
+          targetId: membership.teamId,
+          metadata: {
+            targetUserId: membership.userId,
+            previousFunctionRoles: membership.functionRoles,
+            newFunctionRoles: input.functionRoles,
+          },
+        });
+
+        return updatedMember;
       });
     }),
 
@@ -746,8 +832,23 @@ export const teamRouter = createTRPCRouter({
         userId: ctx.session.user.id,
       });
 
-      return ctx.db.teamMember.delete({
-        where: { id: membership.id },
+      return ctx.db.$transaction(async (tx) => {
+        const removedMember = await tx.teamMember.delete({
+          where: { id: membership.id },
+        });
+
+        await createAuditLog(tx, {
+          actorId: ctx.session.user.id,
+          action: AuditAction.TEAM_MEMBER_REMOVED,
+          targetType: "TEAM",
+          targetId: membership.teamId,
+          metadata: {
+            targetUserId: membership.userId,
+            previousRole: membership.role,
+          },
+        });
+
+        return removedMember;
       });
     }),
 
@@ -814,16 +915,26 @@ export const teamRouter = createTRPCRouter({
         });
       }
 
-      await ctx.db.$transaction([
-        ctx.db.teamMember.update({
+      await ctx.db.$transaction(async (tx) => {
+        await tx.teamMember.update({
           where: { id: currentOwnerMembership.id },
           data: { role: TeamRole.ADMIN },
-        }),
-        ctx.db.teamMember.update({
+        });
+        await tx.teamMember.update({
           where: { id: targetMembership.id },
           data: { role: TeamRole.OWNER },
-        }),
-      ]);
+        });
+        await createAuditLog(tx, {
+          actorId: ctx.session.user.id,
+          action: AuditAction.TEAM_OWNER_TRANSFERRED,
+          targetType: "TEAM",
+          targetId: targetMembership.teamId,
+          metadata: {
+            previousOwnerUserId: currentOwnerMembership.userId,
+            newOwnerUserId: targetMembership.userId,
+          },
+        });
+      });
 
       return { success: true };
     }),
@@ -840,6 +951,7 @@ export const teamRouter = createTRPCRouter({
         },
         select: {
           id: true,
+          teamId: true,
           role: true,
         },
       });
@@ -859,8 +971,21 @@ export const teamRouter = createTRPCRouter({
         });
       }
 
-      await ctx.db.teamMember.delete({
-        where: { id: membership.id },
+      await ctx.db.$transaction(async (tx) => {
+        await tx.teamMember.delete({
+          where: { id: membership.id },
+        });
+
+        await createAuditLog(tx, {
+          actorId: ctx.session.user.id,
+          action: AuditAction.TEAM_MEMBER_LEFT,
+          targetType: "TEAM",
+          targetId: membership.teamId,
+          metadata: {
+            userId: ctx.session.user.id,
+            previousRole: membership.role,
+          },
+        });
       });
 
       return { success: true };
