@@ -103,6 +103,19 @@ export default async function ObjectPage({ params }: ObjectPageProps) {
           </dl>
         </section>
 
+        <section className="mt-6 border border-zinc-200 bg-white p-6">
+          <h2 className="text-xl font-semibold text-zinc-950">Публикации</h2>
+          <p className="mt-2 text-sm text-zinc-600">
+            Публикации и отчёты, связанные с этим объектом.
+          </p>
+          <Link
+            href={`/feed?object=${object.slug}`}
+            className="mt-4 inline-flex border border-zinc-300 px-4 py-2 text-sm text-zinc-800 hover:border-zinc-950"
+          >
+            Посты объекта
+          </Link>
+        </section>
+
         <section className="mt-6 border border-amber-200 bg-amber-50 p-6">
           <p className="text-sm leading-6 text-amber-900">
             Точное расположение, способы доступа, точки крепления, схемы и
