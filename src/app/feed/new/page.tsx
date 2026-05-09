@@ -23,7 +23,7 @@ export default async function NewPostPage() {
       publicTeamStatuses.includes(team.status),
   );
   const { events } = await api.event.listPublic();
-  const objects = await api.object.listPublic();
+  const { objects } = await api.object.listPublic();
 
   return (
     <main className="min-h-[calc(100vh-4rem)] bg-zinc-50">

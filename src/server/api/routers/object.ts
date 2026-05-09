@@ -1,12 +1,15 @@
 import { TRPCError } from "@trpc/server";
 
 import {
+  ObjectType,
   ObjectVisibility,
   TeamRole,
   TeamStatus,
 } from "@/generated/prisma/enums";
+import type { Prisma } from "@/generated/prisma/client";
 import {
   objectCreateInputSchema,
+  objectPublicListInputSchema,
   objectSlugLookupSchema,
   objectUpdateInputSchema,
 } from "@/lib/validation/object";
@@ -30,6 +33,8 @@ const isUniqueConstraintError = (error: unknown) =>
 
 type ObjectRouterDb = typeof database;
 
+const objectTypeFilterValues = new Set<string>(Object.values(ObjectType));
+
 const publicLinkedEventsWhere = {
   status: {
     in: publicEventStatuses,
@@ -39,6 +44,48 @@ const publicLinkedEventsWhere = {
       in: publicTeamStatuses,
     },
   },
+};
+
+const getPublicObjectsWhere = ({
+  team,
+}: {
+  team?: string;
+} = {}): Prisma.JumpObjectWhereInput => ({
+  visibility: ObjectVisibility.PUBLIC,
+  createdByTeam: {
+    is: {
+      status: {
+        in: publicTeamStatuses,
+      },
+      ...(team ? { slug: team } : {}),
+    },
+  },
+});
+
+const normalizePublicObjectTypeFilter = (type: string | undefined) => {
+  if (!type) return undefined;
+
+  return objectTypeFilterValues.has(type) ? (type as ObjectType) : undefined;
+};
+
+const normalizeHeightRange = ({
+  maxHeight,
+  minHeight,
+}: {
+  maxHeight?: number;
+  minHeight?: number;
+}) => {
+  if (minHeight && maxHeight && minHeight > maxHeight) {
+    return {
+      minHeight: maxHeight,
+      maxHeight: minHeight,
+    };
+  }
+
+  return {
+    minHeight,
+    maxHeight,
+  };
 };
 
 const canManageTeam = async ({
@@ -78,38 +125,183 @@ const canManageTeam = async ({
 };
 
 export const objectRouter = createTRPCRouter({
-  listPublic: publicProcedure.query(({ ctx }) => {
-    return ctx.db.jumpObject.findMany({
-      where: {
-        visibility: ObjectVisibility.PUBLIC,
-        createdByTeam: {
-          is: {
+  listPublic: publicProcedure
+    .input(objectPublicListInputSchema.optional())
+    .query(async ({ ctx, input }) => {
+      const q = input?.q ?? "";
+      const region = input?.region ?? "";
+      const team = input?.team ?? "";
+      const type = normalizePublicObjectTypeFilter(input?.type);
+      const { minHeight, maxHeight } = normalizeHeightRange({
+        minHeight: input?.minHeight,
+        maxHeight: input?.maxHeight,
+      });
+      const hasHeightFilter =
+        minHeight !== undefined || maxHeight !== undefined;
+      const publicObjectsWhere = getPublicObjectsWhere();
+      const filteredObjectsWhere: Prisma.JumpObjectWhereInput =
+        getPublicObjectsWhere({ team });
+
+      if (type) {
+        filteredObjectsWhere.type = type;
+      }
+
+      if (region) {
+        filteredObjectsWhere.region = region;
+      }
+
+      if (hasHeightFilter) {
+        filteredObjectsWhere.heightMeters = {
+          ...(minHeight ? { gte: minHeight } : {}),
+          ...(maxHeight ? { lte: maxHeight } : {}),
+        };
+      }
+
+      if (q) {
+        filteredObjectsWhere.OR = [
+          {
+            name: {
+              contains: q,
+              mode: "insensitive",
+            },
+          },
+          {
+            description: {
+              contains: q,
+              mode: "insensitive",
+            },
+          },
+          {
+            region: {
+              contains: q,
+              mode: "insensitive",
+            },
+          },
+          {
+            createdByTeam: {
+              is: {
+                name: {
+                  contains: q,
+                  mode: "insensitive",
+                },
+              },
+            },
+          },
+        ];
+      }
+
+      const [objects, regionRows, availableTeams] = await Promise.all([
+        ctx.db.jumpObject.findMany({
+          where: filteredObjectsWhere,
+          orderBy: {
+            createdAt: "desc",
+          },
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            type: true,
+            heightMeters: true,
+            region: true,
+            coverImageUrl: true,
+            createdAt: true,
+            createdByTeam: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+              },
+            },
+            events: {
+              where: publicLinkedEventsWhere,
+              select: {
+                id: true,
+              },
+            },
+          },
+        }),
+        ctx.db.jumpObject.findMany({
+          where: {
+            ...publicObjectsWhere,
+            region: {
+              not: null,
+            },
+          },
+          distinct: ["region"],
+          select: {
+            region: true,
+          },
+        }),
+        ctx.db.team.findMany({
+          where: {
             status: {
               in: publicTeamStatuses,
             },
+            objects: {
+              some: {
+                visibility: ObjectVisibility.PUBLIC,
+              },
+            },
           },
-        },
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-      include: {
-        createdByTeam: {
+          orderBy: {
+            name: "asc",
+          },
           select: {
             id: true,
             name: true,
             slug: true,
           },
+        }),
+      ]);
+
+      const availableRegions = Array.from(
+        new Set(
+          regionRows
+            .map((object) => object.region?.trim())
+            .filter((objectRegion): objectRegion is string =>
+              Boolean(objectRegion),
+            ),
+        ),
+      ).sort((left, right) => left.localeCompare(right, "ru"));
+
+      const orderedObjects = objects.sort((left, right) => {
+        const linkedEventDifference = right.events.length - left.events.length;
+
+        if (linkedEventDifference !== 0) return linkedEventDifference;
+
+        const createdAtDifference =
+          right.createdAt.getTime() - left.createdAt.getTime();
+
+        if (createdAtDifference !== 0) return createdAtDifference;
+
+        return left.name.localeCompare(right.name, "ru");
+      });
+      const publicObjects = orderedObjects.map((object) => ({
+        id: object.id,
+        name: object.name,
+        slug: object.slug,
+        type: object.type,
+        heightMeters: object.heightMeters,
+        region: object.region,
+        coverImageUrl: object.coverImageUrl,
+        createdByTeam: object.createdByTeam,
+        events: object.events,
+      }));
+
+      return {
+        objects: publicObjects,
+        availableRegions,
+        availableTeams,
+        filters: {
+          q,
+          type: type ?? "",
+          region,
+          team,
+          minHeight: minHeight ?? "",
+          maxHeight: maxHeight ?? "",
         },
-        events: {
-          where: publicLinkedEventsWhere,
-          select: {
-            id: true,
-          },
-        },
-      },
-    });
-  }),
+      };
+    }),
 
   getBySlug: publicProcedure
     .input(objectSlugLookupSchema)

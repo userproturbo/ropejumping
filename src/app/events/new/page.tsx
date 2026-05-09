@@ -14,7 +14,7 @@ export default async function NewEventPage() {
   const manageableTeams = teams.filter((team) =>
     manageableRoles.includes(team.currentUserRole),
   );
-  const objects = await api.object.listPublic();
+  const { objects } = await api.object.listPublic();
 
   return (
     <main className="min-h-[calc(100vh-4rem)] bg-zinc-50">

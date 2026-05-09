@@ -9,7 +9,7 @@ import { api, type RouterOutputs } from "@/trpc/react";
 
 type TeamOption = RouterOutputs["team"]["getMine"][number];
 type EventOption = RouterOutputs["event"]["listPublic"]["events"][number];
-type ObjectOption = RouterOutputs["object"]["listPublic"][number];
+type ObjectOption = RouterOutputs["object"]["listPublic"]["objects"][number];
 
 type PostCreateFormProps = {
   events: EventOption[];

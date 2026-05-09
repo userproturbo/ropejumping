@@ -10,7 +10,7 @@ import { api, type RouterOutputs } from "@/trpc/react";
 import { datetimeLocalToIso } from "../_components/date-format";
 
 type ManageableTeam = RouterOutputs["team"]["getMine"][number];
-type ObjectOption = RouterOutputs["object"]["listPublic"][number];
+type ObjectOption = RouterOutputs["object"]["listPublic"]["objects"][number];
 
 type EventCreateFormProps = {
   objects: ObjectOption[];
