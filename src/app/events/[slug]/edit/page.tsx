@@ -17,7 +17,7 @@ export default async function EditEventPage({ params }: EditEventPageProps) {
   await requireCurrentUser(`/events/${slug}/edit`);
 
   const event = await api.event.getForEdit(slug).catch(() => null);
-  const objects = await api.object.listPublic();
+  const { objects } = await api.object.listPublic();
 
   if (!event) {
     notFound();

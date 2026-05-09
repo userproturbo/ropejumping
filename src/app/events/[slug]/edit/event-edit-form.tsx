@@ -13,7 +13,7 @@ import {
 } from "../../_components/date-format";
 
 type EventForEdit = NonNullable<RouterOutputs["event"]["getForEdit"]>;
-type ObjectOption = RouterOutputs["object"]["listPublic"][number];
+type ObjectOption = RouterOutputs["object"]["listPublic"]["objects"][number];
 
 type EventEditFormProps = {
   event: EventForEdit;

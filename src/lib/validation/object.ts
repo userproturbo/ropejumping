@@ -22,6 +22,35 @@ const optionalHeightMeters = z
   )
   .transform((value) => value ?? null);
 
+const getFirstString = (value: unknown) => {
+  if (typeof value === "string") return value;
+
+  if (!Array.isArray(value)) return undefined;
+
+  const firstValue: unknown = value[0];
+  return typeof firstValue === "string" ? firstValue : undefined;
+};
+
+const optionalFilterString = z.preprocess((value) => {
+  const rawValue = getFirstString(value);
+
+  if (typeof rawValue !== "string") return undefined;
+
+  const trimmed = rawValue.trim();
+  return trimmed === "" ? undefined : trimmed;
+}, z.string().optional());
+
+const optionalPositiveHeightFilter = z.preprocess((value) => {
+  const rawValue = getFirstString(value);
+
+  if (typeof rawValue !== "string") return undefined;
+
+  const normalizedValue = Number(rawValue.trim());
+  return Number.isFinite(normalizedValue) && normalizedValue > 0
+    ? Math.trunc(normalizedValue)
+    : undefined;
+}, z.number().int().positive().optional());
+
 const objectEditableFieldsSchema = z.object({
   name: z.string().trim().min(2).max(120),
   type: z.nativeEnum(ObjectType),
@@ -43,6 +72,15 @@ export const objectUpdateInputSchema = objectEditableFieldsSchema.extend({
 });
 
 export const objectSlugLookupSchema = objectSlugSchema;
+
+export const objectPublicListInputSchema = z.object({
+  q: optionalFilterString,
+  type: optionalFilterString,
+  region: optionalFilterString,
+  team: optionalFilterString,
+  minHeight: optionalPositiveHeightFilter,
+  maxHeight: optionalPositiveHeightFilter,
+});
 
 export type ObjectCreateInput = z.infer<typeof objectCreateInputSchema>;
 export type ObjectUpdateInput = z.infer<typeof objectUpdateInputSchema>;
