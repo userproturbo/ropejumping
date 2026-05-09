@@ -5,6 +5,7 @@ import {
   TeamRole,
   TeamStatus,
 } from "@/generated/prisma/enums";
+import type { Prisma } from "@/generated/prisma/client";
 import {
   teamMemberAddInputSchema,
   teamLeaveInputSchema,
@@ -15,6 +16,7 @@ import {
 } from "@/lib/validation/team-member";
 import {
   teamCreateInputSchema,
+  teamPublicListInputSchema,
   teamSlugLookupSchema,
   teamUpdateInputSchema,
 } from "@/lib/validation/team";
@@ -34,6 +36,9 @@ const isUniqueConstraintError = (error: unknown) =>
   error instanceof Error && error.message.includes("Unique constraint failed");
 
 type TeamRouterDb = typeof database;
+
+const getPublicTeamSortRank = (status: TeamStatus) =>
+  status === TeamStatus.VERIFIED ? 0 : 1;
 
 const getManageableTeam = async ({
   db,
@@ -163,31 +168,123 @@ const getMembershipForFunctionRoleManagement = async ({
 };
 
 export const teamRouter = createTRPCRouter({
-  listPublic: publicProcedure.query(({ ctx }) => {
-    return ctx.db.team.findMany({
-      where: {
+  listPublic: publicProcedure
+    .input(teamPublicListInputSchema.optional())
+    .query(async ({ ctx, input }) => {
+      const q = input?.q ?? "";
+      const region = input?.region ?? "";
+      const status = input?.status;
+      const publicTeamsWhere: Prisma.TeamWhereInput = {
         status: {
           in: publicTeamStatuses,
         },
-      },
-      orderBy: { createdAt: "desc" },
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        description: true,
-        region: true,
-        logoUrl: true,
-        status: true,
-        createdAt: true,
-        _count: {
-          select: {
-            members: true,
+      };
+      const filteredTeamsWhere: Prisma.TeamWhereInput = {
+        ...publicTeamsWhere,
+        ...(status ? { status } : {}),
+      };
+
+      if (region) {
+        filteredTeamsWhere.region = region;
+      }
+
+      if (q) {
+        filteredTeamsWhere.OR = [
+          {
+            name: {
+              contains: q,
+              mode: "insensitive",
+            },
           },
+          {
+            description: {
+              contains: q,
+              mode: "insensitive",
+            },
+          },
+          {
+            region: {
+              contains: q,
+              mode: "insensitive",
+            },
+          },
+          {
+            slug: {
+              contains: q,
+              mode: "insensitive",
+            },
+          },
+        ];
+      }
+
+      const [teams, regionRows] = await Promise.all([
+        ctx.db.team.findMany({
+          where: filteredTeamsWhere,
+          orderBy: {
+            createdAt: "desc",
+          },
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            description: true,
+            region: true,
+            logoUrl: true,
+            status: true,
+            createdAt: true,
+            _count: {
+              select: {
+                members: true,
+              },
+            },
+          },
+        }),
+        ctx.db.team.findMany({
+          where: {
+            ...publicTeamsWhere,
+            region: {
+              not: null,
+            },
+          },
+          distinct: ["region"],
+          select: {
+            region: true,
+          },
+        }),
+      ]);
+
+      const availableRegions = Array.from(
+        new Set(
+          regionRows
+            .map((team) => team.region?.trim())
+            .filter((teamRegion): teamRegion is string => Boolean(teamRegion)),
+        ),
+      ).sort((left, right) => left.localeCompare(right, "ru"));
+
+      const orderedTeams = teams.sort((left, right) => {
+        const statusDifference =
+          getPublicTeamSortRank(left.status) - getPublicTeamSortRank(right.status);
+
+        if (statusDifference !== 0) return statusDifference;
+
+        const createdAtDifference =
+          right.createdAt.getTime() - left.createdAt.getTime();
+
+        if (createdAtDifference !== 0) return createdAtDifference;
+
+        return left.name.localeCompare(right.name, "ru");
+      });
+
+      return {
+        teams: orderedTeams,
+        availableRegions,
+        filters: {
+          q,
+          region,
+          status: status ?? "",
         },
-      },
-    });
-  }),
+      };
+    }),
 
   getMine: protectedProcedure.query(async ({ ctx }) => {
     const memberships = await ctx.db.teamMember.findMany({

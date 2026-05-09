@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { TeamStatus } from "@/generated/prisma/enums";
+
 const emptyToNull = (value: unknown) => {
   if (typeof value !== "string") return value;
 
@@ -9,6 +11,38 @@ const emptyToNull = (value: unknown) => {
 
 const nullableString = (schema: z.ZodString) =>
   z.preprocess(emptyToNull, schema.nullable().optional());
+
+const getFirstString = (value: unknown) => {
+  if (typeof value === "string") return value;
+
+  if (!Array.isArray(value)) return undefined;
+
+  const firstValue: unknown = value[0];
+  return typeof firstValue === "string" ? firstValue : undefined;
+};
+
+const optionalFilterString = z.preprocess((value) => {
+  const rawValue = getFirstString(value);
+
+  if (typeof rawValue !== "string") return undefined;
+
+  const trimmed = rawValue.trim();
+  return trimmed === "" ? undefined : trimmed;
+}, z.string().optional());
+
+const publicTeamStatusFilterValues = new Set<string>([
+  TeamStatus.REGULAR,
+  TeamStatus.VERIFIED,
+]);
+
+const optionalPublicTeamStatusFilter = z.preprocess((value) => {
+  const rawValue = getFirstString(value);
+
+  if (typeof rawValue !== "string") return undefined;
+
+  const trimmed = rawValue.trim();
+  return publicTeamStatusFilterValues.has(trimmed) ? trimmed : undefined;
+}, z.nativeEnum(TeamStatus).optional());
 
 export const teamSlugSchema = z.preprocess(
   (value) => (typeof value === "string" ? value.trim().toLowerCase() : value),
@@ -41,6 +75,12 @@ export const teamUpdateInputSchema = teamEditableFieldsSchema.extend({
 });
 
 export const teamSlugLookupSchema = teamSlugSchema;
+
+export const teamPublicListInputSchema = z.object({
+  q: optionalFilterString,
+  region: optionalFilterString,
+  status: optionalPublicTeamStatusFilter,
+});
 
 export type TeamCreateInput = z.infer<typeof teamCreateInputSchema>;
 export type TeamUpdateInput = z.infer<typeof teamUpdateInputSchema>;
