@@ -6,10 +6,12 @@ import {
   TeamRole,
   TeamStatus,
 } from "@/generated/prisma/enums";
+import type { Prisma } from "@/generated/prisma/client";
 import {
   commentCreateInputSchema,
   postCreateInputSchema,
   postIdInputSchema,
+  postPublicListInputSchema,
 } from "@/lib/validation/post";
 import {
   createTRPCRouter,
@@ -79,7 +81,7 @@ export const publicPostWhere = {
       ],
     },
   ],
-};
+} satisfies Prisma.PostWhereInput;
 
 const authorInclude = {
   select: {
@@ -119,6 +121,13 @@ const linkedEntityInclude = {
     },
   },
 };
+
+const getPublicPostWhere = (
+  filterClauses: Prisma.PostWhereInput[] = [],
+): Prisma.PostWhereInput => ({
+  ...publicPostWhere,
+  AND: [...publicPostWhere.AND, ...filterClauses],
+});
 
 const ensureProfile = async (db: PostRouterDb, userId: string) => {
   const profile = await db.profile.findUnique({
@@ -218,28 +227,220 @@ const ensurePublicObject = async (db: PostRouterDb, objectId: string) => {
 };
 
 export const postRouter = createTRPCRouter({
-  listPublic: publicProcedure.query(({ ctx }) => {
-    return ctx.db.post.findMany({
-      where: publicPostWhere,
-      orderBy: {
-        createdAt: "desc",
-      },
-      include: {
-        author: authorInclude,
-        ...linkedEntityInclude,
-        _count: {
-          select: {
-            likes: true,
-            comments: {
-              where: {
-                hiddenAt: null,
-              },
+  listPublic: publicProcedure
+    .input(postPublicListInputSchema.optional())
+    .query(async ({ ctx, input }) => {
+      const q = input?.q ?? "";
+      const team = input?.team ?? "";
+      const event = input?.event ?? "";
+      const object = input?.object ?? "";
+      const filterClauses: Prisma.PostWhereInput[] = [];
+
+      if (team) {
+        filterClauses.push({
+          team: {
+            is: {
+              slug: team,
             },
           },
+        });
+      }
+
+      if (event) {
+        filterClauses.push({
+          event: {
+            is: {
+              slug: event,
+            },
+          },
+        });
+      }
+
+      if (object) {
+        filterClauses.push({
+          object: {
+            is: {
+              slug: object,
+            },
+          },
+        });
+      }
+
+      if (q) {
+        filterClauses.push({
+          OR: [
+            {
+              content: {
+                contains: q,
+                mode: "insensitive",
+              },
+            },
+            {
+              author: {
+                is: {
+                  profile: {
+                    is: {
+                      displayName: {
+                        contains: q,
+                        mode: "insensitive",
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            {
+              author: {
+                is: {
+                  profile: {
+                    is: {
+                      username: {
+                        contains: q,
+                        mode: "insensitive",
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            {
+              team: {
+                is: {
+                  name: {
+                    contains: q,
+                    mode: "insensitive",
+                  },
+                },
+              },
+            },
+            {
+              event: {
+                is: {
+                  title: {
+                    contains: q,
+                    mode: "insensitive",
+                  },
+                },
+              },
+            },
+            {
+              object: {
+                is: {
+                  name: {
+                    contains: q,
+                    mode: "insensitive",
+                  },
+                },
+              },
+            },
+          ],
+        });
+      }
+
+      const where = getPublicPostWhere(filterClauses);
+      const publicLinkedPostWhere = getPublicPostWhere();
+
+      const [posts, availableTeams, availableEvents, availableObjects] =
+        await Promise.all([
+          ctx.db.post.findMany({
+            where,
+            orderBy: {
+              createdAt: "desc",
+            },
+            include: {
+              author: authorInclude,
+              ...linkedEntityInclude,
+              _count: {
+                select: {
+                  likes: true,
+                  comments: {
+                    where: {
+                      hiddenAt: null,
+                    },
+                  },
+                },
+              },
+            },
+          }),
+          ctx.db.team.findMany({
+            where: {
+              status: {
+                in: publicTeamStatuses,
+              },
+              posts: {
+                some: publicLinkedPostWhere,
+              },
+            },
+            orderBy: {
+              name: "asc",
+            },
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+            },
+          }),
+          ctx.db.event.findMany({
+            where: {
+              status: {
+                in: publicEventStatuses,
+              },
+              team: {
+                status: {
+                  in: publicTeamStatuses,
+                },
+              },
+              posts: {
+                some: publicLinkedPostWhere,
+              },
+            },
+            orderBy: {
+              title: "asc",
+            },
+            select: {
+              id: true,
+              title: true,
+              slug: true,
+            },
+          }),
+          ctx.db.jumpObject.findMany({
+            where: {
+              visibility: ObjectVisibility.PUBLIC,
+              createdByTeam: {
+                is: {
+                  status: {
+                    in: publicTeamStatuses,
+                  },
+                },
+              },
+              posts: {
+                some: publicLinkedPostWhere,
+              },
+            },
+            orderBy: {
+              name: "asc",
+            },
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+            },
+          }),
+        ]);
+
+      return {
+        posts,
+        availableTeams,
+        availableEvents,
+        availableObjects,
+        filters: {
+          q,
+          team,
+          event,
+          object,
         },
-      },
-    });
-  }),
+      };
+    }),
 
   getById: publicProcedure.input(postIdInputSchema).query(({ ctx, input }) => {
     const userId = ctx.session?.user?.id ?? "";

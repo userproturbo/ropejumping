@@ -2,7 +2,7 @@ import Link from "next/link";
 
 import type { RouterOutputs } from "@/trpc/react";
 
-type PublicPost = RouterOutputs["post"]["listPublic"][number];
+type PublicPost = RouterOutputs["post"]["listPublic"]["posts"][number];
 
 type PostCardProps = {
   isLoggedIn?: boolean;
