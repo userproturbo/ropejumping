@@ -9,9 +9,13 @@ import {
 import type { Prisma } from "@/generated/prisma/client";
 import {
   commentCreateInputSchema,
+  commentDeleteInputSchema,
+  commentUpdateInputSchema,
   postCreateInputSchema,
+  postDeleteInputSchema,
   postIdInputSchema,
   postPublicListInputSchema,
+  postUpdateInputSchema,
 } from "@/lib/validation/post";
 import {
   createTRPCRouter,
@@ -515,6 +519,85 @@ export const postRouter = createTRPCRouter({
       });
     }),
 
+  updateMine: protectedProcedure
+    .input(postUpdateInputSchema)
+    .mutation(async ({ ctx, input }) => {
+      const post = await ctx.db.post.findFirst({
+        where: {
+          id: input.postId,
+          hiddenAt: null,
+        },
+        select: {
+          id: true,
+          authorId: true,
+        },
+      });
+
+      if (!post) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Пост не найден.",
+        });
+      }
+
+      if (post.authorId !== ctx.session.user.id) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Можно редактировать только свои посты.",
+        });
+      }
+
+      return ctx.db.post.update({
+        where: {
+          id: post.id,
+        },
+        data: {
+          content: input.content,
+          imageUrl: input.imageUrl,
+        },
+      });
+    }),
+
+  deleteMine: protectedProcedure
+    .input(postDeleteInputSchema)
+    .mutation(async ({ ctx, input }) => {
+      const post = await ctx.db.post.findFirst({
+        where: {
+          id: input.postId,
+          hiddenAt: null,
+        },
+        select: {
+          id: true,
+          authorId: true,
+        },
+      });
+
+      if (!post) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Пост не найден.",
+        });
+      }
+
+      if (post.authorId !== ctx.session.user.id) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Можно удалить только свои посты.",
+        });
+      }
+
+      await ctx.db.post.update({
+        where: {
+          id: post.id,
+        },
+        data: {
+          hiddenAt: new Date(),
+        },
+      });
+
+      return { success: true };
+    }),
+
   addComment: protectedProcedure
     .input(commentCreateInputSchema)
     .mutation(async ({ ctx, input }) => {
@@ -559,6 +642,85 @@ export const postRouter = createTRPCRouter({
 
         return comment;
       });
+    }),
+
+  updateCommentMine: protectedProcedure
+    .input(commentUpdateInputSchema)
+    .mutation(async ({ ctx, input }) => {
+      const comment = await ctx.db.comment.findFirst({
+        where: {
+          id: input.commentId,
+          hiddenAt: null,
+          post: getPublicPostWhere(),
+        },
+        select: {
+          id: true,
+          authorId: true,
+        },
+      });
+
+      if (!comment) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Комментарий не найден.",
+        });
+      }
+
+      if (comment.authorId !== ctx.session.user.id) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Можно редактировать только свои комментарии.",
+        });
+      }
+
+      return ctx.db.comment.update({
+        where: {
+          id: comment.id,
+        },
+        data: {
+          content: input.content,
+        },
+      });
+    }),
+
+  deleteCommentMine: protectedProcedure
+    .input(commentDeleteInputSchema)
+    .mutation(async ({ ctx, input }) => {
+      const comment = await ctx.db.comment.findFirst({
+        where: {
+          id: input.commentId,
+          hiddenAt: null,
+        },
+        select: {
+          id: true,
+          authorId: true,
+        },
+      });
+
+      if (!comment) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Комментарий не найден.",
+        });
+      }
+
+      if (comment.authorId !== ctx.session.user.id) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Можно удалить только свои комментарии.",
+        });
+      }
+
+      await ctx.db.comment.update({
+        where: {
+          id: comment.id,
+        },
+        data: {
+          hiddenAt: new Date(),
+        },
+      });
+
+      return { success: true };
     }),
 
   toggleLike: protectedProcedure
