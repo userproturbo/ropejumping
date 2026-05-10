@@ -3,6 +3,7 @@ import { TRPCError } from "@trpc/server";
 import {
   ObjectType,
   ObjectVisibility,
+  PostPinTargetType,
   TeamRole,
   TeamStatus,
 } from "@/generated/prisma/enums";
@@ -18,6 +19,7 @@ import {
   protectedProcedure,
   publicProcedure,
 } from "@/server/api/trpc";
+import { publicPostWhere } from "@/server/api/routers/post";
 import type { db as database } from "@/server/db";
 import { publicEventStatuses } from "@/server/events/statuses";
 
@@ -305,8 +307,8 @@ export const objectRouter = createTRPCRouter({
 
   getBySlug: publicProcedure
     .input(objectSlugLookupSchema)
-    .query(({ ctx, input }) => {
-      return ctx.db.jumpObject.findFirst({
+    .query(async ({ ctx, input }) => {
+      const object = await ctx.db.jumpObject.findFirst({
         where: {
           slug: input,
           visibility: ObjectVisibility.PUBLIC,
@@ -343,6 +345,102 @@ export const objectRouter = createTRPCRouter({
           },
         },
       });
+
+      if (!object) return null;
+
+      const objectPinWhere = {
+        targetType: PostPinTargetType.OBJECT,
+        targetId: object.id,
+      };
+      const postSelect = {
+        id: true,
+        content: true,
+        imageUrl: true,
+        createdAt: true,
+        author: {
+          select: {
+            id: true,
+            name: true,
+            image: true,
+            profile: {
+              select: {
+                username: true,
+                displayName: true,
+                avatarUrl: true,
+              },
+            },
+          },
+        },
+        team: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          },
+        },
+        event: {
+          select: {
+            id: true,
+            title: true,
+            slug: true,
+          },
+        },
+        pins: {
+          where: objectPinWhere,
+          select: {
+            id: true,
+            targetId: true,
+            targetType: true,
+            createdAt: true,
+          },
+        },
+        _count: {
+          select: {
+            likes: true,
+            comments: {
+              where: {
+                hiddenAt: null,
+              },
+            },
+          },
+        },
+      } satisfies Prisma.PostSelect;
+
+      const [pinnedPosts, latestPosts] = await Promise.all([
+        ctx.db.post.findMany({
+          where: {
+            ...publicPostWhere,
+            objectId: object.id,
+            pins: {
+              some: objectPinWhere,
+            },
+          },
+          orderBy: {
+            createdAt: "desc",
+          },
+          take: 5,
+          select: postSelect,
+        }),
+        ctx.db.post.findMany({
+          where: {
+            ...publicPostWhere,
+            objectId: object.id,
+            pins: {
+              none: objectPinWhere,
+            },
+          },
+          orderBy: {
+            createdAt: "desc",
+          },
+          take: 5,
+          select: postSelect,
+        }),
+      ]);
+
+      return {
+        ...object,
+        posts: [...pinnedPosts, ...latestPosts].slice(0, 5),
+      };
     }),
 
   getMine: protectedProcedure.query(({ ctx }) => {

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { formatEventDateRange } from "@/app/events/_components/date-format";
+import { EntityPostPreviewCard } from "@/app/posts/_components/entity-post-preview-card";
 import { getEventStatusLabel, getObjectTypeLabel } from "@/lib/display";
 import { getCurrentUser } from "@/server/auth/session";
 import { api } from "@/trpc/server";
@@ -104,16 +105,38 @@ export default async function ObjectPage({ params }: ObjectPageProps) {
         </section>
 
         <section className="mt-6 border border-zinc-200 bg-white p-6">
-          <h2 className="text-xl font-semibold text-zinc-950">Публикации</h2>
-          <p className="mt-2 text-sm text-zinc-600">
-            Публикации и отчёты, связанные с этим объектом.
-          </p>
-          <Link
-            href={`/feed?object=${object.slug}`}
-            className="mt-4 inline-flex border border-zinc-300 px-4 py-2 text-sm text-zinc-800 hover:border-zinc-950"
-          >
-            Посты объекта
-          </Link>
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="min-w-0">
+              <h2 className="text-xl font-semibold text-zinc-950">
+                Публикации объекта
+              </h2>
+              <p className="mt-2 text-sm text-zinc-600">
+                Публикации и отчёты, связанные с этим объектом.
+              </p>
+            </div>
+            <Link
+              href={`/feed?object=${object.slug}`}
+              className="inline-flex border border-zinc-300 px-4 py-2 text-sm text-zinc-800 hover:border-zinc-950"
+            >
+              Все посты объекта
+            </Link>
+          </div>
+
+          {object.posts.length > 0 ? (
+            <div className="mt-5 grid gap-4">
+              {object.posts.map((post) => (
+                <EntityPostPreviewCard
+                  key={post.id}
+                  post={post}
+                  isPinned={post.pins.some((pin) => pin.targetId === object.id)}
+                />
+              ))}
+            </div>
+          ) : (
+            <p className="mt-5 text-sm text-zinc-600">
+              Публикаций объекта пока нет.
+            </p>
+          )}
         </section>
 
         <section className="mt-6 border border-amber-200 bg-amber-50 p-6">

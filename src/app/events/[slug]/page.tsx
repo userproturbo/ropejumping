@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { EntityPostPreviewCard } from "@/app/posts/_components/entity-post-preview-card";
 import { EventStatus } from "@/generated/prisma/enums";
 import {
   getEventStatusLabel,
@@ -189,9 +190,9 @@ export default async function EventPage({ params }: EventPageProps) {
 
         <section className="mt-6 border border-zinc-200 bg-white p-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
+            <div className="min-w-0">
               <h2 className="text-xl font-semibold text-zinc-950">
-                Публикации
+                Публикации мероприятия
               </h2>
               <p className="mt-2 text-sm text-zinc-600">
                 Обсуждение и публикации, связанные с этим мероприятием.
@@ -201,9 +202,25 @@ export default async function EventPage({ params }: EventPageProps) {
               href={`/feed?event=${event.slug}`}
               className="inline-flex border border-zinc-300 px-4 py-2 text-sm text-zinc-800 hover:border-zinc-950"
             >
-              Посты мероприятия
+              Все посты мероприятия
             </Link>
           </div>
+
+          {event.posts.length > 0 ? (
+            <div className="mt-5 grid gap-4">
+              {event.posts.map((post) => (
+                <EntityPostPreviewCard
+                  key={post.id}
+                  post={post}
+                  isPinned={post.pins.some((pin) => pin.targetId === event.id)}
+                />
+              ))}
+            </div>
+          ) : (
+            <p className="mt-5 text-sm text-zinc-600">
+              Публикаций мероприятия пока нет.
+            </p>
+          )}
         </section>
 
         <section className="mt-6 border border-zinc-200 bg-white p-6">
