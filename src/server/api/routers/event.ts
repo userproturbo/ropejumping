@@ -5,6 +5,7 @@ import {
   EventStatus,
   NotificationType,
   ObjectVisibility,
+  PostPinTargetType,
   TeamRole,
   TeamStatus,
 } from "@/generated/prisma/enums";
@@ -25,6 +26,7 @@ import {
   protectedProcedure,
   publicProcedure,
 } from "@/server/api/trpc";
+import { publicPostWhere } from "@/server/api/routers/post";
 import type { db as database } from "@/server/db";
 import { recalculateUserBadges } from "@/server/badges/service";
 import {
@@ -409,8 +411,8 @@ export const eventRouter = createTRPCRouter({
 
   getBySlug: publicProcedure
     .input(eventSlugLookupSchema)
-    .query(({ ctx, input }) => {
-      return ctx.db.event.findFirst({
+    .query(async ({ ctx, input }) => {
+      const event = await ctx.db.event.findFirst({
         where: {
           slug: input,
           status: {
@@ -527,6 +529,102 @@ export const eventRouter = createTRPCRouter({
           },
         },
       });
+
+      if (!event) return null;
+
+      const eventPinWhere = {
+        targetType: PostPinTargetType.EVENT,
+        targetId: event.id,
+      };
+      const postSelect = {
+        id: true,
+        content: true,
+        imageUrl: true,
+        createdAt: true,
+        author: {
+          select: {
+            id: true,
+            name: true,
+            image: true,
+            profile: {
+              select: {
+                username: true,
+                displayName: true,
+                avatarUrl: true,
+              },
+            },
+          },
+        },
+        team: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          },
+        },
+        object: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          },
+        },
+        pins: {
+          where: eventPinWhere,
+          select: {
+            id: true,
+            targetId: true,
+            targetType: true,
+            createdAt: true,
+          },
+        },
+        _count: {
+          select: {
+            likes: true,
+            comments: {
+              where: {
+                hiddenAt: null,
+              },
+            },
+          },
+        },
+      } satisfies Prisma.PostSelect;
+
+      const [pinnedPosts, latestPosts] = await Promise.all([
+        ctx.db.post.findMany({
+          where: {
+            ...publicPostWhere,
+            eventId: event.id,
+            pins: {
+              some: eventPinWhere,
+            },
+          },
+          orderBy: {
+            createdAt: "desc",
+          },
+          take: 5,
+          select: postSelect,
+        }),
+        ctx.db.post.findMany({
+          where: {
+            ...publicPostWhere,
+            eventId: event.id,
+            pins: {
+              none: eventPinWhere,
+            },
+          },
+          orderBy: {
+            createdAt: "desc",
+          },
+          take: 5,
+          select: postSelect,
+        }),
+      ]);
+
+      return {
+        ...event,
+        posts: [...pinnedPosts, ...latestPosts].slice(0, 5),
+      };
     }),
 
   getMine: protectedProcedure.query(async ({ ctx }) => {
