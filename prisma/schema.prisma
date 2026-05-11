@@ -123,6 +123,7 @@ enum MediaStatus {
   PENDING
   UPLOADED
   FAILED
+  DELETED
 }
 
 enum ReportStatus {
@@ -601,6 +602,7 @@ model Media {
   height     Int?
   alt        String?
   uploadedAt DateTime?
+  deletedAt  DateTime?
   createdAt  DateTime    @default(now())
 
   owner User @relation("UserMedia", fields: [ownerId], references: [id], onDelete: Cascade)
@@ -609,6 +611,7 @@ model Media {
   @@index([ownerId])
   @@index([status])
   @@index([ownerId, status])
+  @@index([deletedAt])
   @@index([type])
 }
 
