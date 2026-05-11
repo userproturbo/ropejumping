@@ -4,7 +4,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
-import { ImageUploadField } from "@/app/_components/image-upload-field";
+import {
+  ImageUploadField,
+  type ImageUploadValue,
+} from "@/app/_components/image-upload-field";
 import { api, type RouterOutputs } from "@/trpc/react";
 
 type TeamOption = RouterOutputs["team"]["getMine"][number];
@@ -24,7 +27,10 @@ export function PostCreateForm({
 }: PostCreateFormProps) {
   const router = useRouter();
   const [content, setContent] = useState("");
-  const [imageUrl, setImageUrl] = useState("");
+  const [image, setImage] = useState<ImageUploadValue>({
+    mediaId: null,
+    url: "",
+  });
   const [teamId, setTeamId] = useState("");
   const [eventId, setEventId] = useState("");
   const [objectId, setObjectId] = useState("");
@@ -41,7 +47,8 @@ export function PostCreateForm({
 
     createPost.mutate({
       content,
-      imageUrl,
+      imageMediaId: image.mediaId,
+      imageUrl: image.url,
       teamId,
       eventId,
       objectId,
@@ -76,22 +83,7 @@ export function PostCreateForm({
 
       <div className="grid gap-3">
         <p className="text-sm font-medium text-zinc-950">Изображение</p>
-        <ImageUploadField value={imageUrl} onChange={setImageUrl} />
-      </div>
-
-      <div className="grid gap-2">
-        <label htmlFor="imageUrl" className="text-sm font-medium text-zinc-950">
-          Ссылка на изображение вручную
-        </label>
-        <input
-          id="imageUrl"
-          name="imageUrl"
-          value={imageUrl}
-          onChange={(event) => setImageUrl(event.target.value)}
-          type="url"
-          className="border border-zinc-300 px-3 py-2 text-zinc-950 outline-none focus:border-zinc-950"
-          placeholder="https://example.com/image.jpg"
-        />
+        <ImageUploadField value={image} onChange={setImage} />
       </div>
 
       <div className="grid gap-2">
@@ -166,7 +158,10 @@ export function PostCreateForm({
         >
           {createPost.isPending ? "Публикация..." : "Опубликовать"}
         </button>
-        <Link href="/feed" className="text-sm text-zinc-600 hover:text-zinc-950">
+        <Link
+          href="/feed"
+          className="text-sm text-zinc-600 hover:text-zinc-950"
+        >
           Отмена
         </Link>
       </div>
@@ -175,7 +170,10 @@ export function PostCreateForm({
 }
 
 const getObjectOptionLabel = (object: ObjectOption) => {
-  const details = [object.heightMeters ? `${object.heightMeters} м` : null, object.region]
+  const details = [
+    object.heightMeters ? `${object.heightMeters} м` : null,
+    object.region,
+  ]
     .filter(Boolean)
     .join(", ");
 

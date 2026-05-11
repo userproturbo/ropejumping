@@ -32,6 +32,10 @@ const optionalObjectId = z
   .preprocess(emptyToNull, z.string().cuid().nullable().optional())
   .transform((value) => value ?? null);
 
+const optionalCuid = z
+  .preprocess(emptyToNull, z.string().cuid().nullable().optional())
+  .transform((value) => value ?? null);
+
 const getFirstString = (value: unknown) => {
   if (typeof value === "string") return value;
 
@@ -67,7 +71,10 @@ export const eventSlugSchema = z.preprocess(
     .string()
     .min(3)
     .max(80)
-    .regex(/^[a-z0-9-]+$/, "Используйте латинские строчные буквы, цифры и дефисы."),
+    .regex(
+      /^[a-z0-9-]+$/,
+      "Используйте латинские строчные буквы, цифры и дефисы.",
+    ),
 );
 
 const eventEditableFieldsSchema = z.object({
@@ -93,6 +100,7 @@ const eventEditableFieldsSchema = z.object({
   coverImageUrl: nullableString(z.string().url()).transform(
     (value) => value ?? null,
   ),
+  coverMediaId: optionalCuid,
   objectId: optionalObjectId,
 });
 
@@ -101,26 +109,32 @@ const eventDateRangeRefinement = (event: {
   endsAt: Date | null;
 }) => !event.endsAt || event.endsAt > event.startsAt;
 
-export const eventCreateInputSchema = eventEditableFieldsSchema.extend({
-  teamId: z.string().cuid(),
-  slug: eventSlugSchema,
-}).refine(eventDateRangeRefinement, "Окончание должно быть позже начала.");
+export const eventCreateInputSchema = eventEditableFieldsSchema
+  .extend({
+    teamId: z.string().cuid(),
+    slug: eventSlugSchema,
+  })
+  .refine(eventDateRangeRefinement, "Окончание должно быть позже начала.");
 
-export const eventUpdateInputSchema = eventEditableFieldsSchema.extend({
-  slug: eventSlugSchema,
-}).refine(eventDateRangeRefinement, "Окончание должно быть позже начала.");
+export const eventUpdateInputSchema = eventEditableFieldsSchema
+  .extend({
+    slug: eventSlugSchema,
+  })
+  .refine(eventDateRangeRefinement, "Окончание должно быть позже начала.");
 
-const manuallySettableEventStatusSchema = z.nativeEnum(EventStatus).refine(
-  (status) =>
-    status === EventStatus.PUBLISHED ||
-    status === EventStatus.APPLICATIONS_OPEN ||
-    status === EventStatus.FULL ||
-    status === EventStatus.APPLICATIONS_CLOSED ||
-    status === EventStatus.POSTPONED ||
-    status === EventStatus.CANCELLED ||
-    status === EventStatus.ARCHIVED,
-  "Этот статус нельзя установить вручную.",
-);
+const manuallySettableEventStatusSchema = z
+  .nativeEnum(EventStatus)
+  .refine(
+    (status) =>
+      status === EventStatus.PUBLISHED ||
+      status === EventStatus.APPLICATIONS_OPEN ||
+      status === EventStatus.FULL ||
+      status === EventStatus.APPLICATIONS_CLOSED ||
+      status === EventStatus.POSTPONED ||
+      status === EventStatus.CANCELLED ||
+      status === EventStatus.ARCHIVED,
+    "Этот статус нельзя установить вручную.",
+  );
 
 export const eventSlugLookupSchema = eventSlugSchema;
 

@@ -47,6 +47,7 @@ const optionalSlugFilter = z.preprocess((value) => {
 export const postCreateInputSchema = z.object({
   content: z.string().trim().min(1).max(2000),
   imageUrl: optionalUrl,
+  imageMediaId: optionalCuid,
   teamId: optionalCuid,
   eventId: optionalCuid,
   objectId: optionalCuid,
@@ -58,6 +59,7 @@ export const postUpdateInputSchema = z.object({
   postId: z.string().cuid(),
   content: z.string().trim().min(1).max(2000),
   imageUrl: optionalUrl,
+  imageMediaId: optionalCuid,
 });
 
 export const postDeleteInputSchema = z.object({

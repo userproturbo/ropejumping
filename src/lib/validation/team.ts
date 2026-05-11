@@ -12,6 +12,10 @@ const emptyToNull = (value: unknown) => {
 const nullableString = (schema: z.ZodString) =>
   z.preprocess(emptyToNull, schema.nullable().optional());
 
+const optionalCuid = z
+  .preprocess(emptyToNull, z.string().cuid().nullable().optional())
+  .transform((value) => value ?? null);
+
 const getFirstString = (value: unknown) => {
   if (typeof value === "string") return value;
 
@@ -50,7 +54,10 @@ export const teamSlugSchema = z.preprocess(
     .string()
     .min(3)
     .max(40)
-    .regex(/^[a-z0-9-]+$/, "Используйте латинские строчные буквы, цифры и дефисы."),
+    .regex(
+      /^[a-z0-9-]+$/,
+      "Используйте латинские строчные буквы, цифры и дефисы.",
+    ),
 );
 
 const teamEditableFieldsSchema = z.object({
@@ -61,9 +68,8 @@ const teamEditableFieldsSchema = z.object({
   region: nullableString(z.string().max(80)).transform(
     (value) => value ?? null,
   ),
-  logoUrl: nullableString(z.string().url()).transform(
-    (value) => value ?? null,
-  ),
+  logoUrl: nullableString(z.string().url()).transform((value) => value ?? null),
+  logoMediaId: optionalCuid,
 });
 
 export const teamCreateInputSchema = teamEditableFieldsSchema.extend({

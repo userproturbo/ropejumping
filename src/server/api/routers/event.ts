@@ -34,6 +34,10 @@ import {
   canManageEvent,
 } from "@/server/events/permissions";
 import { publicEventStatuses } from "@/server/events/statuses";
+import {
+  resolveImageMediaForCreate,
+  resolveImageMediaForUpdate,
+} from "@/server/media/usage";
 import { createNotifications } from "@/server/notifications/service";
 
 const manageableTeamRoles = [
@@ -89,7 +93,9 @@ const eventStatusOrderGroups = {
   [EventStatus.DRAFT]: 9,
 } satisfies Record<EventStatus, number>;
 
-const activeDateOrderedStatuses = new Set<EventStatus>(upcomingPublicEventStatuses);
+const activeDateOrderedStatuses = new Set<EventStatus>(
+  upcomingPublicEventStatuses,
+);
 const newestFirstDateOrderedStatuses = new Set<EventStatus>([
   EventStatus.CANCELLED,
   EventStatus.COMPLETED,
@@ -103,7 +109,8 @@ const orderEventsByLifecycle = <TEvent extends EventForOrdering>(
 
   return events.sort((left, right) => {
     const groupDifference =
-      eventStatusOrderGroups[left.status] - eventStatusOrderGroups[right.status];
+      eventStatusOrderGroups[left.status] -
+      eventStatusOrderGroups[right.status];
 
     if (groupDifference !== 0) return groupDifference;
 
@@ -911,10 +918,21 @@ export const eventRouter = createTRPCRouter({
         objectId: input.objectId,
       });
 
+      const cover = await resolveImageMediaForCreate({
+        db: ctx.db,
+        input: {
+          mediaId: input.coverMediaId,
+          url: input.coverImageUrl,
+        },
+        userId: ctx.session.user.id,
+      });
+
       try {
         return await ctx.db.event.create({
           data: {
             ...input,
+            coverImageUrl: cover.url,
+            coverMediaId: cover.mediaId,
             createdById: ctx.session.user.id,
             status: EventStatus.PUBLISHED,
           },
@@ -945,6 +963,21 @@ export const eventRouter = createTRPCRouter({
         objectId: input.objectId,
       });
 
+      const currentEvent = await ctx.db.event.findUniqueOrThrow({
+        where: { id: event.id },
+        select: { coverImageUrl: true, coverMediaId: true },
+      });
+      const cover = await resolveImageMediaForUpdate({
+        db: ctx.db,
+        existingMediaId: currentEvent.coverMediaId,
+        existingUrl: currentEvent.coverImageUrl,
+        input: {
+          mediaId: input.coverMediaId,
+          url: input.coverImageUrl,
+        },
+        userId: ctx.session.user.id,
+      });
+
       return ctx.db.event.update({
         where: { id: event.id },
         data: {
@@ -957,7 +990,8 @@ export const eventRouter = createTRPCRouter({
           capacity: input.capacity,
           priceText: input.priceText,
           levelText: input.levelText,
-          coverImageUrl: input.coverImageUrl,
+          coverImageUrl: cover.url,
+          coverMediaId: cover.mediaId,
           objectId: input.objectId,
         },
       });
@@ -1142,7 +1176,9 @@ export const eventRouter = createTRPCRouter({
         );
         const validConfirmedUserIds = new Set([
           ...acceptedUserIds,
-          ...existingParticipations.map((participation) => participation.userId),
+          ...existingParticipations.map(
+            (participation) => participation.userId,
+          ),
         ]);
         const invalidUserIds = confirmedUserIds.filter(
           (userId) => !validConfirmedUserIds.has(userId),
