@@ -85,17 +85,42 @@ const requireYandexStorageConfig = () => {
 const sanitizeKeySegment = (value: string) =>
   value.replace(/[^a-zA-Z0-9_-]/g, "_");
 
-export const createImageObjectKey = (
-  userId: string,
-  contentType: AllowedImageContentType,
+export const createPendingImageObjectKey = (userId: string) => {
+  const random = randomBytes(16).toString("hex");
+
+  return `pending/${sanitizeKeySegment(userId)}/${random}`;
+};
+
+export const createImageObjectKey = ({
+  contentType,
   date = new Date(),
-) => {
+  mediaId,
+  userId,
+}: {
+  contentType: AllowedImageContentType;
+  date?: Date;
+  mediaId: string;
+  userId: string;
+}) => {
   const year = String(date.getUTCFullYear());
   const month = String(date.getUTCMonth() + 1).padStart(2, "0");
-  const random = randomBytes(16).toString("hex");
   const extension = imageExtensions[contentType];
 
-  return `uploads/${sanitizeKeySegment(userId)}/${year}/${month}/${random}.${extension}`;
+  return [
+    "media",
+    "images",
+    sanitizeKeySegment(userId),
+    year,
+    month,
+    sanitizeKeySegment(mediaId),
+    `original.${extension}`,
+  ].join("/");
+};
+
+export const getYandexStorageBucket = () => {
+  const config = requireYandexStorageConfig();
+
+  return config.bucket;
 };
 
 export const buildYandexStoragePublicUrl = (key: string) => {

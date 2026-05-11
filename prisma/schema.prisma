@@ -119,6 +119,12 @@ enum MediaType {
   VIDEO
 }
 
+enum MediaStatus {
+  PENDING
+  UPLOADED
+  FAILED
+}
+
 enum ReportStatus {
   OPEN
   REVIEWED
@@ -582,23 +588,27 @@ model PostPin {
 }
 
 model Media {
-  id        String    @id @default(cuid())
-  ownerId   String
-  type      MediaType
-  bucket    String
-  key       String
-  url       String?
-  mimeType  String?
-  sizeBytes Int?
-  width     Int?
-  height    Int?
-  alt       String?
-  createdAt DateTime  @default(now())
+  id         String      @id @default(cuid())
+  ownerId    String
+  type       MediaType
+  status     MediaStatus @default(PENDING)
+  bucket     String
+  key        String
+  url        String?
+  mimeType   String?
+  sizeBytes  Int?
+  width      Int?
+  height     Int?
+  alt        String?
+  uploadedAt DateTime?
+  createdAt  DateTime    @default(now())
 
   owner User @relation("UserMedia", fields: [ownerId], references: [id], onDelete: Cascade)
 
   @@unique([bucket, key])
   @@index([ownerId])
+  @@index([status])
+  @@index([ownerId, status])
   @@index([type])
 }
 

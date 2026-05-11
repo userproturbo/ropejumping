@@ -15,6 +15,8 @@ type ImageUploadFieldProps = {
 };
 
 const supportedImageTypes = new Set<string>(allowedImageContentTypes);
+const uploadFailedMessage =
+  "Не удалось загрузить изображение. Попробуйте ещё раз.";
 
 export function ImageUploadField({
   id = "imageUpload",
@@ -27,11 +29,14 @@ export function ImageUploadField({
   const [isPuttingFile, setIsPuttingFile] = useState(false);
 
   const createImageUpload = api.upload.createImageUpload.useMutation();
-  const isUploading = createImageUpload.isPending || isPuttingFile;
+  const confirmImageUpload = api.upload.confirmImageUpload.useMutation();
+  const markImageUploadFailed = api.upload.markImageUploadFailed.useMutation();
+  const isUploading =
+    createImageUpload.isPending ||
+    confirmImageUpload.isPending ||
+    isPuttingFile;
 
-  const handleFileChange = async (
-    event: ChangeEvent<HTMLInputElement>,
-  ) => {
+  const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
 
     if (!file) return;
@@ -51,6 +56,8 @@ export function ImageUploadField({
       return;
     }
 
+    let mediaId: string | null = null;
+
     try {
       setIsPuttingFile(true);
 
@@ -59,6 +66,7 @@ export function ImageUploadField({
         fileName: file.name,
         sizeBytes: file.size,
       });
+      mediaId = upload.mediaId;
 
       const response = await fetch(upload.uploadUrl, {
         body: file,
@@ -67,12 +75,28 @@ export function ImageUploadField({
       });
 
       if (!response.ok) {
-        throw new Error("Не удалось загрузить изображение.");
+        throw new Error(uploadFailedMessage);
       }
 
-      onChange(upload.publicUrl);
+      const confirmedMedia = await confirmImageUpload.mutateAsync(
+        upload.mediaId,
+      );
+
+      if (!confirmedMedia.url) {
+        throw new Error(uploadFailedMessage);
+      }
+
+      onChange(confirmedMedia.url);
       setIsUploaded(true);
     } catch (uploadError) {
+      if (mediaId) {
+        try {
+          await markImageUploadFailed.mutateAsync(mediaId);
+        } catch {
+          // The user-facing failure is the upload itself; marking failed is best effort.
+        }
+      }
+
       setError(getUploadErrorMessage(uploadError));
     } finally {
       setIsPuttingFile(false);
@@ -147,5 +171,5 @@ const getUploadErrorMessage = (error: unknown) => {
     return error.message;
   }
 
-  return "Не удалось загрузить изображение.";
+  return uploadFailedMessage;
 };
