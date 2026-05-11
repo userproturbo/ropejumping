@@ -5,7 +5,8 @@ vi.mock("server-only", () => ({}));
 process.env.SKIP_ENV_VALIDATION = "1";
 process.env.DATABASE_URL ??= "postgresql://user:password@localhost:5432/test";
 
-const { createImageObjectKey } = await import("@/server/storage/yandex");
+const { createImageObjectKey, isManagedMediaKey } =
+  await import("@/server/storage/yandex");
 
 describe("Yandex storage image keys", () => {
   it("creates structured image object keys", () => {
@@ -37,5 +38,30 @@ describe("Yandex storage image keys", () => {
     );
     expect(key).not.toContain("holiday-photo");
     expect(key).not.toContain("uploads/");
+  });
+
+  it("accepts managed structured image keys", () => {
+    expect(
+      isManagedMediaKey(
+        "media/images/user_123/2026/05/clx0a1b2c0000abcd1234efgh/original.jpg",
+      ),
+    ).toBe(true);
+  });
+
+  it("accepts legacy upload keys", () => {
+    expect(isManagedMediaKey("uploads/user_123/2026/05/random.jpg")).toBe(true);
+  });
+
+  it("rejects parent directory keys", () => {
+    expect(isManagedMediaKey("../secret")).toBe(false);
+    expect(isManagedMediaKey("uploads/../secret")).toBe(false);
+  });
+
+  it("rejects unmanaged paths", () => {
+    expect(isManagedMediaKey("other/path")).toBe(false);
+  });
+
+  it("rejects empty keys", () => {
+    expect(isManagedMediaKey("")).toBe(false);
   });
 });

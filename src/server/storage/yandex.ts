@@ -2,7 +2,11 @@ import "server-only";
 
 import { randomBytes } from "node:crypto";
 
-import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import {
+  DeleteObjectCommand,
+  PutObjectCommand,
+  S3Client,
+} from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 import { env } from "@/env";
@@ -123,6 +127,13 @@ export const getYandexStorageBucket = () => {
   return config.bucket;
 };
 
+export const isManagedMediaKey = (key: string) =>
+  (key.startsWith("media/images/") || key.startsWith("uploads/")) &&
+  !key.includes("..") &&
+  !key.startsWith("/") &&
+  !key.endsWith("/") &&
+  !key.split("/").some((segment) => segment.length === 0);
+
 export const buildYandexStoragePublicUrl = (key: string) => {
   const config = requireYandexStorageConfig();
   const baseUrl = config.publicUrl.replace(/\/+$/, "");
@@ -152,4 +163,20 @@ export const createPresignedImagePutUrl = async ({
     publicUrl: buildYandexStoragePublicUrl(key),
     uploadUrl,
   };
+};
+
+export const deleteYandexStorageObject = async ({
+  bucket,
+  key,
+}: {
+  bucket: string;
+  key: string;
+}) => {
+  const { client } = getConfiguredYandexStorage();
+  const command = new DeleteObjectCommand({
+    Bucket: bucket,
+    Key: key,
+  });
+
+  await client.send(command);
 };

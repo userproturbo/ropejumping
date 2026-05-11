@@ -26,15 +26,20 @@ export function ImageUploadField({
   const inputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [isUploaded, setIsUploaded] = useState(false);
+  const [uploadedMediaId, setUploadedMediaId] = useState<string | null>(null);
+  const [uploadedMediaUrl, setUploadedMediaUrl] = useState<string | null>(null);
   const [isPuttingFile, setIsPuttingFile] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const createImageUpload = api.upload.createImageUpload.useMutation();
   const confirmImageUpload = api.upload.confirmImageUpload.useMutation();
   const markImageUploadFailed = api.upload.markImageUploadFailed.useMutation();
+  const deleteMyMedia = api.upload.deleteMyMedia.useMutation();
   const isUploading =
     createImageUpload.isPending ||
     confirmImageUpload.isPending ||
     isPuttingFile;
+  const isBusy = isUploading || isDeleting;
 
   const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -87,6 +92,8 @@ export function ImageUploadField({
       }
 
       onChange(confirmedMedia.url);
+      setUploadedMediaId(confirmedMedia.id);
+      setUploadedMediaUrl(confirmedMedia.url);
       setIsUploaded(true);
     } catch (uploadError) {
       if (mediaId) {
@@ -104,13 +111,27 @@ export function ImageUploadField({
     }
   };
 
-  const clearImage = () => {
-    onChange("");
+  const clearImage = async () => {
     setError(null);
     setIsUploaded(false);
 
-    if (inputRef.current) {
-      inputRef.current.value = "";
+    try {
+      if (uploadedMediaId && uploadedMediaUrl === value) {
+        setIsDeleting(true);
+        await deleteMyMedia.mutateAsync(uploadedMediaId);
+      }
+
+      onChange("");
+      setUploadedMediaId(null);
+      setUploadedMediaUrl(null);
+
+      if (inputRef.current) {
+        inputRef.current.value = "";
+      }
+    } catch (deleteError) {
+      setError(getDeleteErrorMessage(deleteError));
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -119,7 +140,12 @@ export function ImageUploadField({
       <div className="flex flex-wrap items-center gap-3">
         <label
           htmlFor={id}
-          className="inline-flex cursor-pointer items-center bg-zinc-950 px-4 py-2 text-sm text-white hover:bg-zinc-800"
+          aria-disabled={isBusy}
+          className={`inline-flex items-center px-4 py-2 text-sm text-white ${
+            isBusy
+              ? "cursor-not-allowed bg-zinc-400"
+              : "cursor-pointer bg-zinc-950 hover:bg-zinc-800"
+          }`}
         >
           {isUploading ? "Изображение загружается..." : "Загрузить изображение"}
         </label>
@@ -127,9 +153,10 @@ export function ImageUploadField({
           <button
             type="button"
             onClick={clearImage}
-            className="text-sm text-zinc-600 hover:text-zinc-950"
+            disabled={isBusy}
+            className="text-sm text-zinc-600 hover:text-zinc-950 disabled:cursor-not-allowed disabled:text-zinc-300"
           >
-            Удалить изображение
+            {isDeleting ? "Удаление..." : "Удалить изображение"}
           </button>
         ) : null}
       </div>
@@ -139,7 +166,7 @@ export function ImageUploadField({
         id={id}
         type="file"
         accept={allowedImageContentTypes.join(",")}
-        disabled={isUploading}
+        disabled={isBusy}
         onChange={handleFileChange}
         className="sr-only"
       />
@@ -172,4 +199,12 @@ const getUploadErrorMessage = (error: unknown) => {
   }
 
   return uploadFailedMessage;
+};
+
+const getDeleteErrorMessage = (error: unknown) => {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return "Не удалось удалить изображение. Попробуйте ещё раз.";
 };
