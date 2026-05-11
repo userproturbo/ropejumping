@@ -4,7 +4,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
-import { ImageUploadField } from "@/app/_components/image-upload-field";
+import {
+  ImageUploadField,
+  type ImageUploadValue,
+} from "@/app/_components/image-upload-field";
 import { ObjectType } from "@/generated/prisma/enums";
 import { getObjectTypeLabel } from "@/lib/display";
 import { api, type RouterOutputs } from "@/trpc/react";
@@ -21,18 +24,23 @@ const objectTypes = Object.values(ObjectType);
 
 export function ObjectForm({ object, teams = [] }: ObjectFormProps) {
   const router = useRouter();
-  const [teamId, setTeamId] = useState(object?.createdByTeamId ?? teams[0]?.id ?? "");
+  const [teamId, setTeamId] = useState(
+    object?.createdByTeamId ?? teams[0]?.id ?? "",
+  );
   const [name, setName] = useState(object?.name ?? "");
   const [slug, setSlug] = useState(object?.slug ?? "");
-  const [type, setType] = useState<ObjectType>(object?.type ?? ObjectType.BRIDGE);
+  const [type, setType] = useState<ObjectType>(
+    object?.type ?? ObjectType.BRIDGE,
+  );
   const [heightMeters, setHeightMeters] = useState(
     object?.heightMeters?.toString() ?? "",
   );
   const [region, setRegion] = useState(object?.region ?? "");
   const [description, setDescription] = useState(object?.description ?? "");
-  const [coverImageUrl, setCoverImageUrl] = useState(
-    object?.coverImageUrl ?? "",
-  );
+  const [cover, setCover] = useState<ImageUploadValue>({
+    mediaId: object?.coverMediaId ?? null,
+    url: object?.coverImageUrl ?? "",
+  });
   const [saved, setSaved] = useState(false);
 
   const createObject = api.object.create.useMutation({
@@ -59,7 +67,8 @@ export function ObjectForm({ object, teams = [] }: ObjectFormProps) {
       heightMeters,
       region,
       description,
-      coverImageUrl,
+      coverImageUrl: cover.url,
+      coverMediaId: cover.mediaId,
     };
 
     if (object) {
@@ -82,8 +91,8 @@ export function ObjectForm({ object, teams = [] }: ObjectFormProps) {
       className="space-y-6 border border-zinc-200 bg-white p-6"
     >
       <p className="border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">
-        Не публикуйте точные координаты, способы доступа, точки крепления,
-        схемы крепления, технические инструкции и детали, которые могут помочь
+        Не публикуйте точные координаты, способы доступа, точки крепления, схемы
+        крепления, технические инструкции и детали, которые могут помочь
         неподготовленным людям повторить прыжок самостоятельно. Объект должен
         описываться безопасно и в общих чертах: тип, примерный регион, высота и
         публичное описание.
@@ -239,26 +248,8 @@ export function ObjectForm({ object, teams = [] }: ObjectFormProps) {
         <p className="text-sm font-medium text-zinc-950">Обложка объекта</p>
         <ImageUploadField
           id="objectCoverUpload"
-          value={coverImageUrl}
-          onChange={setCoverImageUrl}
-        />
-      </div>
-
-      <div className="grid gap-2">
-        <label
-          htmlFor="coverImageUrl"
-          className="text-sm font-medium text-zinc-950"
-        >
-          Ссылка на обложку вручную
-        </label>
-        <input
-          id="coverImageUrl"
-          name="coverImageUrl"
-          value={coverImageUrl}
-          onChange={(event) => setCoverImageUrl(event.target.value)}
-          type="url"
-          className="border border-zinc-300 px-3 py-2 text-zinc-950 outline-none focus:border-zinc-950"
-          placeholder="https://example.com/cover.jpg"
+          value={cover}
+          onChange={setCover}
         />
       </div>
 

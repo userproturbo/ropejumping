@@ -4,7 +4,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
-import { ImageUploadField } from "@/app/_components/image-upload-field";
+import {
+  ImageUploadField,
+  type ImageUploadValue,
+} from "@/app/_components/image-upload-field";
 import { api, type RouterOutputs } from "@/trpc/react";
 
 import {
@@ -21,7 +24,10 @@ type EventEditFormProps = {
 };
 
 const getObjectOptionLabel = (object: ObjectOption) => {
-  const details = [object.heightMeters ? `${object.heightMeters} м` : null, object.region]
+  const details = [
+    object.heightMeters ? `${object.heightMeters} м` : null,
+    object.region,
+  ]
     .filter(Boolean)
     .join(", ");
 
@@ -44,9 +50,10 @@ export function EventEditForm({ event, objects }: EventEditFormProps) {
   const [capacity, setCapacity] = useState(event.capacity?.toString() ?? "");
   const [priceText, setPriceText] = useState(event.priceText ?? "");
   const [levelText, setLevelText] = useState(event.levelText ?? "");
-  const [coverImageUrl, setCoverImageUrl] = useState(
-    event.coverImageUrl ?? "",
-  );
+  const [cover, setCover] = useState<ImageUploadValue>({
+    mediaId: event.coverMediaId,
+    url: event.coverImageUrl ?? "",
+  });
   const [saved, setSaved] = useState(false);
 
   const updateEvent = api.event.update.useMutation({
@@ -72,7 +79,8 @@ export function EventEditForm({ event, objects }: EventEditFormProps) {
       capacity,
       priceText,
       levelText,
-      coverImageUrl,
+      coverImageUrl: cover.url,
+      coverMediaId: cover.mediaId,
     });
   };
 
@@ -127,7 +135,10 @@ export function EventEditForm({ event, objects }: EventEditFormProps) {
         </select>
         <p className="text-xs text-zinc-500">
           Нужно добавить объект?{" "}
-          <Link href="/objects/new" className="text-zinc-800 hover:text-zinc-950">
+          <Link
+            href="/objects/new"
+            className="text-zinc-800 hover:text-zinc-950"
+          >
             Создать объект
           </Link>
         </p>
@@ -169,10 +180,7 @@ export function EventEditForm({ event, objects }: EventEditFormProps) {
         </div>
 
         <div className="grid gap-2">
-          <label
-            htmlFor="endsAt"
-            className="text-sm font-medium text-zinc-950"
-          >
+          <label htmlFor="endsAt" className="text-sm font-medium text-zinc-950">
             Окончание
           </label>
           <input
@@ -294,31 +302,11 @@ export function EventEditForm({ event, objects }: EventEditFormProps) {
       </div>
 
       <div className="grid gap-3">
-        <p className="text-sm font-medium text-zinc-950">
-          Обложка мероприятия
-        </p>
+        <p className="text-sm font-medium text-zinc-950">Обложка мероприятия</p>
         <ImageUploadField
           id="eventCoverUpload"
-          value={coverImageUrl}
-          onChange={setCoverImageUrl}
-        />
-      </div>
-
-      <div className="grid gap-2">
-        <label
-          htmlFor="coverImageUrl"
-          className="text-sm font-medium text-zinc-950"
-        >
-          Ссылка на обложку вручную
-        </label>
-        <input
-          id="coverImageUrl"
-          name="coverImageUrl"
-          value={coverImageUrl}
-          onChange={(inputEvent) => setCoverImageUrl(inputEvent.target.value)}
-          type="url"
-          className="border border-zinc-300 px-3 py-2 text-zinc-950 outline-none focus:border-zinc-950"
-          placeholder="https://example.com/cover.jpg"
+          value={cover}
+          onChange={setCover}
         />
       </div>
 

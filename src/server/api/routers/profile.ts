@@ -11,6 +11,7 @@ import {
   publicProcedure,
 } from "@/server/api/trpc";
 import { publicEventStatuses } from "@/server/events/statuses";
+import { resolveImageMediaForUpdate } from "@/server/media/usage";
 
 const publicTeamStatuses = [TeamStatus.REGULAR, TeamStatus.VERIFIED];
 
@@ -53,14 +54,34 @@ export const profileRouter = createTRPCRouter({
   upsertMine: protectedProcedure
     .input(profileInputSchema)
     .mutation(async ({ ctx, input }) => {
+      const currentProfile = await ctx.db.profile.findUnique({
+        where: { userId: ctx.session.user.id },
+        select: { avatarMediaId: true, avatarUrl: true },
+      });
+      const avatar = await resolveImageMediaForUpdate({
+        db: ctx.db,
+        existingMediaId: currentProfile?.avatarMediaId,
+        existingUrl: currentProfile?.avatarUrl,
+        input: {
+          mediaId: input.avatarMediaId,
+          url: input.avatarUrl,
+        },
+        userId: ctx.session.user.id,
+      });
+      const profileInput = {
+        ...input,
+        avatarMediaId: avatar.mediaId,
+        avatarUrl: avatar.url,
+      };
+
       try {
         return await ctx.db.profile.upsert({
           where: { userId: ctx.session.user.id },
           create: {
-            ...input,
+            ...profileInput,
             userId: ctx.session.user.id,
           },
-          update: input,
+          update: profileInput,
         });
       } catch (error) {
         if (

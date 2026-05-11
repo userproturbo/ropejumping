@@ -10,6 +10,10 @@ const emptyToNull = (value: unknown) => {
 const nullableString = (schema: z.ZodString) =>
   z.preprocess(emptyToNull, schema.nullable().optional());
 
+const optionalCuid = z
+  .preprocess(emptyToNull, z.string().cuid().nullable().optional())
+  .transform((value) => value ?? null);
+
 export const usernameSchema = z
   .preprocess(
     (value) => (typeof value === "string" ? value.trim().toLowerCase() : value),
@@ -33,6 +37,7 @@ export const profileInputSchema = z.object({
   avatarUrl: nullableString(z.string().url()).transform(
     (value) => value ?? null,
   ),
+  avatarMediaId: optionalCuid,
   externalExperience: nullableString(z.string().max(1000)).transform(
     (value) => value ?? null,
   ),

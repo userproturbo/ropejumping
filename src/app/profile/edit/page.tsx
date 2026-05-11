@@ -16,7 +16,7 @@ export default async function EditProfilePage() {
             {profile ? "Редактировать профиль" : "Создать профиль"}
           </h1>
           <p className="mt-2 text-sm text-zinc-600">
-            Пока только базовые поля. Загрузка аватара еще не реализована.
+            Базовая информация профиля и аватар.
           </p>
         </div>
 

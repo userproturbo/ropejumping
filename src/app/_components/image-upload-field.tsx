@@ -8,10 +8,15 @@ import {
 } from "@/lib/validation/upload";
 import { api } from "@/trpc/react";
 
+export type ImageUploadValue = {
+  mediaId: string | null;
+  url: string;
+};
+
 type ImageUploadFieldProps = {
   id?: string;
-  onChange: (value: string) => void;
-  value: string;
+  onChange: (value: ImageUploadValue) => void;
+  value: ImageUploadValue;
 };
 
 const supportedImageTypes = new Set<string>(allowedImageContentTypes);
@@ -91,7 +96,7 @@ export function ImageUploadField({
         throw new Error(uploadFailedMessage);
       }
 
-      onChange(confirmedMedia.url);
+      onChange({ mediaId: confirmedMedia.id, url: confirmedMedia.url });
       setUploadedMediaId(confirmedMedia.id);
       setUploadedMediaUrl(confirmedMedia.url);
       setIsUploaded(true);
@@ -116,12 +121,16 @@ export function ImageUploadField({
     setIsUploaded(false);
 
     try {
-      if (uploadedMediaId && uploadedMediaUrl === value) {
+      if (
+        uploadedMediaId &&
+        uploadedMediaId === value.mediaId &&
+        uploadedMediaUrl === value.url
+      ) {
         setIsDeleting(true);
         await deleteMyMedia.mutateAsync(uploadedMediaId);
       }
 
-      onChange("");
+      onChange({ mediaId: null, url: "" });
       setUploadedMediaId(null);
       setUploadedMediaUrl(null);
 
@@ -149,7 +158,7 @@ export function ImageUploadField({
         >
           {isUploading ? "Изображение загружается..." : "Загрузить изображение"}
         </label>
-        {value ? (
+        {value.url ? (
           <button
             type="button"
             onClick={clearImage}
@@ -181,10 +190,10 @@ export function ImageUploadField({
 
       {error ? <p className="text-sm text-red-700">{error}</p> : null}
 
-      {value ? (
+      {value.url ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          src={value}
+          src={value.url}
           alt="Предпросмотр изображения"
           className="max-h-80 w-full border border-zinc-200 object-contain"
         />

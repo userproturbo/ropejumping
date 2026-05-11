@@ -4,7 +4,10 @@ import { notFound } from "next/navigation";
 import { getCurrentUser } from "@/server/auth/session";
 import { api } from "@/trpc/server";
 
-import { formatFeedDate, getAuthorName } from "../../feed/_components/post-card";
+import {
+  formatFeedDate,
+  getAuthorName,
+} from "../../feed/_components/post-card";
 import { CommentAuthorActions } from "../_components/comment-author-actions";
 import { PostAuthorActions } from "../_components/post-author-actions";
 import { PostInteractions } from "../_components/post-interactions";
@@ -40,7 +43,10 @@ export default async function PostPage({ params }: PostPageProps) {
                 {formatFeedDate(post.createdAt)}
               </p>
             </div>
-            <Link href="/feed" className="text-sm text-zinc-600 hover:text-zinc-950">
+            <Link
+              href="/feed"
+              className="text-sm text-zinc-600 hover:text-zinc-950"
+            >
               Лента
             </Link>
             {user ? (
@@ -96,6 +102,7 @@ export default async function PostPage({ params }: PostPageProps) {
           {isPostAuthor ? (
             <PostAuthorActions
               initialContent={post.content}
+              initialImageMediaId={post.imageMediaId}
               initialImageUrl={post.imageUrl}
               postId={post.id}
             />
@@ -131,7 +138,10 @@ export default async function PostPage({ params }: PostPageProps) {
           {post.comments.length > 0 ? (
             <div className="mt-5 grid gap-4">
               {post.comments.map((comment) => (
-                <article key={comment.id} className="border border-zinc-200 p-4">
+                <article
+                  key={comment.id}
+                  className="border border-zinc-200 p-4"
+                >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <p className="font-medium text-zinc-950">
                       {getAuthorName(comment.author)}
@@ -161,9 +171,7 @@ export default async function PostPage({ params }: PostPageProps) {
               ))}
             </div>
           ) : (
-            <p className="mt-2 text-sm text-zinc-600">
-              Пока нет комментариев.
-            </p>
+            <p className="mt-2 text-sm text-zinc-600">Пока нет комментариев.</p>
           )}
         </section>
       </div>

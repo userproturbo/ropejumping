@@ -33,21 +33,69 @@ const ensureProfile = async (db: UploadRouterDb, userId: string) => {
   }
 };
 
-const isMediaUrlReferenced = async (db: UploadRouterDb, url: string | null) => {
-  if (!url) {
-    return false;
+const isMediaReferenced = async (
+  db: UploadRouterDb,
+  media: { id: string; url: string | null },
+) => {
+  if (!media.url) {
+    const [profile, team, event, object, post] = await Promise.all([
+      db.profile.findFirst({
+        where: { avatarMediaId: media.id },
+        select: { id: true },
+      }),
+      db.team.findFirst({
+        where: { logoMediaId: media.id },
+        select: { id: true },
+      }),
+      db.event.findFirst({
+        where: { coverMediaId: media.id },
+        select: { id: true },
+      }),
+      db.jumpObject.findFirst({
+        where: { coverMediaId: media.id },
+        select: { id: true },
+      }),
+      db.post.findFirst({
+        where: { imageMediaId: media.id },
+        select: { id: true },
+      }),
+    ]);
+
+    return [profile, team, event, object, post].some(Boolean);
   }
 
   const [user, profile, team, event, object, post] = await Promise.all([
-    db.user.findFirst({ where: { image: url }, select: { id: true } }),
-    db.profile.findFirst({ where: { avatarUrl: url }, select: { id: true } }),
-    db.team.findFirst({ where: { logoUrl: url }, select: { id: true } }),
-    db.event.findFirst({ where: { coverImageUrl: url }, select: { id: true } }),
-    db.jumpObject.findFirst({
-      where: { coverImageUrl: url },
+    db.user.findFirst({ where: { image: media.url }, select: { id: true } }),
+    db.profile.findFirst({
+      where: {
+        OR: [{ avatarMediaId: media.id }, { avatarUrl: media.url }],
+      },
       select: { id: true },
     }),
-    db.post.findFirst({ where: { imageUrl: url }, select: { id: true } }),
+    db.team.findFirst({
+      where: {
+        OR: [{ logoMediaId: media.id }, { logoUrl: media.url }],
+      },
+      select: { id: true },
+    }),
+    db.event.findFirst({
+      where: {
+        OR: [{ coverMediaId: media.id }, { coverImageUrl: media.url }],
+      },
+      select: { id: true },
+    }),
+    db.jumpObject.findFirst({
+      where: {
+        OR: [{ coverMediaId: media.id }, { coverImageUrl: media.url }],
+      },
+      select: { id: true },
+    }),
+    db.post.findFirst({
+      where: {
+        OR: [{ imageMediaId: media.id }, { imageUrl: media.url }],
+      },
+      select: { id: true },
+    }),
   ]);
 
   return [user, profile, team, event, object, post].some(Boolean);
@@ -284,7 +332,7 @@ export const uploadRouter = createTRPCRouter({
         });
       }
 
-      if (await isMediaUrlReferenced(ctx.db, media.url)) {
+      if (await isMediaReferenced(ctx.db, media)) {
         throw new TRPCError({
           code: "BAD_REQUEST",
           message:

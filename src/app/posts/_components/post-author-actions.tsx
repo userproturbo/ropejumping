@@ -3,24 +3,32 @@
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
-import { ImageUploadField } from "@/app/_components/image-upload-field";
+import {
+  ImageUploadField,
+  type ImageUploadValue,
+} from "@/app/_components/image-upload-field";
 import { api } from "@/trpc/react";
 
 type PostAuthorActionsProps = {
   initialContent: string;
+  initialImageMediaId: string | null;
   initialImageUrl: string | null;
   postId: string;
 };
 
 export function PostAuthorActions({
   initialContent,
+  initialImageMediaId,
   initialImageUrl,
   postId,
 }: PostAuthorActionsProps) {
   const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
   const [content, setContent] = useState(initialContent);
-  const [imageUrl, setImageUrl] = useState(initialImageUrl ?? "");
+  const [image, setImage] = useState<ImageUploadValue>({
+    mediaId: initialImageMediaId,
+    url: initialImageUrl ?? "",
+  });
 
   const updatePost = api.post.updateMine.useMutation({
     onSuccess: () => {
@@ -41,13 +49,17 @@ export function PostAuthorActions({
     updatePost.mutate({
       postId,
       content,
-      imageUrl,
+      imageMediaId: image.mediaId,
+      imageUrl: image.url,
     });
   };
 
   const handleCancel = () => {
     setContent(initialContent);
-    setImageUrl(initialImageUrl ?? "");
+    setImage({
+      mediaId: initialImageMediaId,
+      url: initialImageUrl ?? "",
+    });
     setIsEditing(false);
   };
 
@@ -80,25 +92,8 @@ export function PostAuthorActions({
           <p className="text-sm font-medium text-zinc-950">Изображение</p>
           <ImageUploadField
             id={`post-image-upload-${postId}`}
-            value={imageUrl}
-            onChange={setImageUrl}
-          />
-        </div>
-
-        <div className="grid gap-2">
-          <label
-            htmlFor={`post-image-${postId}`}
-            className="text-sm font-medium text-zinc-950"
-          >
-            Ссылка на изображение вручную
-          </label>
-          <input
-            id={`post-image-${postId}`}
-            value={imageUrl}
-            onChange={(event) => setImageUrl(event.target.value)}
-            type="url"
-            className="border border-zinc-300 px-3 py-2 text-zinc-950 outline-none focus:border-zinc-950"
-            placeholder="https://example.com/image.jpg"
+            value={image}
+            onChange={setImage}
           />
         </div>
 

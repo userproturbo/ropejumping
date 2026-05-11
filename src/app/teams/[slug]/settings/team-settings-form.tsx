@@ -4,7 +4,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
-import { ImageUploadField } from "@/app/_components/image-upload-field";
+import {
+  ImageUploadField,
+  type ImageUploadValue,
+} from "@/app/_components/image-upload-field";
 import { api, type RouterOutputs } from "@/trpc/react";
 
 type TeamForSettings = NonNullable<RouterOutputs["team"]["getForSettings"]>;
@@ -17,7 +20,10 @@ export function TeamSettingsForm({ team }: TeamSettingsFormProps) {
   const router = useRouter();
   const [name, setName] = useState(team.name);
   const [region, setRegion] = useState(team.region ?? "");
-  const [logoUrl, setLogoUrl] = useState(team.logoUrl ?? "");
+  const [logo, setLogo] = useState<ImageUploadValue>({
+    mediaId: team.logoMediaId,
+    url: team.logoUrl ?? "",
+  });
   const [description, setDescription] = useState(team.description ?? "");
   const [saved, setSaved] = useState(false);
 
@@ -36,7 +42,8 @@ export function TeamSettingsForm({ team }: TeamSettingsFormProps) {
       slug: team.slug,
       name,
       region,
-      logoUrl,
+      logoMediaId: logo.mediaId,
+      logoUrl: logo.url,
       description,
     });
   };
@@ -91,26 +98,7 @@ export function TeamSettingsForm({ team }: TeamSettingsFormProps) {
 
       <div className="grid gap-3">
         <p className="text-sm font-medium text-zinc-950">Логотип команды</p>
-        <ImageUploadField
-          id="teamLogoUpload"
-          value={logoUrl}
-          onChange={setLogoUrl}
-        />
-      </div>
-
-      <div className="grid gap-2">
-        <label htmlFor="logoUrl" className="text-sm font-medium text-zinc-950">
-          Ссылка на логотип вручную
-        </label>
-        <input
-          id="logoUrl"
-          name="logoUrl"
-          value={logoUrl}
-          onChange={(event) => setLogoUrl(event.target.value)}
-          type="url"
-          className="border border-zinc-300 px-3 py-2 text-zinc-950 outline-none focus:border-zinc-950"
-          placeholder="https://example.com/logo.jpg"
-        />
+        <ImageUploadField id="teamLogoUpload" value={logo} onChange={setLogo} />
       </div>
 
       <div className="grid gap-2">

@@ -11,15 +11,19 @@ const emptyToNull = (value: unknown) => {
 };
 
 const nullableString = (schema: z.ZodString) =>
-  z.preprocess(emptyToNull, schema.nullable().optional()).transform(
-    (value) => value ?? null,
-  );
+  z
+    .preprocess(emptyToNull, schema.nullable().optional())
+    .transform((value) => value ?? null);
 
 const optionalHeightMeters = z
   .preprocess(
     emptyToNull,
     z.coerce.number().int().positive().max(10000).nullable().optional(),
   )
+  .transform((value) => value ?? null);
+
+const optionalCuid = z
+  .preprocess(emptyToNull, z.string().cuid().nullable().optional())
   .transform((value) => value ?? null);
 
 const getFirstString = (value: unknown) => {
@@ -58,6 +62,7 @@ const objectEditableFieldsSchema = z.object({
   region: nullableString(z.string().max(80)),
   description: nullableString(z.string().max(2000)),
   coverImageUrl: nullableString(z.string().url()),
+  coverMediaId: optionalCuid,
 });
 
 export const objectSlugSchema = eventSlugSchema;

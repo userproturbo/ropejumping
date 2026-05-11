@@ -31,6 +31,10 @@ import { createAuditLog } from "@/server/audit/service";
 import { publicPostWhere } from "@/server/api/routers/post";
 import type { db as database } from "@/server/db";
 import { publicEventStatuses } from "@/server/events/statuses";
+import {
+  resolveImageMediaForCreate,
+  resolveImageMediaForUpdate,
+} from "@/server/media/usage";
 import { hasTeamOwnerOrAdminRole } from "@/server/teams/permissions";
 
 const publicTeamStatuses = [TeamStatus.REGULAR, TeamStatus.VERIFIED];
@@ -270,7 +274,8 @@ export const teamRouter = createTRPCRouter({
 
       const orderedTeams = teams.sort((left, right) => {
         const statusDifference =
-          getPublicTeamSortRank(left.status) - getPublicTeamSortRank(right.status);
+          getPublicTeamSortRank(left.status) -
+          getPublicTeamSortRank(right.status);
 
         if (statusDifference !== 0) return statusDifference;
 
@@ -487,8 +492,12 @@ export const teamRouter = createTRPCRouter({
         ...team,
         posts: team.posts
           .sort((left, right) => {
-            const leftPinned = left.pins.some((pin) => pin.targetId === team.id);
-            const rightPinned = right.pins.some((pin) => pin.targetId === team.id);
+            const leftPinned = left.pins.some(
+              (pin) => pin.targetId === team.id,
+            );
+            const rightPinned = right.pins.some(
+              (pin) => pin.targetId === team.id,
+            );
 
             if (leftPinned !== rightPinned) return leftPinned ? -1 : 1;
 
@@ -525,10 +534,23 @@ export const teamRouter = createTRPCRouter({
         });
       }
 
+      const logo = await resolveImageMediaForCreate({
+        db: ctx.db,
+        input: {
+          mediaId: input.logoMediaId,
+          url: input.logoUrl,
+        },
+        userId: ctx.session.user.id,
+      });
+
       try {
         return await ctx.db.$transaction(async (tx) => {
           const team = await tx.team.create({
-            data: input,
+            data: {
+              ...input,
+              logoMediaId: logo.mediaId,
+              logoUrl: logo.url,
+            },
           });
 
           await tx.teamMember.create({
@@ -568,15 +590,29 @@ export const teamRouter = createTRPCRouter({
           name: true,
           description: true,
           region: true,
+          logoMediaId: true,
           logoUrl: true,
           slug: true,
         },
+      });
+      const logo = await resolveImageMediaForUpdate({
+        db: ctx.db,
+        existingMediaId: currentTeam.logoMediaId,
+        existingUrl: currentTeam.logoUrl,
+        input: {
+          mediaId: input.logoMediaId,
+          url: input.logoUrl,
+        },
+        userId: ctx.session.user.id,
       });
       const changedFields = [
         currentTeam.name !== input.name ? "name" : null,
         currentTeam.description !== input.description ? "description" : null,
         currentTeam.region !== input.region ? "region" : null,
-        currentTeam.logoUrl !== input.logoUrl ? "logoUrl" : null,
+        currentTeam.logoUrl !== logo.url ||
+        currentTeam.logoMediaId !== logo.mediaId
+          ? "logoUrl"
+          : null,
       ].filter((field): field is string => field !== null);
 
       return ctx.db.$transaction(async (tx) => {
@@ -586,7 +622,8 @@ export const teamRouter = createTRPCRouter({
             name: input.name,
             description: input.description,
             region: input.region,
-            logoUrl: input.logoUrl,
+            logoMediaId: logo.mediaId,
+            logoUrl: logo.url,
           },
         });
 

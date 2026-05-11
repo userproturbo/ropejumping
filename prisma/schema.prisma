@@ -245,11 +245,15 @@ model Profile {
   bio                String?
   city               String?
   avatarUrl          String?
+  avatarMediaId      String?
   externalExperience String?
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  avatarMedia Media? @relation("ProfileAvatarMedia", fields: [avatarMediaId], references: [id], onDelete: SetNull)
+
+  @@index([avatarMediaId])
 }
 
 model Team {
@@ -259,6 +263,7 @@ model Team {
   description String?
   region      String?
   logoUrl     String?
+  logoMediaId String?
   status      TeamStatus @default(REGULAR)
   verifiedAt  DateTime?
   createdAt   DateTime   @default(now())
@@ -266,6 +271,7 @@ model Team {
 
   members      TeamMember[]
   events       Event[]
+  logoMedia    Media?            @relation("TeamLogoMedia", fields: [logoMediaId], references: [id], onDelete: SetNull)
   objects      JumpObject[]      @relation("TeamObjects")
   posts        Post[]
   joinRequests TeamJoinRequest[]
@@ -273,6 +279,7 @@ model Team {
 
   @@index([status])
   @@index([region])
+  @@index([logoMediaId])
 }
 
 model TeamMember {
@@ -366,6 +373,7 @@ model JumpObject {
   region          String?
   description     String?
   coverImageUrl   String?
+  coverMediaId    String?
   createdById     String?
   createdByTeamId String?
   createdAt       DateTime         @default(now())
@@ -373,6 +381,7 @@ model JumpObject {
 
   createdBy     User?   @relation("CreatedObjects", fields: [createdById], references: [id], onDelete: SetNull)
   createdByTeam Team?   @relation("TeamObjects", fields: [createdByTeamId], references: [id], onDelete: SetNull)
+  coverMedia    Media?  @relation("ObjectCoverMedia", fields: [coverMediaId], references: [id], onDelete: SetNull)
   events        Event[]
   posts         Post[]
 
@@ -381,6 +390,7 @@ model JumpObject {
   @@index([region])
   @@index([createdById])
   @@index([createdByTeamId])
+  @@index([coverMediaId])
 }
 
 model Event {
@@ -400,6 +410,7 @@ model Event {
   priceText        String?
   levelText        String?
   coverImageUrl    String?
+  coverMediaId     String?
   completedAt      DateTime?
   createdAt        DateTime    @default(now())
   updatedAt        DateTime    @updatedAt
@@ -407,6 +418,7 @@ model Event {
   team           Team                 @relation(fields: [teamId], references: [id])
   object         JumpObject?          @relation(fields: [objectId], references: [id], onDelete: SetNull)
   createdBy      User                 @relation("CreatedEvents", fields: [createdById], references: [id])
+  coverMedia     Media?               @relation("EventCoverMedia", fields: [coverMediaId], references: [id], onDelete: SetNull)
   applications   EventApplication[]
   participations EventParticipation[]
   crewMembers    EventCrewMember[]
@@ -417,6 +429,7 @@ model Event {
   @@index([teamId])
   @@index([objectId])
   @@index([createdById])
+  @@index([coverMediaId])
 }
 
 model EventApplication {
@@ -511,24 +524,26 @@ model UserBadge {
 }
 
 model Post {
-  id        String    @id @default(cuid())
-  authorId  String
-  teamId    String?
-  eventId   String?
-  objectId  String?
-  content   String
-  imageUrl  String?
-  hiddenAt  DateTime?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id           String    @id @default(cuid())
+  authorId     String
+  teamId       String?
+  eventId      String?
+  objectId     String?
+  content      String
+  imageUrl     String?
+  imageMediaId String?
+  hiddenAt     DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
-  author   User        @relation("PostAuthor", fields: [authorId], references: [id], onDelete: Cascade)
-  team     Team?       @relation(fields: [teamId], references: [id], onDelete: SetNull)
-  event    Event?      @relation(fields: [eventId], references: [id], onDelete: SetNull)
-  object   JumpObject? @relation(fields: [objectId], references: [id], onDelete: SetNull)
-  comments Comment[]
-  likes    PostLike[]
-  pins     PostPin[]
+  author     User        @relation("PostAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  team       Team?       @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  event      Event?      @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  imageMedia Media?      @relation("PostImageMedia", fields: [imageMediaId], references: [id], onDelete: SetNull)
+  object     JumpObject? @relation(fields: [objectId], references: [id], onDelete: SetNull)
+  comments   Comment[]
+  likes      PostLike[]
+  pins       PostPin[]
 
   @@index([authorId])
   @@index([teamId])
@@ -536,6 +551,7 @@ model Post {
   @@index([objectId])
   @@index([createdAt])
   @@index([hiddenAt])
+  @@index([imageMediaId])
 }
 
 model Comment {
@@ -605,7 +621,12 @@ model Media {
   deletedAt  DateTime?
   createdAt  DateTime    @default(now())
 
-  owner User @relation("UserMedia", fields: [ownerId], references: [id], onDelete: Cascade)
+  owner          User         @relation("UserMedia", fields: [ownerId], references: [id], onDelete: Cascade)
+  profileAvatars Profile[]    @relation("ProfileAvatarMedia")
+  teamLogos      Team[]       @relation("TeamLogoMedia")
+  eventCovers    Event[]      @relation("EventCoverMedia")
+  objectCovers   JumpObject[] @relation("ObjectCoverMedia")
+  postImages     Post[]       @relation("PostImageMedia")
 
   @@unique([bucket, key])
   @@index([ownerId])

@@ -22,6 +22,10 @@ import {
 import { publicPostWhere } from "@/server/api/routers/post";
 import type { db as database } from "@/server/db";
 import { publicEventStatuses } from "@/server/events/statuses";
+import {
+  resolveImageMediaForCreate,
+  resolveImageMediaForUpdate,
+} from "@/server/media/usage";
 
 const publicTeamStatuses = [TeamStatus.REGULAR, TeamStatus.VERIFIED];
 const manageableTeamRoles = [
@@ -550,7 +554,8 @@ export const objectRouter = createTRPCRouter({
       if (!canCreateForTeam) {
         throw new TRPCError({
           code: "FORBIDDEN",
-          message: "Создавать объекты могут только организаторы активных команд.",
+          message:
+            "Создавать объекты могут только организаторы активных команд.",
         });
       }
 
@@ -568,10 +573,20 @@ export const objectRouter = createTRPCRouter({
 
       try {
         const { teamId, ...objectInput } = input;
+        const cover = await resolveImageMediaForCreate({
+          db: ctx.db,
+          input: {
+            mediaId: objectInput.coverMediaId,
+            url: objectInput.coverImageUrl,
+          },
+          userId: ctx.session.user.id,
+        });
 
         return await ctx.db.jumpObject.create({
           data: {
             ...objectInput,
+            coverImageUrl: cover.url,
+            coverMediaId: cover.mediaId,
             createdById: ctx.session.user.id,
             createdByTeamId: teamId,
             visibility: ObjectVisibility.PUBLIC,
@@ -596,6 +611,8 @@ export const objectRouter = createTRPCRouter({
         where: { slug: input.slug },
         select: {
           id: true,
+          coverImageUrl: true,
+          coverMediaId: true,
           createdById: true,
           createdByTeamId: true,
         },
@@ -623,6 +640,17 @@ export const objectRouter = createTRPCRouter({
         });
       }
 
+      const cover = await resolveImageMediaForUpdate({
+        db: ctx.db,
+        existingMediaId: object.coverMediaId,
+        existingUrl: object.coverImageUrl,
+        input: {
+          mediaId: input.coverMediaId,
+          url: input.coverImageUrl,
+        },
+        userId: ctx.session.user.id,
+      });
+
       return ctx.db.jumpObject.update({
         where: { id: object.id },
         data: {
@@ -631,7 +659,8 @@ export const objectRouter = createTRPCRouter({
           heightMeters: input.heightMeters,
           region: input.region,
           description: input.description,
-          coverImageUrl: input.coverImageUrl,
+          coverImageUrl: cover.url,
+          coverMediaId: cover.mediaId,
         },
       });
     }),

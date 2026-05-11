@@ -4,7 +4,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
-import { ImageUploadField } from "@/app/_components/image-upload-field";
+import {
+  ImageUploadField,
+  type ImageUploadValue,
+} from "@/app/_components/image-upload-field";
 import { api } from "@/trpc/react";
 
 export function TeamCreateForm() {
@@ -12,7 +15,10 @@ export function TeamCreateForm() {
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [region, setRegion] = useState("");
-  const [logoUrl, setLogoUrl] = useState("");
+  const [logo, setLogo] = useState<ImageUploadValue>({
+    mediaId: null,
+    url: "",
+  });
   const [description, setDescription] = useState("");
 
   const createTeam = api.team.create.useMutation({
@@ -29,7 +35,8 @@ export function TeamCreateForm() {
       name,
       slug,
       region,
-      logoUrl,
+      logoMediaId: logo.mediaId,
+      logoUrl: logo.url,
       description,
     });
   };
@@ -72,7 +79,8 @@ export function TeamCreateForm() {
           placeholder="team-name"
         />
         <p className="text-xs text-zinc-500">
-          Латинские строчные буквы, цифры и дефисы. Это поле пока нельзя изменить.
+          Латинские строчные буквы, цифры и дефисы. Это поле пока нельзя
+          изменить.
         </p>
       </div>
 
@@ -94,23 +102,8 @@ export function TeamCreateForm() {
         <p className="text-sm font-medium text-zinc-950">Логотип команды</p>
         <ImageUploadField
           id="teamCreateLogoUpload"
-          value={logoUrl}
-          onChange={setLogoUrl}
-        />
-      </div>
-
-      <div className="grid gap-2">
-        <label htmlFor="logoUrl" className="text-sm font-medium text-zinc-950">
-          Ссылка на логотип вручную
-        </label>
-        <input
-          id="logoUrl"
-          name="logoUrl"
-          value={logoUrl}
-          onChange={(event) => setLogoUrl(event.target.value)}
-          type="url"
-          className="border border-zinc-300 px-3 py-2 text-zinc-950 outline-none focus:border-zinc-950"
-          placeholder="https://example.com/logo.jpg"
+          value={logo}
+          onChange={setLogo}
         />
       </div>
 

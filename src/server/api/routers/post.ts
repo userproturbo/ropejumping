@@ -26,6 +26,10 @@ import {
 } from "@/server/api/trpc";
 import type { db as database } from "@/server/db";
 import { publicEventStatuses } from "@/server/events/statuses";
+import {
+  resolveImageMediaForCreate,
+  resolveImageMediaForUpdate,
+} from "@/server/media/usage";
 import { createNotification } from "@/server/notifications/service";
 
 const publicTeamStatuses = [TeamStatus.REGULAR, TeamStatus.VERIFIED];
@@ -467,7 +471,8 @@ const ensureManageablePublicTeam = async (
   if (!membership) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "Связать пост можно только с активной командой, которой вы управляете.",
+      message:
+        "Связать пост можно только с активной командой, которой вы управляете.",
     });
   }
 };
@@ -884,7 +889,11 @@ export const postRouter = createTRPCRouter({
       await ensureProfile(ctx.db, ctx.session.user.id);
 
       if (input.teamId) {
-        await ensureManageablePublicTeam(ctx.db, input.teamId, ctx.session.user.id);
+        await ensureManageablePublicTeam(
+          ctx.db,
+          input.teamId,
+          ctx.session.user.id,
+        );
       }
 
       if (input.eventId) {
@@ -895,6 +904,15 @@ export const postRouter = createTRPCRouter({
         await ensurePublicObject(ctx.db, input.objectId);
       }
 
+      const image = await resolveImageMediaForCreate({
+        db: ctx.db,
+        input: {
+          mediaId: input.imageMediaId,
+          url: input.imageUrl,
+        },
+        userId: ctx.session.user.id,
+      });
+
       return ctx.db.post.create({
         data: {
           authorId: ctx.session.user.id,
@@ -902,7 +920,8 @@ export const postRouter = createTRPCRouter({
           eventId: input.eventId,
           objectId: input.objectId,
           content: input.content,
-          imageUrl: input.imageUrl,
+          imageMediaId: image.mediaId,
+          imageUrl: image.url,
         },
       });
     }),
@@ -918,6 +937,8 @@ export const postRouter = createTRPCRouter({
         select: {
           id: true,
           authorId: true,
+          imageMediaId: true,
+          imageUrl: true,
         },
       });
 
@@ -935,13 +956,25 @@ export const postRouter = createTRPCRouter({
         });
       }
 
+      const image = await resolveImageMediaForUpdate({
+        db: ctx.db,
+        existingMediaId: post.imageMediaId,
+        existingUrl: post.imageUrl,
+        input: {
+          mediaId: input.imageMediaId,
+          url: input.imageUrl,
+        },
+        userId: ctx.session.user.id,
+      });
+
       return ctx.db.post.update({
         where: {
           id: post.id,
         },
         data: {
           content: input.content,
-          imageUrl: input.imageUrl,
+          imageMediaId: image.mediaId,
+          imageUrl: image.url,
         },
       });
     }),

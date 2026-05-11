@@ -4,7 +4,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
-import { ImageUploadField } from "@/app/_components/image-upload-field";
+import {
+  ImageUploadField,
+  type ImageUploadValue,
+} from "@/app/_components/image-upload-field";
 import { api, type RouterOutputs } from "@/trpc/react";
 
 type Profile = RouterOutputs["profile"]["getMine"];
@@ -18,7 +21,10 @@ export function ProfileForm({ profile }: ProfileFormProps) {
   const [username, setUsername] = useState(profile?.username ?? "");
   const [displayName, setDisplayName] = useState(profile?.displayName ?? "");
   const [city, setCity] = useState(profile?.city ?? "");
-  const [avatarUrl, setAvatarUrl] = useState(profile?.avatarUrl ?? "");
+  const [avatar, setAvatar] = useState<ImageUploadValue>({
+    mediaId: profile?.avatarMediaId ?? null,
+    url: profile?.avatarUrl ?? "",
+  });
   const [bio, setBio] = useState(profile?.bio ?? "");
   const [externalExperience, setExternalExperience] = useState(
     profile?.externalExperience ?? "",
@@ -38,7 +44,8 @@ export function ProfileForm({ profile }: ProfileFormProps) {
       username,
       displayName,
       city,
-      avatarUrl,
+      avatarMediaId: avatar.mediaId,
+      avatarUrl: avatar.url,
       bio,
       externalExperience,
     });
@@ -105,26 +112,8 @@ export function ProfileForm({ profile }: ProfileFormProps) {
         <p className="text-sm font-medium text-zinc-950">Аватар</p>
         <ImageUploadField
           id="avatarUpload"
-          value={avatarUrl}
-          onChange={setAvatarUrl}
-        />
-      </div>
-
-      <div className="grid gap-2">
-        <label
-          htmlFor="avatarUrl"
-          className="text-sm font-medium text-zinc-950"
-        >
-          Ссылка на аватар вручную
-        </label>
-        <input
-          id="avatarUrl"
-          name="avatarUrl"
-          value={avatarUrl}
-          onChange={(event) => setAvatarUrl(event.target.value)}
-          type="url"
-          className="border border-zinc-300 px-3 py-2 text-zinc-950 outline-none focus:border-zinc-950"
-          placeholder="https://example.com/avatar.jpg"
+          value={avatar}
+          onChange={setAvatar}
         />
       </div>
 

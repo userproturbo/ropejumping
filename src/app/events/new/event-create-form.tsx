@@ -4,7 +4,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
-import { ImageUploadField } from "@/app/_components/image-upload-field";
+import {
+  ImageUploadField,
+  type ImageUploadValue,
+} from "@/app/_components/image-upload-field";
 import { api, type RouterOutputs } from "@/trpc/react";
 
 import { datetimeLocalToIso } from "../_components/date-format";
@@ -18,7 +21,10 @@ type EventCreateFormProps = {
 };
 
 const getObjectOptionLabel = (object: ObjectOption) => {
-  const details = [object.heightMeters ? `${object.heightMeters} м` : null, object.region]
+  const details = [
+    object.heightMeters ? `${object.heightMeters} м` : null,
+    object.region,
+  ]
     .filter(Boolean)
     .join(", ");
 
@@ -39,7 +45,10 @@ export function EventCreateForm({ objects, teams }: EventCreateFormProps) {
   const [capacity, setCapacity] = useState("");
   const [priceText, setPriceText] = useState("");
   const [levelText, setLevelText] = useState("");
-  const [coverImageUrl, setCoverImageUrl] = useState("");
+  const [cover, setCover] = useState<ImageUploadValue>({
+    mediaId: null,
+    url: "",
+  });
 
   const createEvent = api.event.create.useMutation({
     onSuccess: (event) => {
@@ -64,7 +73,8 @@ export function EventCreateForm({ objects, teams }: EventCreateFormProps) {
       capacity,
       priceText,
       levelText,
-      coverImageUrl,
+      coverImageUrl: cover.url,
+      coverMediaId: cover.mediaId,
     });
   };
 
@@ -113,7 +123,10 @@ export function EventCreateForm({ objects, teams }: EventCreateFormProps) {
         </select>
         <p className="text-xs text-zinc-500">
           Нужно добавить объект?{" "}
-          <Link href="/objects/new" className="text-zinc-800 hover:text-zinc-950">
+          <Link
+            href="/objects/new"
+            className="text-zinc-800 hover:text-zinc-950"
+          >
             Создать объект
           </Link>
         </p>
@@ -152,7 +165,8 @@ export function EventCreateForm({ objects, teams }: EventCreateFormProps) {
           placeholder="event-name"
         />
         <p className="text-xs text-zinc-500">
-          Латинские строчные буквы, цифры и дефисы. Это поле пока нельзя изменить.
+          Латинские строчные буквы, цифры и дефисы. Это поле пока нельзя
+          изменить.
         </p>
       </div>
 
@@ -176,10 +190,7 @@ export function EventCreateForm({ objects, teams }: EventCreateFormProps) {
         </div>
 
         <div className="grid gap-2">
-          <label
-            htmlFor="endsAt"
-            className="text-sm font-medium text-zinc-950"
-          >
+          <label htmlFor="endsAt" className="text-sm font-medium text-zinc-950">
             Окончание
           </label>
           <input
@@ -299,31 +310,11 @@ export function EventCreateForm({ objects, teams }: EventCreateFormProps) {
       </div>
 
       <div className="grid gap-3">
-        <p className="text-sm font-medium text-zinc-950">
-          Обложка мероприятия
-        </p>
+        <p className="text-sm font-medium text-zinc-950">Обложка мероприятия</p>
         <ImageUploadField
           id="eventCoverUpload"
-          value={coverImageUrl}
-          onChange={setCoverImageUrl}
-        />
-      </div>
-
-      <div className="grid gap-2">
-        <label
-          htmlFor="coverImageUrl"
-          className="text-sm font-medium text-zinc-950"
-        >
-          Ссылка на обложку вручную
-        </label>
-        <input
-          id="coverImageUrl"
-          name="coverImageUrl"
-          value={coverImageUrl}
-          onChange={(event) => setCoverImageUrl(event.target.value)}
-          type="url"
-          className="border border-zinc-300 px-3 py-2 text-zinc-950 outline-none focus:border-zinc-950"
-          placeholder="https://example.com/cover.jpg"
+          value={cover}
+          onChange={setCover}
         />
       </div>
 
