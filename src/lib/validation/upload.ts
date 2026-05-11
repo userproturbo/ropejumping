@@ -7,8 +7,7 @@ export const allowedImageContentTypes = [
   "image/gif",
 ] as const;
 
-export type AllowedImageContentType =
-  (typeof allowedImageContentTypes)[number];
+export type AllowedImageContentType = (typeof allowedImageContentTypes)[number];
 
 export const maxImageUploadSizeBytes = 10 * 1024 * 1024;
 
@@ -29,3 +28,5 @@ export const imageUploadCreateInputSchema = z.object({
 export type ImageUploadCreateInput = z.infer<
   typeof imageUploadCreateInputSchema
 >;
+
+export const mediaIdInputSchema = z.string().cuid();

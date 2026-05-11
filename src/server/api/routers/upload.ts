@@ -1,12 +1,17 @@
 import { TRPCError } from "@trpc/server";
 
-import { MediaType } from "@/generated/prisma/enums";
-import { imageUploadCreateInputSchema } from "@/lib/validation/upload";
+import { MediaStatus, MediaType } from "@/generated/prisma/enums";
+import {
+  imageUploadCreateInputSchema,
+  mediaIdInputSchema,
+} from "@/lib/validation/upload";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import type { db as database } from "@/server/db";
 import {
   createImageObjectKey,
+  createPendingImageObjectKey,
   createPresignedImagePutUrl,
+  getYandexStorageBucket,
   isYandexStorageConfigured,
 } from "@/server/storage/yandex";
 
@@ -40,26 +45,45 @@ export const uploadRouter = createTRPCRouter({
         });
       }
 
-      const key = createImageObjectKey(ctx.session.user.id, input.contentType);
-
       try {
-        const { bucket, publicUrl, uploadUrl } = await createPresignedImagePutUrl({
-          contentType: input.contentType,
-          key,
-        });
-
+        const storageBucket = getYandexStorageBucket();
         const media = await ctx.db.media.create({
           data: {
             ownerId: ctx.session.user.id,
             type: MediaType.IMAGE,
+            status: MediaStatus.PENDING,
+            bucket: storageBucket,
+            key: createPendingImageObjectKey(ctx.session.user.id),
+            mimeType: input.contentType,
+            sizeBytes: input.sizeBytes,
+            uploadedAt: null,
+          },
+          select: {
+            id: true,
+          },
+        });
+
+        const key = createImageObjectKey({
+          contentType: input.contentType,
+          mediaId: media.id,
+          userId: ctx.session.user.id,
+        });
+        const { bucket, publicUrl, uploadUrl } =
+          await createPresignedImagePutUrl({
+            contentType: input.contentType,
+            key,
+          });
+
+        await ctx.db.media.update({
+          where: { id: media.id },
+          data: {
             bucket,
             key,
             url: publicUrl,
             mimeType: input.contentType,
             sizeBytes: input.sizeBytes,
-          },
-          select: {
-            id: true,
+            status: MediaStatus.PENDING,
+            uploadedAt: null,
           },
         });
 
@@ -84,5 +108,95 @@ export const uploadRouter = createTRPCRouter({
           cause: error,
         });
       }
+    }),
+
+  confirmImageUpload: protectedProcedure
+    .input(mediaIdInputSchema)
+    .mutation(async ({ ctx, input }) => {
+      const media = await ctx.db.media.findFirst({
+        where: {
+          id: input,
+          ownerId: ctx.session.user.id,
+          type: MediaType.IMAGE,
+        },
+        select: {
+          id: true,
+          url: true,
+          mimeType: true,
+          sizeBytes: true,
+          status: true,
+          uploadedAt: true,
+        },
+      });
+
+      if (!media) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Изображение не найдено.",
+        });
+      }
+
+      if (media.status === MediaStatus.UPLOADED) {
+        return media;
+      }
+
+      if (media.status === MediaStatus.FAILED) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Эта загрузка уже помечена как неудачная.",
+        });
+      }
+
+      return ctx.db.media.update({
+        where: { id: media.id },
+        data: {
+          status: MediaStatus.UPLOADED,
+          uploadedAt: new Date(),
+        },
+        select: {
+          id: true,
+          url: true,
+          mimeType: true,
+          sizeBytes: true,
+          status: true,
+          uploadedAt: true,
+        },
+      });
+    }),
+
+  markImageUploadFailed: protectedProcedure
+    .input(mediaIdInputSchema)
+    .mutation(async ({ ctx, input }) => {
+      const media = await ctx.db.media.findFirst({
+        where: {
+          id: input,
+          ownerId: ctx.session.user.id,
+          type: MediaType.IMAGE,
+        },
+        select: {
+          id: true,
+          status: true,
+        },
+      });
+
+      if (!media) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Изображение не найдено.",
+        });
+      }
+
+      if (media.status === MediaStatus.UPLOADED) {
+        return { success: true };
+      }
+
+      await ctx.db.media.update({
+        where: { id: media.id },
+        data: {
+          status: MediaStatus.FAILED,
+        },
+      });
+
+      return { success: true };
     }),
 });
