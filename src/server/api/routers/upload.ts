@@ -1,4 +1,5 @@
 import { TRPCError } from "@trpc/server";
+import { z } from "zod";
 
 import { MediaStatus, MediaType } from "@/generated/prisma/enums";
 import {
@@ -7,6 +8,9 @@ import {
 } from "@/lib/validation/upload";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import type { db as database } from "@/server/db";
+import { cleanupUnusedMedia } from "@/server/media/cleanup";
+import { isMediaReferenced } from "@/server/media/usage";
+import { requireModerator } from "@/server/moderation/permissions";
 import {
   createImageObjectKey,
   createPendingImageObjectKey,
@@ -18,6 +22,11 @@ import {
 } from "@/server/storage/yandex";
 
 type UploadRouterDb = typeof database;
+
+const cleanupUnusedMediaInputSchema = z.object({
+  dryRun: z.boolean().default(true),
+  limit: z.number().int().min(1).max(100).default(50),
+});
 
 const ensureProfile = async (db: UploadRouterDb, userId: string) => {
   const profile = await db.profile.findUnique({
@@ -31,74 +40,6 @@ const ensureProfile = async (db: UploadRouterDb, userId: string) => {
       message: "Перед загрузкой изображения заполните профиль.",
     });
   }
-};
-
-const isMediaReferenced = async (
-  db: UploadRouterDb,
-  media: { id: string; url: string | null },
-) => {
-  if (!media.url) {
-    const [profile, team, event, object, post] = await Promise.all([
-      db.profile.findFirst({
-        where: { avatarMediaId: media.id },
-        select: { id: true },
-      }),
-      db.team.findFirst({
-        where: { logoMediaId: media.id },
-        select: { id: true },
-      }),
-      db.event.findFirst({
-        where: { coverMediaId: media.id },
-        select: { id: true },
-      }),
-      db.jumpObject.findFirst({
-        where: { coverMediaId: media.id },
-        select: { id: true },
-      }),
-      db.post.findFirst({
-        where: { imageMediaId: media.id },
-        select: { id: true },
-      }),
-    ]);
-
-    return [profile, team, event, object, post].some(Boolean);
-  }
-
-  const [user, profile, team, event, object, post] = await Promise.all([
-    db.user.findFirst({ where: { image: media.url }, select: { id: true } }),
-    db.profile.findFirst({
-      where: {
-        OR: [{ avatarMediaId: media.id }, { avatarUrl: media.url }],
-      },
-      select: { id: true },
-    }),
-    db.team.findFirst({
-      where: {
-        OR: [{ logoMediaId: media.id }, { logoUrl: media.url }],
-      },
-      select: { id: true },
-    }),
-    db.event.findFirst({
-      where: {
-        OR: [{ coverMediaId: media.id }, { coverImageUrl: media.url }],
-      },
-      select: { id: true },
-    }),
-    db.jumpObject.findFirst({
-      where: {
-        OR: [{ coverMediaId: media.id }, { coverImageUrl: media.url }],
-      },
-      select: { id: true },
-    }),
-    db.post.findFirst({
-      where: {
-        OR: [{ imageMediaId: media.id }, { imageUrl: media.url }],
-      },
-      select: { id: true },
-    }),
-  ]);
-
-  return [user, profile, team, event, object, post].some(Boolean);
 };
 
 export const uploadRouter = createTRPCRouter({
@@ -362,5 +303,17 @@ export const uploadRouter = createTRPCRouter({
       });
 
       return { success: true };
+    }),
+
+  cleanupUnusedMedia: protectedProcedure
+    .input(cleanupUnusedMediaInputSchema)
+    .mutation(async ({ ctx, input }) => {
+      requireModerator(ctx);
+
+      return cleanupUnusedMedia({
+        db: ctx.db,
+        dryRun: input.dryRun,
+        limit: input.limit,
+      });
     }),
 });
