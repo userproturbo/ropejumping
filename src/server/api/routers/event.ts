@@ -433,6 +433,12 @@ export const eventRouter = createTRPCRouter({
           },
         },
         include: {
+          coverMedia: {
+            select: {
+              id: true,
+              alt: true,
+            },
+          },
           _count: {
             select: {
               applications: true,
@@ -548,6 +554,12 @@ export const eventRouter = createTRPCRouter({
         id: true,
         content: true,
         imageUrl: true,
+        imageMedia: {
+          select: {
+            id: true,
+            alt: true,
+          },
+        },
         createdAt: true,
         author: {
           select: {
@@ -685,6 +697,12 @@ export const eventRouter = createTRPCRouter({
       return ctx.db.event.findUnique({
         where: { id: event.id },
         include: {
+          coverMedia: {
+            select: {
+              id: true,
+              alt: true,
+            },
+          },
           team: {
             select: {
               id: true,
@@ -929,7 +947,7 @@ export const eventRouter = createTRPCRouter({
       });
 
       try {
-        return await ctx.db.event.create({
+        const createdEvent = await ctx.db.event.create({
           data: {
             ...input,
             coverImageUrl: cover.url,
@@ -938,6 +956,8 @@ export const eventRouter = createTRPCRouter({
             status: EventStatus.PUBLISHED,
           },
         });
+
+        return createdEvent;
       } catch (error) {
         if (isUniqueConstraintError(error)) {
           throw new TRPCError({

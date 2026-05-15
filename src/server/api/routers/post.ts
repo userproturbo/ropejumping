@@ -674,6 +674,12 @@ export const postRouter = createTRPCRouter({
             include: {
               author: authorInclude,
               ...linkedEntityInclude,
+              imageMedia: {
+                select: {
+                  id: true,
+                  alt: true,
+                },
+              },
               pins: {
                 where: getPinsWhereForTarget(currentPinTarget),
                 select: {
@@ -801,6 +807,12 @@ export const postRouter = createTRPCRouter({
       include: {
         author: authorInclude,
         ...linkedEntityInclude,
+        imageMedia: {
+          select: {
+            id: true,
+            alt: true,
+          },
+        },
         likes: {
           where: {
             userId,
@@ -846,6 +858,12 @@ export const postRouter = createTRPCRouter({
         id: true,
         content: true,
         imageUrl: true,
+        imageMedia: {
+          select: {
+            id: true,
+            alt: true,
+          },
+        },
         createdAt: true,
         updatedAt: true,
         hiddenAt: true,
@@ -914,7 +932,7 @@ export const postRouter = createTRPCRouter({
         userId: ctx.session.user.id,
       });
 
-      return ctx.db.post.create({
+      const createdPost = await ctx.db.post.create({
         data: {
           authorId: ctx.session.user.id,
           teamId: input.teamId,
@@ -925,6 +943,8 @@ export const postRouter = createTRPCRouter({
           imageUrl: image.url,
         },
       });
+
+      return createdPost;
     }),
 
   updateMine: protectedProcedure

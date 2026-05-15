@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/prefer-nullish-coalescing */
 import Link from "next/link";
 
 import { requireCurrentUser } from "@/server/auth/session";
@@ -42,6 +43,15 @@ export default async function MyPostsPage() {
           <div className="grid gap-4">
             {posts.map((post) => {
               const isVisible = post.hiddenAt === null;
+              const resolvedAlt =
+                post.imageMedia?.alt ||
+                (post.event
+                  ? `Изображение к посту о мероприятии «${post.event.title}»`
+                  : post.object
+                    ? `Изображение к посту об объекте «${post.object.name}»`
+                    : post.team
+                      ? `Изображение к посту команды «${post.team.name}»`
+                      : "Изображение к посту");
 
               return (
                 <article
@@ -85,7 +95,7 @@ export default async function MyPostsPage() {
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={post.imageUrl}
-                      alt=""
+                      alt={resolvedAlt}
                       className="mt-4 max-h-72 w-full border border-zinc-200 object-cover"
                     />
                   ) : null}

@@ -20,6 +20,14 @@ export const profileRouter = createTRPCRouter({
   getMine: protectedProcedure.query(({ ctx }) => {
     return ctx.db.profile.findUnique({
       where: { userId: ctx.session.user.id },
+      include: {
+        avatarMedia: {
+          select: {
+            id: true,
+            alt: true,
+          },
+        },
+      },
     });
   }),
 
@@ -121,6 +129,12 @@ export const profileRouter = createTRPCRouter({
       return ctx.db.profile.findUnique({
         where: { username: input },
         include: {
+          avatarMedia: {
+            select: {
+              id: true,
+              alt: true,
+            },
+          },
           user: {
             select: {
               badges: {

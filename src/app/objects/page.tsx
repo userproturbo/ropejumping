@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/prefer-nullish-coalescing */
 import Link from "next/link";
 
 import { ObjectType } from "@/generated/prisma/enums";
@@ -202,7 +203,7 @@ export default async function ObjectsPage({ searchParams }: ObjectsPageProps) {
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={object.coverImageUrl}
-                      alt={object.name}
+                      alt={object.coverMedia?.alt || `Фото объекта «${object.name}»`}
                       className="h-36 w-full object-cover sm:h-28"
                     />
                   ) : null}

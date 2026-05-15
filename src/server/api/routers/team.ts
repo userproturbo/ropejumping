@@ -242,6 +242,12 @@ export const teamRouter = createTRPCRouter({
             description: true,
             region: true,
             logoUrl: true,
+            logoMedia: {
+              select: {
+                id: true,
+                alt: true,
+              },
+            },
             status: true,
             createdAt: true,
             _count: {
@@ -329,6 +335,12 @@ export const teamRouter = createTRPCRouter({
           },
         },
         include: {
+          logoMedia: {
+            select: {
+              id: true,
+              alt: true,
+            },
+          },
           events: {
             where: {
               status: {
@@ -348,6 +360,12 @@ export const teamRouter = createTRPCRouter({
               region: true,
               capacity: true,
               coverImageUrl: true,
+              coverMedia: {
+                select: {
+                  id: true,
+                  alt: true,
+                },
+              },
               _count: {
                 select: {
                   applications: true,
@@ -405,6 +423,12 @@ export const teamRouter = createTRPCRouter({
               heightMeters: true,
               region: true,
               coverImageUrl: true,
+              coverMedia: {
+                select: {
+                  id: true,
+                  alt: true,
+                },
+              },
               createdAt: true,
               events: {
                 where: {
@@ -432,6 +456,12 @@ export const teamRouter = createTRPCRouter({
               id: true,
               content: true,
               imageUrl: true,
+              imageMedia: {
+                select: {
+                  id: true,
+                  alt: true,
+                },
+              },
               createdAt: true,
               author: {
                 select: {
@@ -545,7 +575,7 @@ export const teamRouter = createTRPCRouter({
       });
 
       try {
-        return await ctx.db.$transaction(async (tx) => {
+        const createdTeam = await ctx.db.$transaction(async (tx) => {
           const team = await tx.team.create({
             data: {
               ...input,
@@ -564,6 +594,8 @@ export const teamRouter = createTRPCRouter({
 
           return team;
         });
+
+        return createdTeam;
       } catch (error) {
         if (isUniqueConstraintError(error)) {
           throw new TRPCError({
@@ -667,6 +699,14 @@ export const teamRouter = createTRPCRouter({
 
       return ctx.db.team.findUnique({
         where: { id: team.id },
+        include: {
+          logoMedia: {
+            select: {
+              id: true,
+              alt: true,
+            },
+          },
+        },
       });
     }),
 

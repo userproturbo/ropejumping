@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/prefer-nullish-coalescing */
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -37,7 +38,7 @@ export default async function ObjectPage({ params }: ObjectPageProps) {
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={object.coverImageUrl}
-              alt=""
+              alt={object.coverMedia?.alt || `Фото объекта «${object.name}»`}
               className="mb-6 h-64 w-full border border-zinc-200 object-cover"
             />
           ) : null}
