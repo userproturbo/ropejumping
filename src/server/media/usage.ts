@@ -38,7 +38,7 @@ export const isMediaReferenced = async (
         select: { id: true },
       }),
       db.post.findFirst({
-        where: { imageMediaId: media.id },
+        where: { hiddenAt: null, imageMediaId: media.id },
         select: { id: true },
       }),
     ]);
@@ -74,6 +74,7 @@ export const isMediaReferenced = async (
     }),
     db.post.findFirst({
       where: {
+        hiddenAt: null,
         OR: [{ imageMediaId: media.id }, { imageUrl: media.url }],
       },
       select: { id: true },

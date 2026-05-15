@@ -22,6 +22,7 @@ import {
 import { publicPostWhere } from "@/server/api/routers/post";
 import type { db as database } from "@/server/db";
 import { publicEventStatuses } from "@/server/events/statuses";
+import { deleteMediaIfUnreferenced } from "@/server/media/cleanup";
 import {
   resolveImageMediaForCreate,
   resolveImageMediaForUpdate,
@@ -651,7 +652,7 @@ export const objectRouter = createTRPCRouter({
         userId: ctx.session.user.id,
       });
 
-      return ctx.db.jumpObject.update({
+      const updatedObject = await ctx.db.jumpObject.update({
         where: { id: object.id },
         data: {
           name: input.name,
@@ -663,5 +664,18 @@ export const objectRouter = createTRPCRouter({
           coverMediaId: cover.mediaId,
         },
       });
+
+      if (object.coverMediaId && object.coverMediaId !== cover.mediaId) {
+        try {
+          await deleteMediaIfUnreferenced({
+            db: ctx.db,
+            mediaId: object.coverMediaId,
+          });
+        } catch {
+          // Best effort: scheduled cleanup can retry storage failures.
+        }
+      }
+
+      return updatedObject;
     }),
 });

@@ -37,6 +37,19 @@ export type CleanupUnusedMediaResult = {
   skipped: number;
 };
 
+export type DeleteMediaIfUnreferencedResult =
+  | { deleted: true }
+  | {
+      deleted: false;
+      reason:
+        | "already_deleted"
+        | "no_media"
+        | "not_found"
+        | "referenced"
+        | "unmanaged_key"
+        | "wrong_bucket";
+    };
+
 const subtractHours = (date: Date, hours: number) =>
   new Date(date.getTime() - hours * 60 * 60 * 1000);
 
@@ -184,4 +197,62 @@ export const cleanupUnusedMedia = async ({
   }
 
   return result;
+};
+
+export const deleteMediaIfUnreferenced = async ({
+  db,
+  mediaId,
+}: {
+  db: CleanupMediaDb;
+  mediaId: string | null | undefined;
+}): Promise<DeleteMediaIfUnreferencedResult> => {
+  if (!mediaId) {
+    return { deleted: false, reason: "no_media" };
+  }
+
+  const media = await db.media.findUnique({
+    where: { id: mediaId },
+    select: {
+      bucket: true,
+      deletedAt: true,
+      id: true,
+      key: true,
+      status: true,
+      url: true,
+    },
+  });
+
+  if (!media) {
+    return { deleted: false, reason: "not_found" };
+  }
+
+  if (media.status === MediaStatus.DELETED || media.deletedAt) {
+    return { deleted: false, reason: "already_deleted" };
+  }
+
+  if (await isMediaReferenced(db, media)) {
+    return { deleted: false, reason: "referenced" };
+  }
+
+  if (!isManagedMediaKey(media.key)) {
+    return { deleted: false, reason: "unmanaged_key" };
+  }
+
+  if (media.bucket !== getYandexStorageBucket()) {
+    return { deleted: false, reason: "wrong_bucket" };
+  }
+
+  await deleteYandexStorageObject({
+    bucket: media.bucket,
+    key: media.key,
+  });
+  await db.media.update({
+    where: { id: media.id },
+    data: {
+      deletedAt: new Date(),
+      status: MediaStatus.DELETED,
+    },
+  });
+
+  return { deleted: true };
 };

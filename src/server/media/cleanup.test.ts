@@ -14,7 +14,9 @@ const storageMocks = vi.hoisted(() => ({
 
 vi.mock("@/server/storage/yandex", () => storageMocks);
 
-const { cleanupUnusedMedia } = await import("@/server/media/cleanup");
+const { cleanupUnusedMedia, deleteMediaIfUnreferenced } = await import(
+  "@/server/media/cleanup"
+);
 
 const now = new Date("2026-05-11T12:00:00.000Z");
 const oldDate = new Date("2026-05-10T11:00:00.000Z");
@@ -28,10 +30,30 @@ type MediaCandidate = {
   url?: string | null;
 };
 
+type MediaRow = {
+  bucket: string;
+  createdAt: Date;
+  deletedAt: Date | null;
+  id: string;
+  key: string;
+  status: MediaStatus;
+  url: string | null;
+};
+
 type CleanupFindManyArgs = {
   where: {
     deletedAt: null;
     OR: Array<{ status: MediaStatus }>;
+  };
+};
+
+type MediaUpdateArgs = {
+  data: {
+    deletedAt: Date;
+    status: MediaStatus;
+  };
+  where: {
+    id: string;
   };
 };
 
@@ -42,9 +64,10 @@ const createMedia = ({
   key,
   status,
   url = `https://storage.example.com/${id}.jpg`,
-}: MediaCandidate) => ({
+}: MediaCandidate): MediaRow => ({
   bucket,
   createdAt,
+  deletedAt: null,
   id,
   key: key ?? `media/images/user/2026/05/${id}/original.jpg`,
   status,
@@ -52,10 +75,12 @@ const createMedia = ({
 });
 
 const createDb = ({
-  candidates,
+  candidates = [],
+  media = null,
   referencedBy = {},
 }: {
-  candidates: ReturnType<typeof createMedia>[];
+  candidates?: MediaRow[];
+  media?: MediaRow | null;
   referencedBy?: Partial<
     Record<
       "event" | "jumpObject" | "post" | "profile" | "team" | "user",
@@ -63,12 +88,16 @@ const createDb = ({
     >
   >;
 }) => {
+  const mediaFindUnique = vi.fn().mockResolvedValue(media);
   const mediaFindMany = vi
-    .fn<
-      (args: CleanupFindManyArgs) => Promise<ReturnType<typeof createMedia>[]>
-    >()
+    .fn<(args: CleanupFindManyArgs) => Promise<MediaRow[]>>()
     .mockResolvedValue(candidates);
-  const mediaUpdate = vi.fn().mockResolvedValue({});
+  const mediaUpdate = vi
+    .fn<(args: MediaUpdateArgs) => Promise<unknown>>()
+    .mockResolvedValue({});
+  const postFindFirst = vi
+    .fn()
+    .mockResolvedValue(referencedBy.post ? { id: "post" } : null);
   const db = {
     event: {
       findFirst: vi
@@ -82,12 +111,11 @@ const createDb = ({
     },
     media: {
       findMany: mediaFindMany,
+      findUnique: mediaFindUnique,
       update: mediaUpdate,
     },
     post: {
-      findFirst: vi
-        .fn()
-        .mockResolvedValue(referencedBy.post ? { id: "post" } : null),
+      findFirst: postFindFirst,
     },
     profile: {
       findFirst: vi
@@ -106,7 +134,7 @@ const createDb = ({
     },
   } as unknown as typeof database;
 
-  return { db, mediaFindMany, mediaUpdate };
+  return { db, mediaFindMany, mediaFindUnique, mediaUpdate, postFindFirst };
 };
 
 describe("cleanupUnusedMedia", () => {
@@ -315,6 +343,167 @@ describe("cleanupUnusedMedia", () => {
         deletedAt: now,
         status: MediaStatus.DELETED,
       },
+    });
+  });
+});
+
+describe("deleteMediaIfUnreferenced", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    storageMocks.getYandexStorageBucket.mockReturnValue("current-bucket");
+    storageMocks.isManagedMediaKey.mockImplementation(
+      (key: string) =>
+        key.startsWith("media/images/") || key.startsWith("uploads/"),
+    );
+    storageMocks.deleteYandexStorageObject.mockResolvedValue(undefined);
+  });
+
+  it("returns no_media for null media id", async () => {
+    const { db, mediaFindUnique } = createDb({});
+
+    await expect(
+      deleteMediaIfUnreferenced({ db, mediaId: null }),
+    ).resolves.toEqual({
+      deleted: false,
+      reason: "no_media",
+    });
+    expect(mediaFindUnique).not.toHaveBeenCalled();
+  });
+
+  it("returns not_found for missing media", async () => {
+    const { db } = createDb({});
+
+    await expect(
+      deleteMediaIfUnreferenced({ db, mediaId: "missing" }),
+    ).resolves.toEqual({
+      deleted: false,
+      reason: "not_found",
+    });
+  });
+
+  it("returns already_deleted for deleted media", async () => {
+    const { db } = createDb({
+      media: {
+        ...createMedia({ id: "deleted", status: MediaStatus.DELETED }),
+        deletedAt: now,
+      },
+    });
+
+    await expect(
+      deleteMediaIfUnreferenced({ db, mediaId: "deleted" }),
+    ).resolves.toEqual({
+      deleted: false,
+      reason: "already_deleted",
+    });
+    expect(storageMocks.deleteYandexStorageObject).not.toHaveBeenCalled();
+  });
+
+  it("skips referenced media", async () => {
+    const { db } = createDb({
+      media: createMedia({ id: "referenced", status: MediaStatus.UPLOADED }),
+      referencedBy: { profile: true },
+    });
+
+    await expect(
+      deleteMediaIfUnreferenced({ db, mediaId: "referenced" }),
+    ).resolves.toEqual({
+      deleted: false,
+      reason: "referenced",
+    });
+    expect(storageMocks.deleteYandexStorageObject).not.toHaveBeenCalled();
+  });
+
+  it("skips unmanaged keys", async () => {
+    const { db } = createDb({
+      media: createMedia({
+        id: "unmanaged",
+        key: "other/path.jpg",
+        status: MediaStatus.UPLOADED,
+      }),
+    });
+
+    await expect(
+      deleteMediaIfUnreferenced({ db, mediaId: "unmanaged" }),
+    ).resolves.toEqual({
+      deleted: false,
+      reason: "unmanaged_key",
+    });
+    expect(storageMocks.deleteYandexStorageObject).not.toHaveBeenCalled();
+  });
+
+  it("skips media from a different bucket", async () => {
+    const { db } = createDb({
+      media: createMedia({
+        bucket: "old-bucket",
+        id: "wrong-bucket",
+        status: MediaStatus.UPLOADED,
+      }),
+    });
+
+    await expect(
+      deleteMediaIfUnreferenced({ db, mediaId: "wrong-bucket" }),
+    ).resolves.toEqual({
+      deleted: false,
+      reason: "wrong_bucket",
+    });
+    expect(storageMocks.deleteYandexStorageObject).not.toHaveBeenCalled();
+  });
+
+  it("deletes unreferenced managed media and marks it deleted", async () => {
+    const media = createMedia({ id: "unused", status: MediaStatus.UPLOADED });
+    const { db, mediaUpdate } = createDb({ media });
+
+    await expect(
+      deleteMediaIfUnreferenced({ db, mediaId: media.id }),
+    ).resolves.toEqual({ deleted: true });
+    expect(storageMocks.deleteYandexStorageObject).toHaveBeenCalledWith({
+      bucket: media.bucket,
+      key: media.key,
+    });
+    expect(mediaUpdate).toHaveBeenCalledWith({
+      where: { id: media.id },
+      data: {
+        deletedAt: mediaUpdate.mock.calls[0]?.[0].data.deletedAt,
+        status: MediaStatus.DELETED,
+      },
+    });
+    expect(mediaUpdate.mock.calls[0]?.[0].data.deletedAt).toBeInstanceOf(Date);
+  });
+
+  it("does not let hidden post image references block deletion", async () => {
+    const media = createMedia({
+      id: "hidden-post",
+      status: MediaStatus.UPLOADED,
+    });
+    const { db, postFindFirst } = createDb({ media });
+
+    await expect(
+      deleteMediaIfUnreferenced({ db, mediaId: media.id }),
+    ).resolves.toEqual({ deleted: true });
+    expect(postFindFirst).toHaveBeenCalledWith({
+      where: {
+        hiddenAt: null,
+        OR: [{ imageMediaId: media.id }, { imageUrl: media.url }],
+      },
+      select: { id: true },
+    });
+  });
+
+  it("keeps visible post image references", async () => {
+    const media = createMedia({
+      id: "visible-post",
+      status: MediaStatus.UPLOADED,
+    });
+    const { db } = createDb({
+      media,
+      referencedBy: { post: true },
+    });
+
+    await expect(
+      deleteMediaIfUnreferenced({ db, mediaId: media.id }),
+    ).resolves.toEqual({
+      deleted: false,
+      reason: "referenced",
     });
   });
 });
