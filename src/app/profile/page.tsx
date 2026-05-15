@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/prefer-nullish-coalescing */
 import Link from "next/link";
 
 import { getBadgeCategoryLabel } from "@/lib/display";
@@ -41,7 +42,12 @@ export default async function ProfilePage() {
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={profile.avatarUrl}
-                  alt=""
+                  alt={
+                    profile.avatarMedia?.alt ||
+                    profile.displayName ||
+                    profile.username ||
+                    "Аватар пользователя"
+                  }
                   className="h-20 w-20 border border-zinc-200 object-cover"
                 />
               ) : null}

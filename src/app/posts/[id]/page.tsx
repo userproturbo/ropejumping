@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/prefer-nullish-coalescing */
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -29,6 +30,15 @@ export default async function PostPage({ params }: PostPageProps) {
 
   const profile = user ? await api.profile.getMine() : null;
   const isPostAuthor = user?.id === post.author.id;
+  const resolvedAlt =
+    post.imageMedia?.alt ||
+    (post.event
+      ? `Изображение к посту о мероприятии «${post.event.title}»`
+      : post.object
+        ? `Изображение к посту об объекте «${post.object.name}»`
+        : post.team
+          ? `Изображение к посту команды «${post.team.name}»`
+          : "Изображение к посту");
 
   return (
     <main className="min-h-[calc(100vh-4rem)] bg-zinc-50">
@@ -67,7 +77,7 @@ export default async function PostPage({ params }: PostPageProps) {
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={post.imageUrl}
-              alt=""
+              alt={resolvedAlt}
               className="mt-4 max-h-96 w-full border border-zinc-200 object-cover"
             />
           ) : null}

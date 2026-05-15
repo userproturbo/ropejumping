@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/prefer-nullish-coalescing */
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -72,7 +73,7 @@ export default async function TeamPage({ params }: TeamPageProps) {
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={team.logoUrl}
-                alt=""
+                alt={team.logoMedia?.alt || `Логотип команды ${team.name}`}
                 className="h-24 w-24 border border-zinc-200 object-cover"
               />
             ) : null}
@@ -268,12 +269,12 @@ export default async function TeamPage({ params }: TeamPageProps) {
                   className="block border border-zinc-200 p-4 hover:border-zinc-950"
                 >
                   {object.coverImageUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={object.coverImageUrl}
-                      alt=""
-                      className="mb-4 h-36 w-full border border-zinc-200 object-cover"
-                    />
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={object.coverImageUrl}
+                        alt={object.coverMedia?.alt || `Фото объекта «${object.name}»`}
+                        className="mb-4 h-36 w-full border border-zinc-200 object-cover"
+                      />
                   ) : null}
                   <h3 className="font-medium text-zinc-950">{object.name}</h3>
                   <div className="mt-2 flex flex-wrap gap-3 text-sm text-zinc-600">
@@ -317,6 +318,13 @@ export default async function TeamPage({ params }: TeamPageProps) {
                   post.author.name ??
                   "Участник без имени";
                 const isPinned = post.pins.some((pin) => pin.targetId === team.id);
+                const resolvedAlt =
+                  post.imageMedia?.alt ||
+                  (post.event
+                    ? `Изображение к посту о мероприятии «${post.event.title}»`
+                    : post.object
+                      ? `Изображение к посту об объекте «${post.object.name}»`
+                      : `Изображение к посту команды «${team.name}»`);
 
                 return (
                   <Link
@@ -354,7 +362,7 @@ export default async function TeamPage({ params }: TeamPageProps) {
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={post.imageUrl}
-                        alt=""
+                        alt={resolvedAlt}
                         className="mt-4 h-48 w-full border border-zinc-200 object-cover"
                       />
                     ) : null}
@@ -392,7 +400,7 @@ const EventCard = ({ event }: { event: TeamEvent }) => (
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={event.coverImageUrl}
-          alt=""
+          alt={event.coverMedia?.alt || `Обложка мероприятия «${event.title}»`}
           className="hidden h-24 w-32 border border-zinc-200 object-cover sm:block"
         />
       ) : null}

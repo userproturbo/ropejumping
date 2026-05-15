@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/prefer-nullish-coalescing */
 import Link from "next/link";
 
 import type { RouterOutputs } from "@/trpc/react";
@@ -20,6 +21,16 @@ export function PostCard({
   isLoggedIn = false,
   post,
 }: PostCardProps) {
+  const resolvedAlt =
+    post.imageMedia?.alt ||
+    (post.event
+      ? `Изображение к посту о мероприятии «${post.event.title}»`
+      : post.object
+        ? `Изображение к посту об объекте «${post.object.name}»`
+        : post.team
+          ? `Изображение к посту команды «${post.team.name}»`
+          : "Изображение к посту");
+
   return (
     <article className="border border-zinc-200 bg-white p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -67,7 +78,7 @@ export function PostCard({
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={post.imageUrl}
-          alt=""
+          alt={resolvedAlt}
           className="mt-4 max-h-96 w-full border border-zinc-200 object-cover"
         />
       ) : null}

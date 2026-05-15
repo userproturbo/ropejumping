@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/prefer-nullish-coalescing */
 import Link from "next/link";
 
 import { TeamStatus } from "@/generated/prisma/enums";
@@ -154,7 +155,7 @@ export default async function TeamsPage({ searchParams }: TeamsPageProps) {
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={team.logoUrl}
-                      alt={team.name}
+                      alt={team.logoMedia?.alt || `Логотип команды ${team.name}`}
                       className="h-16 w-16 border border-zinc-200 object-cover"
                     />
                   ) : null}

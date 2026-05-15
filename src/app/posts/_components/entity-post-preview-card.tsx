@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/prefer-nullish-coalescing */
 import Link from "next/link";
 
 type EntityPostPreviewCardProps = {
@@ -6,6 +7,9 @@ type EntityPostPreviewCardProps = {
     id: string;
     content: string;
     imageUrl: string | null;
+    imageMedia?: {
+      alt: string | null;
+    } | null;
     createdAt: Date;
     author: {
       name: string | null;
@@ -58,6 +62,15 @@ export const EntityPostPreviewCard = ({
     profile?.username ??
     post.author.name ??
     "Участник без имени";
+  const resolvedAlt =
+    post.imageMedia?.alt ||
+    (post.event
+      ? `Изображение к посту о мероприятии «${post.event.title}»`
+      : post.object
+        ? `Изображение к посту об объекте «${post.object.name}»`
+        : post.team
+          ? `Изображение к посту команды «${post.team.name}»`
+          : "Изображение к посту");
 
   return (
     <Link
@@ -94,7 +107,7 @@ export const EntityPostPreviewCard = ({
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={post.imageUrl}
-          alt=""
+          alt={resolvedAlt}
           className="mt-4 h-48 w-full border border-zinc-200 object-cover"
         />
       ) : null}

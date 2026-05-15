@@ -211,6 +211,12 @@ export const objectRouter = createTRPCRouter({
             heightMeters: true,
             region: true,
             coverImageUrl: true,
+            coverMedia: {
+              select: {
+                id: true,
+                alt: true,
+              },
+            },
             createdAt: true,
             createdByTeam: {
               select: {
@@ -291,6 +297,7 @@ export const objectRouter = createTRPCRouter({
         heightMeters: object.heightMeters,
         region: object.region,
         coverImageUrl: object.coverImageUrl,
+        coverMedia: object.coverMedia,
         createdByTeam: object.createdByTeam,
         events: object.events,
       }));
@@ -326,6 +333,12 @@ export const objectRouter = createTRPCRouter({
           },
         },
         include: {
+          coverMedia: {
+            select: {
+              id: true,
+              alt: true,
+            },
+          },
           createdByTeam: {
             select: {
               id: true,
@@ -361,6 +374,12 @@ export const objectRouter = createTRPCRouter({
         id: true,
         content: true,
         imageUrl: true,
+        imageMedia: {
+          select: {
+            id: true,
+            alt: true,
+          },
+        },
         createdAt: true,
         author: {
           select: {
@@ -495,6 +514,12 @@ export const objectRouter = createTRPCRouter({
       const object = await ctx.db.jumpObject.findUnique({
         where: { slug: input },
         include: {
+          coverMedia: {
+            select: {
+              id: true,
+              alt: true,
+            },
+          },
           createdByTeam: {
             select: {
               id: true,
@@ -583,7 +608,7 @@ export const objectRouter = createTRPCRouter({
           userId: ctx.session.user.id,
         });
 
-        return await ctx.db.jumpObject.create({
+        const createdObject = await ctx.db.jumpObject.create({
           data: {
             ...objectInput,
             coverImageUrl: cover.url,
@@ -593,6 +618,8 @@ export const objectRouter = createTRPCRouter({
             visibility: ObjectVisibility.PUBLIC,
           },
         });
+
+        return createdObject;
       } catch (error) {
         if (isUniqueConstraintError(error)) {
           throw new TRPCError({

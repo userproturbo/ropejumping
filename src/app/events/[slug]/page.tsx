@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/prefer-nullish-coalescing */
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -80,7 +81,7 @@ export default async function EventPage({ params }: EventPageProps) {
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={event.coverImageUrl}
-              alt=""
+              alt={event.coverMedia?.alt || `Обложка мероприятия «${event.title}»`}
               className="mb-6 h-64 w-full border border-zinc-200 object-cover"
             />
           ) : null}
