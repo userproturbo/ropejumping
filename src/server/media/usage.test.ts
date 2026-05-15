@@ -22,27 +22,46 @@ const createDb = (findFirst = vi.fn()) =>
   }) as unknown as typeof database;
 
 const createReferenceDb = ({
+  eventGalleryImageResult = null,
+  objectGalleryImageResult = null,
   postResult = null,
   profileResult = null,
   userResult = null,
 }: {
+  eventGalleryImageResult?: { id: string } | null;
+  objectGalleryImageResult?: { id: string } | null;
   postResult?: { id: string } | null;
   profileResult?: { id: string } | null;
   userResult?: { id: string } | null;
 } = {}) => {
+  const eventGalleryImageFindFirst = vi
+    .fn()
+    .mockResolvedValue(eventGalleryImageResult);
+  const objectGalleryImageFindFirst = vi
+    .fn()
+    .mockResolvedValue(objectGalleryImageResult);
   const postFindFirst = vi.fn().mockResolvedValue(postResult);
   const profileFindFirst = vi.fn().mockResolvedValue(profileResult);
   const userFindFirst = vi.fn().mockResolvedValue(userResult);
   const db = {
     event: { findFirst: vi.fn().mockResolvedValue(null) },
+    eventGalleryImage: { findFirst: eventGalleryImageFindFirst },
     jumpObject: { findFirst: vi.fn().mockResolvedValue(null) },
+    objectGalleryImage: { findFirst: objectGalleryImageFindFirst },
     post: { findFirst: postFindFirst },
     profile: { findFirst: profileFindFirst },
     team: { findFirst: vi.fn().mockResolvedValue(null) },
     user: { findFirst: userFindFirst },
   } as unknown as typeof database;
 
-  return { db, postFindFirst, profileFindFirst, userFindFirst };
+  return {
+    db,
+    eventGalleryImageFindFirst,
+    objectGalleryImageFindFirst,
+    postFindFirst,
+    profileFindFirst,
+    userFindFirst,
+  };
 };
 
 describe("media usage resolution", () => {
@@ -113,6 +132,40 @@ describe("media usage resolution", () => {
         hiddenAt: null,
         OR: [{ imageMediaId: existingMediaId }, { imageUrl }],
       },
+      select: { id: true },
+    });
+  });
+
+  it("detects event gallery media references", async () => {
+    const { db, eventGalleryImageFindFirst } = createReferenceDb({
+      eventGalleryImageResult: { id: "event-gallery-image" },
+    });
+
+    await expect(
+      isMediaReferenced(db, {
+        id: existingMediaId,
+        url: null,
+      }),
+    ).resolves.toBe(true);
+    expect(eventGalleryImageFindFirst).toHaveBeenCalledWith({
+      where: { mediaId: existingMediaId },
+      select: { id: true },
+    });
+  });
+
+  it("detects object gallery media references", async () => {
+    const { db, objectGalleryImageFindFirst } = createReferenceDb({
+      objectGalleryImageResult: { id: "object-gallery-image" },
+    });
+
+    await expect(
+      isMediaReferenced(db, {
+        id: existingMediaId,
+        url: null,
+      }),
+    ).resolves.toBe(true);
+    expect(objectGalleryImageFindFirst).toHaveBeenCalledWith({
+      where: { mediaId: existingMediaId },
       select: { id: true },
     });
   });

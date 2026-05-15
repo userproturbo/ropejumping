@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { ImageGalleryViewer } from "@/app/_components/image-gallery-viewer";
 import { EntityPostPreviewCard } from "@/app/posts/_components/entity-post-preview-card";
 import { EventStatus } from "@/generated/prisma/enums";
 import {
@@ -72,6 +73,13 @@ export default async function EventPage({ params }: EventPageProps) {
   const shouldShowAcceptedParticipantsSection =
     event.status !== EventStatus.COMPLETED &&
     (event.applications.length > 0 || canManage);
+  const galleryImages = event.galleryImages
+    .filter((image) => image.media.url)
+    .map((image) => ({
+      id: image.id,
+      url: image.media.url!,
+      alt: image.media.alt || `Фото мероприятия «${event.title}»`,
+    }));
 
   return (
     <main className="min-h-[calc(100vh-4rem)] bg-zinc-50">
@@ -81,7 +89,9 @@ export default async function EventPage({ params }: EventPageProps) {
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={event.coverImageUrl}
-              alt={event.coverMedia?.alt || `Обложка мероприятия «${event.title}»`}
+              alt={
+                event.coverMedia?.alt || `Обложка мероприятия «${event.title}»`
+              }
               className="mb-6 h-64 w-full border border-zinc-200 object-cover"
             />
           ) : null}
@@ -158,6 +168,18 @@ export default async function EventPage({ params }: EventPageProps) {
           </dl>
         </section>
 
+        {galleryImages.length > 0 ? (
+          <section className="mt-6 border border-zinc-200 bg-white p-6">
+            <h2 className="text-xl font-semibold text-zinc-950">
+              Галерея мероприятия
+            </h2>
+            <ImageGalleryViewer
+              images={galleryImages}
+              className="mt-5 grid grid-cols-2 gap-4 lg:grid-cols-3"
+            />
+          </section>
+        ) : null}
+
         {event.object ? (
           <section className="mt-6 border border-zinc-200 bg-white p-6">
             <h2 className="text-xl font-semibold text-zinc-950">Объект</h2>
@@ -170,7 +192,9 @@ export default async function EventPage({ params }: EventPageProps) {
                 {event.object.heightMeters ? (
                   <span>{event.object.heightMeters} м</span>
                 ) : null}
-                {event.object.region ? <span>{event.object.region}</span> : null}
+                {event.object.region ? (
+                  <span>{event.object.region}</span>
+                ) : null}
               </div>
             </Link>
           </section>
@@ -483,9 +507,7 @@ export default async function EventPage({ params }: EventPageProps) {
                       key={participation.id}
                       className="border border-zinc-200 p-4"
                     >
-                      <p className="font-medium text-zinc-950">
-                        {displayName}
-                      </p>
+                      <p className="font-medium text-zinc-950">{displayName}</p>
                       {profile?.username ? (
                         <p className="mt-1 text-sm text-zinc-500">
                           @{profile.username}

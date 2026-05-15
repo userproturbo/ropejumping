@@ -1,6 +1,7 @@
 import { TRPCError } from "@trpc/server";
 
 import {
+  MediaStatus,
   ObjectType,
   ObjectVisibility,
   PostPinTargetType,
@@ -339,6 +340,27 @@ export const objectRouter = createTRPCRouter({
               alt: true,
             },
           },
+          galleryImages: {
+            where: {
+              media: {
+                deletedAt: null,
+                status: MediaStatus.UPLOADED,
+                url: { not: null },
+              },
+            },
+            orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+            select: {
+              id: true,
+              sortOrder: true,
+              media: {
+                select: {
+                  id: true,
+                  url: true,
+                  alt: true,
+                },
+              },
+            },
+          },
           createdByTeam: {
             select: {
               id: true,
@@ -518,6 +540,27 @@ export const objectRouter = createTRPCRouter({
             select: {
               id: true,
               alt: true,
+            },
+          },
+          galleryImages: {
+            where: {
+              media: {
+                deletedAt: null,
+                status: MediaStatus.UPLOADED,
+                url: { not: null },
+              },
+            },
+            orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+            select: {
+              id: true,
+              sortOrder: true,
+              media: {
+                select: {
+                  id: true,
+                  url: true,
+                  alt: true,
+                },
+              },
             },
           },
           createdByTeam: {

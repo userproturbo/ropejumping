@@ -20,7 +20,15 @@ export const isMediaReferenced = async (
   media: { id: string; url: string | null },
 ): Promise<boolean> => {
   if (!media.url) {
-    const [profile, team, event, object, post] = await Promise.all([
+    const [
+      profile,
+      team,
+      event,
+      object,
+      post,
+      eventGalleryImage,
+      objectGalleryImage,
+    ] = await Promise.all([
       db.profile.findFirst({
         where: { avatarMediaId: media.id },
         select: { id: true },
@@ -41,12 +49,37 @@ export const isMediaReferenced = async (
         where: { hiddenAt: null, imageMediaId: media.id },
         select: { id: true },
       }),
+      db.eventGalleryImage.findFirst({
+        where: { mediaId: media.id },
+        select: { id: true },
+      }),
+      db.objectGalleryImage.findFirst({
+        where: { mediaId: media.id },
+        select: { id: true },
+      }),
     ]);
 
-    return [profile, team, event, object, post].some(Boolean);
+    return [
+      profile,
+      team,
+      event,
+      object,
+      post,
+      eventGalleryImage,
+      objectGalleryImage,
+    ].some(Boolean);
   }
 
-  const [user, profile, team, event, object, post] = await Promise.all([
+  const [
+    user,
+    profile,
+    team,
+    event,
+    object,
+    post,
+    eventGalleryImage,
+    objectGalleryImage,
+  ] = await Promise.all([
     db.user.findFirst({ where: { image: media.url }, select: { id: true } }),
     db.profile.findFirst({
       where: {
@@ -79,9 +112,26 @@ export const isMediaReferenced = async (
       },
       select: { id: true },
     }),
+    db.eventGalleryImage.findFirst({
+      where: { mediaId: media.id },
+      select: { id: true },
+    }),
+    db.objectGalleryImage.findFirst({
+      where: { mediaId: media.id },
+      select: { id: true },
+    }),
   ]);
 
-  return [user, profile, team, event, object, post].some(Boolean);
+  return [
+    user,
+    profile,
+    team,
+    event,
+    object,
+    post,
+    eventGalleryImage,
+    objectGalleryImage,
+  ].some(Boolean);
 };
 
 export const validateOwnedUploadedImageMedia = async ({

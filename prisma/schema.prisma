@@ -379,10 +379,11 @@ model JumpObject {
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
 
-  createdBy     User?   @relation("CreatedObjects", fields: [createdById], references: [id], onDelete: SetNull)
-  createdByTeam Team?   @relation("TeamObjects", fields: [createdByTeamId], references: [id], onDelete: SetNull)
-  coverMedia    Media?  @relation("ObjectCoverMedia", fields: [coverMediaId], references: [id], onDelete: SetNull)
+  createdBy     User?                @relation("CreatedObjects", fields: [createdById], references: [id], onDelete: SetNull)
+  createdByTeam Team?                @relation("TeamObjects", fields: [createdByTeamId], references: [id], onDelete: SetNull)
+  coverMedia    Media?               @relation("ObjectCoverMedia", fields: [coverMediaId], references: [id], onDelete: SetNull)
   events        Event[]
+  galleryImages ObjectGalleryImage[]
   posts         Post[]
 
   @@index([visibility])
@@ -422,6 +423,7 @@ model Event {
   applications   EventApplication[]
   participations EventParticipation[]
   crewMembers    EventCrewMember[]
+  galleryImages  EventGalleryImage[]
   posts          Post[]
 
   @@index([status])
@@ -489,6 +491,38 @@ model EventCrewMember {
   @@unique([eventId, teamMemberId])
   @@index([eventId])
   @@index([teamMemberId])
+}
+
+model EventGalleryImage {
+  id        String   @id @default(cuid())
+  eventId   String
+  mediaId   String
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  media Media @relation("EventGalleryMedia", fields: [mediaId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, mediaId])
+  @@index([eventId])
+  @@index([mediaId])
+  @@index([eventId, sortOrder])
+}
+
+model ObjectGalleryImage {
+  id        String   @id @default(cuid())
+  objectId  String
+  mediaId   String
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  object JumpObject @relation(fields: [objectId], references: [id], onDelete: Cascade)
+  media  Media      @relation("ObjectGalleryMedia", fields: [mediaId], references: [id], onDelete: Cascade)
+
+  @@unique([objectId, mediaId])
+  @@index([objectId])
+  @@index([mediaId])
+  @@index([objectId, sortOrder])
 }
 
 model Badge {
@@ -621,12 +655,14 @@ model Media {
   deletedAt  DateTime?
   createdAt  DateTime    @default(now())
 
-  owner          User         @relation("UserMedia", fields: [ownerId], references: [id], onDelete: Cascade)
-  profileAvatars Profile[]    @relation("ProfileAvatarMedia")
-  teamLogos      Team[]       @relation("TeamLogoMedia")
-  eventCovers    Event[]      @relation("EventCoverMedia")
-  objectCovers   JumpObject[] @relation("ObjectCoverMedia")
-  postImages     Post[]       @relation("PostImageMedia")
+  owner               User                 @relation("UserMedia", fields: [ownerId], references: [id], onDelete: Cascade)
+  profileAvatars      Profile[]            @relation("ProfileAvatarMedia")
+  teamLogos           Team[]               @relation("TeamLogoMedia")
+  eventCovers         Event[]              @relation("EventCoverMedia")
+  eventGalleryImages  EventGalleryImage[]  @relation("EventGalleryMedia")
+  objectCovers        JumpObject[]         @relation("ObjectCoverMedia")
+  objectGalleryImages ObjectGalleryImage[] @relation("ObjectGalleryMedia")
+  postImages          Post[]               @relation("PostImageMedia")
 
   @@unique([bucket, key])
   @@index([ownerId])

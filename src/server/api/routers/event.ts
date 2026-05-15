@@ -3,6 +3,7 @@ import { TRPCError } from "@trpc/server";
 import {
   ApplicationStatus,
   EventStatus,
+  MediaStatus,
   NotificationType,
   ObjectVisibility,
   PostPinTargetType,
@@ -439,6 +440,27 @@ export const eventRouter = createTRPCRouter({
               alt: true,
             },
           },
+          galleryImages: {
+            where: {
+              media: {
+                deletedAt: null,
+                status: MediaStatus.UPLOADED,
+                url: { not: null },
+              },
+            },
+            orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+            select: {
+              id: true,
+              sortOrder: true,
+              media: {
+                select: {
+                  id: true,
+                  url: true,
+                  alt: true,
+                },
+              },
+            },
+          },
           _count: {
             select: {
               applications: true,
@@ -701,6 +723,27 @@ export const eventRouter = createTRPCRouter({
             select: {
               id: true,
               alt: true,
+            },
+          },
+          galleryImages: {
+            where: {
+              media: {
+                deletedAt: null,
+                status: MediaStatus.UPLOADED,
+                url: { not: null },
+              },
+            },
+            orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+            select: {
+              id: true,
+              sortOrder: true,
+              media: {
+                select: {
+                  id: true,
+                  url: true,
+                  alt: true,
+                },
+              },
             },
           },
           team: {
