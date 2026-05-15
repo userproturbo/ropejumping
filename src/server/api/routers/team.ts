@@ -31,6 +31,7 @@ import { createAuditLog } from "@/server/audit/service";
 import { publicPostWhere } from "@/server/api/routers/post";
 import type { db as database } from "@/server/db";
 import { publicEventStatuses } from "@/server/events/statuses";
+import { deleteMediaIfUnreferenced } from "@/server/media/cleanup";
 import {
   resolveImageMediaForCreate,
   resolveImageMediaForUpdate,
@@ -615,7 +616,7 @@ export const teamRouter = createTRPCRouter({
           : null,
       ].filter((field): field is string => field !== null);
 
-      return ctx.db.$transaction(async (tx) => {
+      const updatedTeam = await ctx.db.$transaction(async (tx) => {
         const updatedTeam = await tx.team.update({
           where: { id: team.id },
           data: {
@@ -640,6 +641,19 @@ export const teamRouter = createTRPCRouter({
 
         return updatedTeam;
       });
+
+      if (currentTeam.logoMediaId && currentTeam.logoMediaId !== logo.mediaId) {
+        try {
+          await deleteMediaIfUnreferenced({
+            db: ctx.db,
+            mediaId: currentTeam.logoMediaId,
+          });
+        } catch {
+          // Best effort: scheduled cleanup can retry storage failures.
+        }
+      }
+
+      return updatedTeam;
     }),
 
   getForSettings: protectedProcedure

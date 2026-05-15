@@ -11,6 +11,7 @@ import {
   publicProcedure,
 } from "@/server/api/trpc";
 import { publicEventStatuses } from "@/server/events/statuses";
+import { deleteMediaIfUnreferenced } from "@/server/media/cleanup";
 import { resolveImageMediaForUpdate } from "@/server/media/usage";
 
 const publicTeamStatuses = [TeamStatus.REGULAR, TeamStatus.VERIFIED];
@@ -75,7 +76,7 @@ export const profileRouter = createTRPCRouter({
       };
 
       try {
-        return await ctx.db.profile.upsert({
+        const updatedProfile = await ctx.db.profile.upsert({
           where: { userId: ctx.session.user.id },
           create: {
             ...profileInput,
@@ -83,6 +84,22 @@ export const profileRouter = createTRPCRouter({
           },
           update: profileInput,
         });
+
+        if (
+          currentProfile?.avatarMediaId &&
+          currentProfile.avatarMediaId !== avatar.mediaId
+        ) {
+          try {
+            await deleteMediaIfUnreferenced({
+              db: ctx.db,
+              mediaId: currentProfile.avatarMediaId,
+            });
+          } catch {
+            // Best effort: scheduled cleanup can retry storage failures.
+          }
+        }
+
+        return updatedProfile;
       } catch (error) {
         if (
           error instanceof Error &&

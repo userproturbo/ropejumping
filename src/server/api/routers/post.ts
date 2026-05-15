@@ -26,6 +26,7 @@ import {
 } from "@/server/api/trpc";
 import type { db as database } from "@/server/db";
 import { publicEventStatuses } from "@/server/events/statuses";
+import { deleteMediaIfUnreferenced } from "@/server/media/cleanup";
 import {
   resolveImageMediaForCreate,
   resolveImageMediaForUpdate,
@@ -967,7 +968,7 @@ export const postRouter = createTRPCRouter({
         userId: ctx.session.user.id,
       });
 
-      return ctx.db.post.update({
+      const updatedPost = await ctx.db.post.update({
         where: {
           id: post.id,
         },
@@ -977,6 +978,19 @@ export const postRouter = createTRPCRouter({
           imageUrl: image.url,
         },
       });
+
+      if (post.imageMediaId && post.imageMediaId !== image.mediaId) {
+        try {
+          await deleteMediaIfUnreferenced({
+            db: ctx.db,
+            mediaId: post.imageMediaId,
+          });
+        } catch {
+          // Best effort: scheduled cleanup can retry storage failures.
+        }
+      }
+
+      return updatedPost;
     }),
 
   deleteMine: protectedProcedure
@@ -990,6 +1004,7 @@ export const postRouter = createTRPCRouter({
         select: {
           id: true,
           authorId: true,
+          imageMediaId: true,
         },
       });
 
@@ -1015,6 +1030,17 @@ export const postRouter = createTRPCRouter({
           hiddenAt: new Date(),
         },
       });
+
+      if (post.imageMediaId) {
+        try {
+          await deleteMediaIfUnreferenced({
+            db: ctx.db,
+            mediaId: post.imageMediaId,
+          });
+        } catch {
+          // Best effort: scheduled cleanup can retry storage failures.
+        }
+      }
 
       return { success: true };
     }),

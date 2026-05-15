@@ -22,24 +22,27 @@ const createDb = (findFirst = vi.fn()) =>
   }) as unknown as typeof database;
 
 const createReferenceDb = ({
+  postResult = null,
   profileResult = null,
   userResult = null,
 }: {
+  postResult?: { id: string } | null;
   profileResult?: { id: string } | null;
   userResult?: { id: string } | null;
 } = {}) => {
+  const postFindFirst = vi.fn().mockResolvedValue(postResult);
   const profileFindFirst = vi.fn().mockResolvedValue(profileResult);
   const userFindFirst = vi.fn().mockResolvedValue(userResult);
   const db = {
     event: { findFirst: vi.fn().mockResolvedValue(null) },
     jumpObject: { findFirst: vi.fn().mockResolvedValue(null) },
-    post: { findFirst: vi.fn().mockResolvedValue(null) },
+    post: { findFirst: postFindFirst },
     profile: { findFirst: profileFindFirst },
     team: { findFirst: vi.fn().mockResolvedValue(null) },
     user: { findFirst: userFindFirst },
   } as unknown as typeof database;
 
-  return { db, profileFindFirst, userFindFirst };
+  return { db, postFindFirst, profileFindFirst, userFindFirst };
 };
 
 describe("media usage resolution", () => {
@@ -73,6 +76,43 @@ describe("media usage resolution", () => {
     ).resolves.toBe(true);
     expect(userFindFirst).toHaveBeenCalledWith({
       where: { image: imageUrl },
+      select: { id: true },
+    });
+  });
+
+  it("counts only visible post media id references", async () => {
+    const { db, postFindFirst } = createReferenceDb({
+      postResult: { id: "post" },
+    });
+
+    await expect(
+      isMediaReferenced(db, {
+        id: existingMediaId,
+        url: null,
+      }),
+    ).resolves.toBe(true);
+    expect(postFindFirst).toHaveBeenCalledWith({
+      where: { hiddenAt: null, imageMediaId: existingMediaId },
+      select: { id: true },
+    });
+  });
+
+  it("counts only visible post URL references", async () => {
+    const { db, postFindFirst } = createReferenceDb({
+      postResult: { id: "post" },
+    });
+
+    await expect(
+      isMediaReferenced(db, {
+        id: existingMediaId,
+        url: imageUrl,
+      }),
+    ).resolves.toBe(true);
+    expect(postFindFirst).toHaveBeenCalledWith({
+      where: {
+        hiddenAt: null,
+        OR: [{ imageMediaId: existingMediaId }, { imageUrl }],
+      },
       select: { id: true },
     });
   });

@@ -34,6 +34,7 @@ import {
   canManageEvent,
 } from "@/server/events/permissions";
 import { publicEventStatuses } from "@/server/events/statuses";
+import { deleteMediaIfUnreferenced } from "@/server/media/cleanup";
 import {
   resolveImageMediaForCreate,
   resolveImageMediaForUpdate,
@@ -978,7 +979,7 @@ export const eventRouter = createTRPCRouter({
         userId: ctx.session.user.id,
       });
 
-      return ctx.db.event.update({
+      const updatedEvent = await ctx.db.event.update({
         where: { id: event.id },
         data: {
           title: input.title,
@@ -995,6 +996,22 @@ export const eventRouter = createTRPCRouter({
           objectId: input.objectId,
         },
       });
+
+      if (
+        currentEvent.coverMediaId &&
+        currentEvent.coverMediaId !== cover.mediaId
+      ) {
+        try {
+          await deleteMediaIfUnreferenced({
+            db: ctx.db,
+            mediaId: currentEvent.coverMediaId,
+          });
+        } catch {
+          // Best effort: scheduled cleanup can retry storage failures.
+        }
+      }
+
+      return updatedEvent;
     }),
 
   updateStatus: protectedProcedure
