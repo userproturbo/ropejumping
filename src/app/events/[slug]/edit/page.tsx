@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 
+import { ImageGalleryManager } from "@/app/_components/image-gallery-manager";
 import { requireCurrentUser } from "@/server/auth/session";
 import { api } from "@/trpc/server";
 
@@ -40,6 +41,11 @@ export default async function EditEventPage({ params }: EditEventPageProps) {
           eventSlug={event.slug}
         />
         <EventEditForm event={event} objects={objects} />
+        <ImageGalleryManager
+          images={event.galleryImages}
+          mode="event"
+          targetId={event.id}
+        />
       </div>
     </main>
   );

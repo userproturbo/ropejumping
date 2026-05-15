@@ -85,7 +85,10 @@ const createDb = ({
     Record<
       "event" | "jumpObject" | "post" | "profile" | "team" | "user",
       boolean
-    >
+    > & {
+      eventGalleryImage: boolean;
+      objectGalleryImage: boolean;
+    }
   >;
 }) => {
   const mediaFindUnique = vi.fn().mockResolvedValue(media);
@@ -104,10 +107,24 @@ const createDb = ({
         .fn()
         .mockResolvedValue(referencedBy.event ? { id: "event" } : null),
     },
+    eventGalleryImage: {
+      findFirst: vi
+        .fn()
+        .mockResolvedValue(
+          referencedBy.eventGalleryImage ? { id: "event-gallery" } : null,
+        ),
+    },
     jumpObject: {
       findFirst: vi
         .fn()
         .mockResolvedValue(referencedBy.jumpObject ? { id: "object" } : null),
+    },
+    objectGalleryImage: {
+      findFirst: vi
+        .fn()
+        .mockResolvedValue(
+          referencedBy.objectGalleryImage ? { id: "object-gallery" } : null,
+        ),
     },
     media: {
       findMany: mediaFindMany,
@@ -413,6 +430,42 @@ describe("deleteMediaIfUnreferenced", () => {
     expect(storageMocks.deleteYandexStorageObject).not.toHaveBeenCalled();
   });
 
+  it("skips media referenced by an event gallery image", async () => {
+    const { db } = createDb({
+      media: createMedia({
+        id: "event-gallery",
+        status: MediaStatus.UPLOADED,
+      }),
+      referencedBy: { eventGalleryImage: true },
+    });
+
+    await expect(
+      deleteMediaIfUnreferenced({ db, mediaId: "event-gallery" }),
+    ).resolves.toEqual({
+      deleted: false,
+      reason: "referenced",
+    });
+    expect(storageMocks.deleteYandexStorageObject).not.toHaveBeenCalled();
+  });
+
+  it("skips media referenced by an object gallery image", async () => {
+    const { db } = createDb({
+      media: createMedia({
+        id: "object-gallery",
+        status: MediaStatus.UPLOADED,
+      }),
+      referencedBy: { objectGalleryImage: true },
+    });
+
+    await expect(
+      deleteMediaIfUnreferenced({ db, mediaId: "object-gallery" }),
+    ).resolves.toEqual({
+      deleted: false,
+      reason: "referenced",
+    });
+    expect(storageMocks.deleteYandexStorageObject).not.toHaveBeenCalled();
+  });
+
   it("skips unmanaged keys", async () => {
     const { db } = createDb({
       media: createMedia({
@@ -468,6 +521,18 @@ describe("deleteMediaIfUnreferenced", () => {
       },
     });
     expect(mediaUpdate.mock.calls[0]?.[0].data.deletedAt).toBeInstanceOf(Date);
+  });
+
+  it("deletes gallery media after the gallery relation is removed", async () => {
+    const media = createMedia({
+      id: "removed-gallery-image",
+      status: MediaStatus.UPLOADED,
+    });
+    const { db } = createDb({ media });
+
+    await expect(
+      deleteMediaIfUnreferenced({ db, mediaId: media.id }),
+    ).resolves.toEqual({ deleted: true });
   });
 
   it("does not let hidden post image references block deletion", async () => {

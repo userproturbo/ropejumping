@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 
+import { ImageGalleryManager } from "@/app/_components/image-gallery-manager";
 import { requireCurrentUser } from "@/server/auth/session";
 import { api } from "@/trpc/server";
 
@@ -34,6 +35,11 @@ export default async function EditObjectPage({ params }: EditObjectPageProps) {
         </div>
 
         <ObjectForm object={object} />
+        <ImageGalleryManager
+          images={object.galleryImages}
+          mode="object"
+          targetId={object.id}
+        />
       </div>
     </main>
   );

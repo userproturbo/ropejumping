@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { ImageGalleryViewer } from "@/app/_components/image-gallery-viewer";
 import { formatEventDateRange } from "@/app/events/_components/date-format";
 import { EntityPostPreviewCard } from "@/app/posts/_components/entity-post-preview-card";
 import { getEventStatusLabel, getObjectTypeLabel } from "@/lib/display";
@@ -29,6 +30,13 @@ export default async function ObjectPage({ params }: ObjectPageProps) {
         .then(() => true)
         .catch(() => false)
     : false;
+  const galleryImages = object.galleryImages
+    .filter((image) => image.media.url)
+    .map((image) => ({
+      id: image.id,
+      url: image.media.url!,
+      alt: image.media.alt || `Фото объекта «${object.name}»`,
+    }));
 
   return (
     <main className="min-h-[calc(100vh-4rem)] bg-zinc-50">
@@ -80,7 +88,9 @@ export default async function ObjectPage({ params }: ObjectPageProps) {
             <div>
               <dt className="font-medium text-zinc-950">Высота</dt>
               <dd className="mt-1 text-zinc-600">
-                {object.heightMeters ? `${object.heightMeters} м` : "Не указано"}
+                {object.heightMeters
+                  ? `${object.heightMeters} м`
+                  : "Не указано"}
               </dd>
             </div>
             <div>
@@ -104,6 +114,18 @@ export default async function ObjectPage({ params }: ObjectPageProps) {
             ) : null}
           </dl>
         </section>
+
+        {galleryImages.length > 0 ? (
+          <section className="mt-6 border border-zinc-200 bg-white p-6">
+            <h2 className="text-xl font-semibold text-zinc-950">
+              Галерея объекта
+            </h2>
+            <ImageGalleryViewer
+              images={galleryImages}
+              className="mt-5 grid grid-cols-2 gap-4 lg:grid-cols-3"
+            />
+          </section>
+        ) : null}
 
         <section className="mt-6 border border-zinc-200 bg-white p-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
