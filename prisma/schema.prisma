@@ -235,6 +235,7 @@ model User {
   teamFollows             TeamFollow[]
   objectFollows           ObjectFollow[]
   objectLikes             ObjectLike[]
+  objectImpressions       ObjectImpression[]
 }
 
 model VerificationToken {
@@ -414,6 +415,7 @@ model JumpObject {
   posts         Post[]
   followers     ObjectFollow[]
   likes         ObjectLike[]
+  impressions   ObjectImpression[]
 
   @@index([visibility])
   @@index([type])
@@ -451,6 +453,26 @@ model ObjectLike {
   @@index([userId])
   @@index([objectId])
   @@index([createdAt])
+}
+
+model ObjectImpression {
+  id        String    @id @default(cuid())
+  objectId  String
+  authorId  String
+  body      String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  editedAt  DateTime?
+  hiddenAt  DateTime?
+
+  object JumpObject @relation(fields: [objectId], references: [id], onDelete: Cascade)
+  author User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@unique([objectId, authorId])
+  @@index([objectId])
+  @@index([authorId])
+  @@index([createdAt])
+  @@index([hiddenAt])
 }
 
 model Event {
