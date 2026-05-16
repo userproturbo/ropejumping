@@ -31,7 +31,11 @@ import {
   resolveImageMediaForCreate,
   resolveImageMediaForUpdate,
 } from "@/server/media/usage";
-import { createNotification } from "@/server/notifications/service";
+import {
+  createNotification,
+  notifyObjectFollowersAboutPost,
+  notifyTeamFollowersAboutPost,
+} from "@/server/notifications/service";
 
 const publicTeamStatuses = [TeamStatus.REGULAR, TeamStatus.VERIFIED];
 const manageableTeamRoles = [
@@ -943,6 +947,27 @@ export const postRouter = createTRPCRouter({
           imageUrl: image.url,
         },
       });
+
+      try {
+        const notifiedUserIds = input.teamId
+          ? await notifyTeamFollowersAboutPost(ctx.db, {
+              teamId: input.teamId,
+              postId: createdPost.id,
+              actorUserId: ctx.session.user.id,
+            })
+          : [];
+
+        if (input.objectId) {
+          await notifyObjectFollowersAboutPost(ctx.db, {
+            objectId: input.objectId,
+            postId: createdPost.id,
+            actorUserId: ctx.session.user.id,
+            excludeUserIds: notifiedUserIds,
+          });
+        }
+      } catch {
+        // Best effort: post creation must not fail because notifications did.
+      }
 
       return createdPost;
     }),
