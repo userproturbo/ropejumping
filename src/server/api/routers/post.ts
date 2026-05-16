@@ -22,6 +22,11 @@ import {
   postViewInputSchema,
 } from "@/lib/validation/post";
 import {
+  assertCommentCreateLimit,
+  assertLikeCreateLimit,
+  assertPostCreateLimit,
+} from "@/server/anti-spam/rate-limit";
+import {
   createTRPCRouter,
   protectedProcedure,
   publicProcedure,
@@ -1003,6 +1008,7 @@ export const postRouter = createTRPCRouter({
     .input(postCreateInputSchema)
     .mutation(async ({ ctx, input }) => {
       await ensureProfile(ctx.db, ctx.session.user.id);
+      await assertPostCreateLimit(ctx.db, ctx.session.user.id);
 
       if (input.teamId) {
         await ensureManageablePublicTeam(
@@ -1274,6 +1280,7 @@ export const postRouter = createTRPCRouter({
     .input(commentCreateInputSchema)
     .mutation(async ({ ctx, input }) => {
       await ensureProfile(ctx.db, ctx.session.user.id);
+      await assertCommentCreateLimit(ctx.db, ctx.session.user.id);
 
       const post = await ctx.db.post.findFirst({
         where: {
@@ -1437,6 +1444,8 @@ export const postRouter = createTRPCRouter({
 
         return { liked: false };
       }
+
+      await assertLikeCreateLimit(ctx.db, ctx.session.user.id);
 
       await ctx.db.$transaction(async (tx) => {
         await tx.postLike.create({
