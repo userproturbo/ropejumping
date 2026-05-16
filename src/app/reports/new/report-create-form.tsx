@@ -27,7 +27,8 @@ export function ReportCreateForm({
     },
   });
   const targetTypeLabel = getTargetTypeLabel(targetType);
-  const returnHref = targetType === "POST" ? `/posts/${targetId}` : getFallbackHref(targetType);
+  const returnHref =
+    targetType === "POST" ? `/posts/${targetId}` : getFallbackHref(targetType);
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -123,9 +124,12 @@ export function ReportCreateForm({
 const getTargetTypeLabel = (targetType: ReportTargetType) => {
   if (targetType === "POST") return "пост";
   if (targetType === "COMMENT") return "комментарий";
+  if (targetType === "OBJECT_IMPRESSION") return "впечатление об объекте";
 
   return "объект";
 };
 
 const getFallbackHref = (targetType: ReportTargetType) =>
-  targetType === "OBJECT" ? "/objects" : "/feed";
+  targetType === "OBJECT" || targetType === "OBJECT_IMPRESSION"
+    ? "/objects"
+    : "/feed";

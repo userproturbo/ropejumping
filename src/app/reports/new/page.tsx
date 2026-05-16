@@ -43,7 +43,7 @@ export default async function NewReportPage({
             Жалоба
           </h1>
           <p className="mt-2 text-sm text-zinc-600">
-            Отправьте жалобу на пост, комментарий или объект.
+            Отправьте жалобу на пост, комментарий, объект или впечатление.
           </p>
         </div>
 

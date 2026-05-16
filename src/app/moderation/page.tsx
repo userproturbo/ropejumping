@@ -24,6 +24,7 @@ const targetTypeOptions = [
   { value: "POST", label: "Пост" },
   { value: "COMMENT", label: "Комментарий" },
   { value: "OBJECT", label: "Объект" },
+  { value: "OBJECT_IMPRESSION", label: "Впечатление об объекте" },
 ];
 
 const getSearchParamValue = (
@@ -60,7 +61,7 @@ export default async function ModerationPage({
               Модерация
             </h1>
             <p className="mt-2 text-sm text-zinc-600">
-              Жалобы на посты, комментарии и объекты.
+              Жалобы на посты, комментарии, объекты и впечатления.
             </p>
           </div>
           <div className="flex flex-wrap gap-3">

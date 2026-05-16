@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { REPORT_TARGET_TYPES } from "@/server/reports/targets";
+
 const emptyToNull = (value: unknown) => {
   if (typeof value !== "string") return value;
 
@@ -41,7 +43,14 @@ const reportListStatusSchema = z.preprocess((value) => {
     : "OPEN";
 }, z.enum(moderationStatusValues));
 
-export const reportTargetTypeSchema = z.enum(["POST", "COMMENT", "OBJECT"]);
+const reportTargetTypeValues = [
+  REPORT_TARGET_TYPES.POST,
+  REPORT_TARGET_TYPES.COMMENT,
+  REPORT_TARGET_TYPES.OBJECT,
+  REPORT_TARGET_TYPES.OBJECT_IMPRESSION,
+] as const;
+
+export const reportTargetTypeSchema = z.enum(reportTargetTypeValues);
 
 const optionalReportTargetTypeSchema = z.preprocess((value) => {
   const rawValue = getFirstString(value);
@@ -49,7 +58,9 @@ const optionalReportTargetTypeSchema = z.preprocess((value) => {
   if (typeof rawValue !== "string") return undefined;
 
   const trimmed = rawValue.trim();
-  return trimmed === "POST" || trimmed === "COMMENT" || trimmed === "OBJECT"
+  return reportTargetTypeValues.includes(
+    trimmed as (typeof reportTargetTypeValues)[number],
+  )
     ? trimmed
     : undefined;
 }, reportTargetTypeSchema.optional());
@@ -68,6 +79,11 @@ export const reportActionInputSchema = z.object({
 export const hideTargetInputSchema = z.object({
   targetType: reportTargetTypeSchema,
   targetId: z.string().cuid(),
+});
+
+export const hideObjectImpressionInputSchema = z.object({
+  impressionId: z.string().cuid(),
+  reportId: z.string().cuid().optional(),
 });
 
 export const reportListInputSchema = z.object({
