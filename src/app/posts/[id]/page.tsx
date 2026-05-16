@@ -12,6 +12,7 @@ import {
 import { CommentAuthorActions } from "../_components/comment-author-actions";
 import { PostAuthorActions } from "../_components/post-author-actions";
 import { PostInteractions } from "../_components/post-interactions";
+import { PostViewTracker } from "../_components/post-view-tracker";
 
 type PostPageProps = {
   params: Promise<{
@@ -42,6 +43,7 @@ export default async function PostPage({ params }: PostPageProps) {
 
   return (
     <main className="min-h-[calc(100vh-4rem)] bg-zinc-50">
+      <PostViewTracker postId={post.id} />
       <div className="mx-auto w-full max-w-3xl px-6 py-10">
         <article className="border border-zinc-200 bg-white p-6">
           <div className="flex flex-wrap items-start justify-between gap-3">
@@ -107,6 +109,12 @@ export default async function PostPage({ params }: PostPageProps) {
                 Объект: {post.object.name}
               </Link>
             ) : null}
+          </div>
+
+          <div className="mt-4 flex flex-wrap gap-4 text-sm text-zinc-500">
+            <span>Просмотров: {post.viewsCount}</span>
+            <span>Лайков: {post._count.likes}</span>
+            <span>Комментариев: {post._count.comments}</span>
           </div>
 
           {isPostAuthor ? (

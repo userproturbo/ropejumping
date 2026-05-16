@@ -7,6 +7,7 @@ type EntityPostPreviewCardProps = {
     id: string;
     content: string;
     imageUrl: string | null;
+    viewsCount: number;
     imageMedia?: {
       alt: string | null;
     } | null;
@@ -95,7 +96,8 @@ export const EntityPostPreviewCard = ({
           </div>
         </div>
         <span className="text-xs text-zinc-500">
-          {post._count.likes} лайков · {post._count.comments} комментариев
+          {post.viewsCount} просмотров · {post._count.likes} лайков ·{" "}
+          {post._count.comments} комментариев
         </span>
       </div>
 

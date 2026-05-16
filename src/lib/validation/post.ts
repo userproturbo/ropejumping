@@ -55,6 +55,11 @@ export const postCreateInputSchema = z.object({
 
 export const postIdInputSchema = z.string().cuid();
 
+export const postViewInputSchema = z.object({
+  postId: z.string().cuid(),
+  anonymousViewerId: z.string().min(16).max(120).optional(),
+});
+
 export const postUpdateInputSchema = z.object({
   postId: z.string().cuid(),
   content: z.string().trim().min(1).max(2000),
