@@ -54,6 +54,30 @@ const publicLinkedEventsWhere = {
   },
 };
 
+const publicObjectImpressionSelect = {
+  id: true,
+  body: true,
+  createdAt: true,
+  editedAt: true,
+  authorId: true,
+  author: {
+    select: {
+      profile: {
+        select: {
+          username: true,
+          displayName: true,
+          avatarUrl: true,
+          avatarMedia: {
+            select: {
+              alt: true,
+            },
+          },
+        },
+      },
+    },
+  },
+} satisfies Prisma.ObjectImpressionSelect;
+
 const getPublicObjectsWhere = ({
   team,
 }: {
@@ -358,10 +382,25 @@ export const objectRouter = createTRPCRouter({
             },
             take: 1,
           },
+          impressions: {
+            where: {
+              hiddenAt: null,
+            },
+            orderBy: {
+              createdAt: "desc",
+            },
+            take: 20,
+            select: publicObjectImpressionSelect,
+          },
           _count: {
             select: {
               followers: true,
               likes: true,
+              impressions: {
+                where: {
+                  hiddenAt: null,
+                },
+              },
             },
           },
           galleryImages: {
@@ -477,7 +516,8 @@ export const objectRouter = createTRPCRouter({
         },
       } satisfies Prisma.PostSelect;
 
-      const [pinnedPosts, latestPosts] = await Promise.all([
+      const currentUserId = ctx.session?.user?.id;
+      const [pinnedPosts, latestPosts, myImpression] = await Promise.all([
         ctx.db.post.findMany({
           where: {
             ...publicPostWhere,
@@ -506,6 +546,16 @@ export const objectRouter = createTRPCRouter({
           take: 5,
           select: postSelect,
         }),
+        currentUserId
+          ? ctx.db.objectImpression.findFirst({
+              where: {
+                objectId: object.id,
+                authorId: currentUserId,
+                hiddenAt: null,
+              },
+              select: publicObjectImpressionSelect,
+            })
+          : Promise.resolve(null),
       ]);
 
       const { followers, likes, _count, ...objectData } = object;
@@ -516,6 +566,8 @@ export const objectRouter = createTRPCRouter({
         isFollowedByCurrentUser: followers.length > 0,
         likesCount: _count.likes,
         isLikedByCurrentUser: likes.length > 0,
+        impressionsCount: _count.impressions,
+        myImpression,
         posts: [...pinnedPosts, ...latestPosts].slice(0, 5),
       };
     }),

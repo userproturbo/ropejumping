@@ -11,6 +11,8 @@ import { getEventStatusLabel, getObjectTypeLabel } from "@/lib/display";
 import { getCurrentUser } from "@/server/auth/session";
 import { api } from "@/trpc/server";
 
+import { ObjectImpressions } from "../_components/object-impressions";
+
 type ObjectPageProps = {
   params: Promise<{
     slug: string;
@@ -218,6 +220,15 @@ export default async function ObjectPage({ params }: ObjectPageProps) {
             </p>
           )}
         </section>
+
+        <ObjectImpressions
+          objectId={object.id}
+          objectName={object.name}
+          impressions={object.impressions}
+          myImpression={object.myImpression}
+          impressionsCount={object.impressionsCount}
+          isAuthenticated={Boolean(user)}
+        />
 
         <section className="mt-6 border border-zinc-200 bg-white p-6">
           <h2 className="text-xl font-semibold text-zinc-950">

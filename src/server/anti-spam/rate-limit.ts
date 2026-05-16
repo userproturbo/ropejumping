@@ -6,14 +6,30 @@ import type { db as database } from "@/server/db";
 export type RateLimitDb =
   | Pick<
       typeof database,
-      "comment" | "objectLike" | "post" | "postLike" | "report"
+      | "comment"
+      | "objectImpression"
+      | "objectLike"
+      | "post"
+      | "postLike"
+      | "report"
     >
   | Pick<
       Prisma.TransactionClient,
-      "comment" | "objectLike" | "post" | "postLike" | "report"
+      | "comment"
+      | "objectImpression"
+      | "objectLike"
+      | "post"
+      | "postLike"
+      | "report"
     >;
 
-type UserActionModel = "post" | "comment" | "like" | "objectLike" | "report";
+type UserActionModel =
+  | "post"
+  | "comment"
+  | "like"
+  | "objectLike"
+  | "objectImpression"
+  | "report";
 
 type Limit = {
   windowMs: number;
@@ -80,6 +96,18 @@ const countUserActions = async ({
       where: {
         ...(where as Prisma.ObjectLikeWhereInput),
         userId,
+        createdAt: {
+          gte: since,
+        },
+      },
+    });
+  }
+
+  if (model === "objectImpression") {
+    return db.objectImpression.count({
+      where: {
+        ...(where as Prisma.ObjectImpressionWhereInput),
+        authorId: userId,
         createdAt: {
           gte: since,
         },
@@ -188,6 +216,23 @@ export const assertObjectLikeCreateLimit = (db: RateLimitDb, userId: string) =>
         windowMs: hourMs,
         max: 120,
         message: "Слишком много реакций за последний час. Попробуйте позже.",
+      },
+    ],
+  });
+
+export const assertObjectImpressionCreateLimit = (
+  db: RateLimitDb,
+  userId: string,
+) =>
+  assertUserActionLimit({
+    db,
+    userId,
+    model: "objectImpression",
+    limits: [
+      {
+        windowMs: dayMs,
+        max: 10,
+        message: "Слишком много отзывов за сегодня. Попробуйте позже.",
       },
     ],
   });
