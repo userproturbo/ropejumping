@@ -10,6 +10,22 @@ const emptyToNull = (value: unknown) => {
 const nullableString = (schema: z.ZodString) =>
   z.preprocess(emptyToNull, schema.nullable().optional());
 
+const nullableInteger = (max: number, message: string) =>
+  z
+    .preprocess(
+      emptyToNull,
+      z.coerce
+        .number({
+          invalid_type_error: message,
+        })
+        .int(message)
+        .min(0, message)
+        .max(max, message)
+        .nullable()
+        .optional(),
+    )
+    .transform((value) => value ?? null);
+
 const optionalCuid = z
   .preprocess(emptyToNull, z.string().cuid().nullable().optional())
   .transform((value) => value ?? null);
@@ -39,6 +55,17 @@ export const profileInputSchema = z.object({
   ),
   avatarMediaId: optionalCuid,
   externalExperience: nullableString(z.string().max(1000)).transform(
+    (value) => value ?? null,
+  ),
+  selfReportedJumpCount: nullableInteger(
+    100000,
+    "Количество прыжков должно быть от 0 до 100000.",
+  ),
+  selfReportedMaxHeightMeters: nullableInteger(
+    1000,
+    "Максимальная высота должна быть от 0 до 1000 метров.",
+  ),
+  selfReportedExperience: nullableString(z.string().max(1000)).transform(
     (value) => value ?? null,
   ),
 });
