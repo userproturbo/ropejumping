@@ -14,6 +14,7 @@ import {
   type ReportListStatus,
   type ReportTargetType,
 } from "@/lib/validation/report";
+import { assertReportCreateLimit } from "@/server/anti-spam/rate-limit";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { publicPostWhere } from "@/server/api/routers/post";
 import type { db as database } from "@/server/db";
@@ -252,6 +253,7 @@ export const reportRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       await ensureProfile(ctx.db, ctx.session.user.id);
       await ensureReportableTarget(ctx.db, input.targetType, input.targetId);
+      await assertReportCreateLimit(ctx.db, ctx.session.user.id);
 
       return ctx.db.report.create({
         data: {
