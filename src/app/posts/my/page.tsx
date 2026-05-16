@@ -106,6 +106,7 @@ export default async function MyPostsPage() {
                       <span>Мероприятие: {post.event.title}</span>
                     ) : null}
                     {post.object ? <span>Объект: {post.object.name}</span> : null}
+                    <span>Просмотров: {post.viewsCount}</span>
                     <span>Лайков: {post._count.likes}</span>
                     <span>Комментариев: {post._count.comments}</span>
                   </div>

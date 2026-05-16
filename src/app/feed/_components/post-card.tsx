@@ -86,6 +86,7 @@ export function PostCard({
       <LinkedEntities post={post} />
 
       <div className="mt-4 flex flex-wrap gap-4 text-sm text-zinc-500">
+        <span>Просмотров: {post.viewsCount}</span>
         <span>Лайков: {post._count.likes}</span>
         <span>Комментариев: {post._count.comments}</span>
       </div>

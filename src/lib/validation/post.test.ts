@@ -6,6 +6,7 @@ import {
   postPinInputSchema,
   postPublicListInputSchema,
   postUpdateInputSchema,
+  postViewInputSchema,
 } from "@/lib/validation/post";
 
 const cuid = "clx0a1b2c0000abcd1234efgh";
@@ -97,6 +98,43 @@ describe("post validation", () => {
         postId: cuid,
         targetType: "GLOBAL",
         targetId: cuid,
+      }).success,
+    ).toBe(false);
+  });
+
+  it("accepts valid post view input", () => {
+    const result = postViewInputSchema.parse({
+      postId: cuid,
+      anonymousViewerId: "anonymous-viewer-123",
+    });
+
+    expect(result.postId).toBe(cuid);
+    expect(result.anonymousViewerId).toBe("anonymous-viewer-123");
+  });
+
+  it("rejects invalid post view post id", () => {
+    expect(
+      postViewInputSchema.safeParse({
+        postId: "bad-id",
+        anonymousViewerId: "anonymous-viewer-123",
+      }).success,
+    ).toBe(false);
+  });
+
+  it("rejects too short anonymous viewer ids", () => {
+    expect(
+      postViewInputSchema.safeParse({
+        postId: cuid,
+        anonymousViewerId: "short",
+      }).success,
+    ).toBe(false);
+  });
+
+  it("rejects too long anonymous viewer ids", () => {
+    expect(
+      postViewInputSchema.safeParse({
+        postId: cuid,
+        anonymousViewerId: "a".repeat(121),
       }).success,
     ).toBe(false);
   });

@@ -470,6 +470,7 @@ export const teamRouter = createTRPCRouter({
               id: true,
               content: true,
               imageUrl: true,
+              viewsCount: true,
               imageMedia: {
                 select: {
                   id: true,

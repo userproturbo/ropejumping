@@ -1,4 +1,5 @@
 import { TRPCError } from "@trpc/server";
+import { createHash } from "node:crypto";
 
 import {
   NotificationType,
@@ -18,6 +19,7 @@ import {
   postPinInputSchema,
   postPublicListInputSchema,
   postUpdateInputSchema,
+  postViewInputSchema,
 } from "@/lib/validation/post";
 import {
   createTRPCRouter,
@@ -45,6 +47,9 @@ const manageableTeamRoles = [
 ];
 
 type PostRouterDb = typeof database;
+
+const hashAnonymousViewerId = (anonymousViewerId: string) =>
+  createHash("sha256").update(anonymousViewerId).digest("hex");
 
 type PinTargetContext = {
   targetId: string;
@@ -850,6 +855,93 @@ export const postRouter = createTRPCRouter({
     });
   }),
 
+  trackView: publicProcedure
+    .input(postViewInputSchema)
+    .mutation(async ({ ctx, input }) => {
+      const userId = ctx.session?.user?.id ?? null;
+      const post = await ctx.db.post.findFirst({
+        where: {
+          id: input.postId,
+          ...publicPostWhere,
+        },
+        select: {
+          id: true,
+          authorId: true,
+          viewsCount: true,
+        },
+      });
+
+      if (!post) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Пост не найден.",
+        });
+      }
+
+      if (userId && post.authorId === userId) {
+        return { viewsCount: post.viewsCount };
+      }
+
+      if (!userId && !input.anonymousViewerId) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Не удалось определить просмотр.",
+        });
+      }
+
+      const anonymousIdHash = userId
+        ? null
+        : hashAnonymousViewerId(input.anonymousViewerId!);
+
+      return ctx.db.$transaction(async (tx) => {
+        const result = await tx.postView.createMany({
+          data: [
+            {
+              postId: post.id,
+              userId,
+              anonymousIdHash,
+            },
+          ],
+          skipDuplicates: true,
+        });
+
+        if (result.count > 0) {
+          const updatedPost = await tx.post.update({
+            where: {
+              id: post.id,
+            },
+            data: {
+              viewsCount: {
+                increment: 1,
+              },
+            },
+            select: {
+              viewsCount: true,
+            },
+          });
+
+          return { viewsCount: updatedPost.viewsCount };
+        }
+
+        await tx.postView.updateMany({
+          where: userId
+            ? {
+                postId: post.id,
+                userId,
+              }
+            : {
+                postId: post.id,
+                anonymousIdHash,
+              },
+          data: {
+            lastSeenAt: new Date(),
+          },
+        });
+
+        return { viewsCount: post.viewsCount };
+      });
+    }),
+
   getMine: protectedProcedure.query(({ ctx }) => {
     return ctx.db.post.findMany({
       where: {
@@ -862,6 +954,7 @@ export const postRouter = createTRPCRouter({
         id: true,
         content: true,
         imageUrl: true,
+        viewsCount: true,
         imageMedia: {
           select: {
             id: true,
