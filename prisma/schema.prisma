@@ -236,6 +236,7 @@ model User {
   objectFollows           ObjectFollow[]
   objectLikes             ObjectLike[]
   objectImpressions       ObjectImpression[]
+  eventChatMessages       EventChatMessage[]
 }
 
 model VerificationToken {
@@ -506,6 +507,7 @@ model Event {
   crewMembers    EventCrewMember[]
   galleryImages  EventGalleryImage[]
   posts          Post[]
+  chatMessages   EventChatMessage[]
 
   @@index([status])
   @@index([startsAt])
@@ -555,6 +557,31 @@ model EventParticipation {
   @@index([eventId])
   @@index([userId])
   @@index([confirmedById])
+}
+
+model EventChatMessage {
+  id              String    @id @default(cuid())
+  eventId         String
+  authorId        String
+  parentMessageId String?
+  body            String
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  editedAt        DateTime?
+  deletedAt       DateTime?
+  hiddenAt        DateTime?
+
+  event         Event               @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  author        User                @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  parentMessage EventChatMessage?   @relation("EventChatReplies", fields: [parentMessageId], references: [id], onDelete: SetNull)
+  replies       EventChatMessage[]  @relation("EventChatReplies")
+
+  @@index([eventId])
+  @@index([authorId])
+  @@index([parentMessageId])
+  @@index([createdAt])
+  @@index([deletedAt])
+  @@index([hiddenAt])
 }
 
 model EventCrewMember {

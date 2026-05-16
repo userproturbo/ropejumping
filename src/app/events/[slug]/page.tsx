@@ -11,9 +11,14 @@ import {
   getTeamFunctionRoleLabel,
 } from "@/lib/display";
 import { getCurrentUser } from "@/server/auth/session";
+import { db } from "@/server/db";
+import { canAccessEventChat } from "@/server/events/chat-permissions";
 import { applicationOpenEventStatuses } from "@/server/events/statuses";
+import { isModeratorUser } from "@/server/moderation/permissions";
+import { hasTeamOwnerAdminOrOrganizerRole } from "@/server/teams/permissions";
 import { api } from "@/trpc/server";
 
+import { EventChat } from "../_components/event-chat";
 import { formatEventDateRange } from "../_components/date-format";
 import { EventApplicationPanel } from "./event-application-panel";
 
@@ -63,6 +68,23 @@ export default async function EventPage({ params }: EventPageProps) {
         .getForEdit(slug)
         .then(() => true)
         .catch(() => false)
+    : false;
+  const canAccessChat = user
+    ? (
+        await canAccessEventChat({
+          db,
+          eventId: event.id,
+          userId: user.id,
+        })
+      ).allowed
+    : false;
+  const canModerateChat = user
+    ? isModeratorUser(user) ||
+      (await hasTeamOwnerAdminOrOrganizerRole({
+        db,
+        teamId: event.team.id,
+        userId: user.id,
+      }))
     : false;
   const profile = user && !canManage ? await api.profile.getMine() : null;
   const canApply = applicationOpenEventStatuses.includes(event.status);
@@ -485,6 +507,16 @@ export default async function EventPage({ params }: EventPageProps) {
             />
           )}
         </section>
+
+        <EventChat
+          eventId={event.id}
+          eventSlug={event.slug}
+          eventTitle={event.title}
+          canAccess={canAccessChat}
+          canModerate={canModerateChat}
+          currentUserId={user?.id ?? null}
+          isAuthenticated={Boolean(user)}
+        />
 
         {event.status === EventStatus.COMPLETED ||
         event.participations.length > 0 ? (
