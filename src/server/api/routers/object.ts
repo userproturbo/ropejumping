@@ -340,6 +340,20 @@ export const objectRouter = createTRPCRouter({
               alt: true,
             },
           },
+          followers: {
+            where: {
+              userId: ctx.session?.user?.id ?? "",
+            },
+            select: {
+              id: true,
+            },
+            take: 1,
+          },
+          _count: {
+            select: {
+              followers: true,
+            },
+          },
           galleryImages: {
             where: {
               media: {
@@ -483,8 +497,12 @@ export const objectRouter = createTRPCRouter({
         }),
       ]);
 
+      const { followers, _count, ...objectData } = object;
+
       return {
-        ...object,
+        ...objectData,
+        followerCount: _count.followers,
+        isFollowedByCurrentUser: followers.length > 0,
         posts: [...pinnedPosts, ...latestPosts].slice(0, 5),
       };
     }),

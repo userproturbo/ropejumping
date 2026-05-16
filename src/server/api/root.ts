@@ -2,6 +2,7 @@ import { auditRouter } from "@/server/api/routers/audit";
 import { applicationRouter } from "@/server/api/routers/application";
 import { badgeRouter } from "@/server/api/routers/badge";
 import { eventRouter } from "@/server/api/routers/event";
+import { followRouter } from "@/server/api/routers/follow";
 import { galleryRouter } from "@/server/api/routers/gallery";
 import { notificationRouter } from "@/server/api/routers/notification";
 import { objectRouter } from "@/server/api/routers/object";
@@ -25,6 +26,7 @@ export const appRouter = createTRPCRouter({
   application: applicationRouter,
   badge: badgeRouter,
   event: eventRouter,
+  follow: followRouter,
   gallery: galleryRouter,
   notification: notificationRouter,
   object: objectRouter,

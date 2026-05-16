@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { FollowButton } from "@/app/_components/follow-button";
 import { ImageGalleryViewer } from "@/app/_components/image-gallery-viewer";
 import { formatEventDateRange } from "@/app/events/_components/date-format";
 import { EntityPostPreviewCard } from "@/app/posts/_components/entity-post-preview-card";
@@ -61,6 +62,13 @@ export default async function ObjectPage({ params }: ObjectPageProps) {
               </p>
             </div>
             <div className="flex flex-wrap gap-3">
+              {user ? (
+                <FollowButton
+                  targetId={object.id}
+                  targetType="object"
+                  initialFollowing={object.isFollowedByCurrentUser}
+                />
+              ) : null}
               <Link
                 href={`/reports/new?targetType=OBJECT&targetId=${object.id}`}
                 className="border border-zinc-300 px-4 py-2 text-sm text-zinc-800 hover:border-zinc-950"
@@ -77,6 +85,18 @@ export default async function ObjectPage({ params }: ObjectPageProps) {
               ) : null}
             </div>
           </div>
+
+          <p className="mt-4 text-sm text-zinc-600">
+            Подписчиков: {object.followerCount}
+          </p>
+          {!user ? (
+            <Link
+              href="/api/auth/signin"
+              className="mt-3 inline-flex text-sm text-zinc-600 hover:text-zinc-950"
+            >
+              Войдите, чтобы подписаться
+            </Link>
+          ) : null}
 
           <dl className="mt-6 grid gap-4 text-sm sm:grid-cols-2">
             <div>

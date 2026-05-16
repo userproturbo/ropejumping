@@ -341,6 +341,20 @@ export const teamRouter = createTRPCRouter({
               alt: true,
             },
           },
+          followers: {
+            where: {
+              userId: ctx.session?.user?.id ?? "",
+            },
+            select: {
+              id: true,
+            },
+            take: 1,
+          },
+          _count: {
+            select: {
+              followers: true,
+            },
+          },
           events: {
             where: {
               status: {
@@ -519,8 +533,12 @@ export const teamRouter = createTRPCRouter({
 
       if (!team) return null;
 
+      const { followers, _count, ...teamData } = team;
+
       return {
-        ...team,
+        ...teamData,
+        followerCount: _count.followers,
+        isFollowedByCurrentUser: followers.length > 0,
         posts: team.posts
           .sort((left, right) => {
             const leftPinned = left.pins.some(
