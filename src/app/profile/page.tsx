@@ -14,6 +14,11 @@ export default async function ProfilePage() {
   const profile = await api.profile.getMine();
   const participations = await api.profile.getMyParticipations();
   const badges = await api.badge.getMine();
+  const hasSelfReportedStats =
+    profile !== null &&
+    (profile.selfReportedJumpCount !== null ||
+      profile.selfReportedMaxHeightMeters !== null ||
+      Boolean(profile.selfReportedExperience));
 
   return (
     <main className="min-h-[calc(100vh-4rem)] bg-zinc-50">
@@ -111,6 +116,51 @@ export default async function ProfilePage() {
           </section>
         )}
 
+        {profile ? (
+          <section className="mt-6 border border-zinc-200 bg-white p-6">
+            <h2 className="text-xl font-semibold text-zinc-950">
+              Заявленный опыт
+            </h2>
+            <p className="mt-1 text-sm text-zinc-500">
+              Данные указаны пользователем и не подтверждаются автоматически.
+            </p>
+            {hasSelfReportedStats ? (
+              <div className="mt-5 grid gap-3 text-sm text-zinc-600">
+                {profile.selfReportedJumpCount !== null ? (
+                  <p>
+                    <span className="font-medium text-zinc-950">Прыжков:</span>{" "}
+                    {profile.selfReportedJumpCount}
+                  </p>
+                ) : null}
+                {profile.selfReportedMaxHeightMeters !== null ? (
+                  <p>
+                    <span className="font-medium text-zinc-950">
+                      Максимальная высота:
+                    </span>{" "}
+                    {profile.selfReportedMaxHeightMeters} м
+                  </p>
+                ) : null}
+                {profile.selfReportedExperience ? (
+                  <p className="leading-6 whitespace-pre-wrap">
+                    {profile.selfReportedExperience}
+                  </p>
+                ) : null}
+              </div>
+            ) : (
+              <p className="mt-4 text-sm text-zinc-600">
+                Вы можете добавить свой опыт в{" "}
+                <Link
+                  href="/profile/edit"
+                  className="text-zinc-950 underline underline-offset-4"
+                >
+                  настройках профиля
+                </Link>
+                .
+              </p>
+            )}
+          </section>
+        ) : null}
+
         <section className="mt-6 border border-zinc-200 bg-white p-6">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <h2 className="text-xl font-semibold text-zinc-950">Бейджи</h2>
@@ -150,7 +200,7 @@ export default async function ProfilePage() {
 
         <section className="mt-6 border border-zinc-200 bg-white p-6">
           <h2 className="text-xl font-semibold text-zinc-950">
-            История участия
+            Подтверждённые участия
           </h2>
           {participations.length > 0 ? (
             <div className="mt-5 grid gap-4">

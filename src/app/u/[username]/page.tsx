@@ -23,6 +23,11 @@ export default async function PublicProfilePage({
     notFound();
   }
 
+  const hasSelfReportedStats =
+    profile.selfReportedJumpCount !== null ||
+    profile.selfReportedMaxHeightMeters !== null ||
+    Boolean(profile.selfReportedExperience);
+
   return (
     <main className="min-h-[calc(100vh-4rem)] bg-zinc-50">
       <div className="mx-auto w-full max-w-3xl px-6 py-10">
@@ -73,6 +78,38 @@ export default async function PublicProfilePage({
           ) : null}
         </section>
 
+        {hasSelfReportedStats ? (
+          <section className="mt-6 border border-zinc-200 bg-white p-6">
+            <h2 className="text-xl font-semibold text-zinc-950">
+              Заявленный опыт
+            </h2>
+            <p className="mt-1 text-sm text-zinc-500">
+              Данные указаны пользователем и не подтверждаются автоматически.
+            </p>
+            <div className="mt-5 grid gap-3 text-sm text-zinc-600">
+              {profile.selfReportedJumpCount !== null ? (
+                <p>
+                  <span className="font-medium text-zinc-950">Прыжков:</span>{" "}
+                  {profile.selfReportedJumpCount}
+                </p>
+              ) : null}
+              {profile.selfReportedMaxHeightMeters !== null ? (
+                <p>
+                  <span className="font-medium text-zinc-950">
+                    Максимальная высота:
+                  </span>{" "}
+                  {profile.selfReportedMaxHeightMeters} м
+                </p>
+              ) : null}
+              {profile.selfReportedExperience ? (
+                <p className="leading-6 whitespace-pre-wrap">
+                  {profile.selfReportedExperience}
+                </p>
+              ) : null}
+            </div>
+          </section>
+        ) : null}
+
         <section className="mt-6 border border-zinc-200 bg-white p-6">
           <h2 className="text-xl font-semibold text-zinc-950">Бейджи</h2>
           {profile.user.badges.length > 0 ? (
@@ -109,7 +146,7 @@ export default async function PublicProfilePage({
 
         <section className="mt-6 border border-zinc-200 bg-white p-6">
           <h2 className="text-xl font-semibold text-zinc-950">
-            История участия
+            Подтверждённые участия
           </h2>
           {profile.user.eventParticipations.length > 0 ? (
             <div className="mt-5 grid gap-4">
