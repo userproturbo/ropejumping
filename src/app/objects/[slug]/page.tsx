@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 
 import { FollowButton } from "@/app/_components/follow-button";
 import { ImageGalleryViewer } from "@/app/_components/image-gallery-viewer";
+import { ObjectLikeButton } from "@/app/_components/object-like-button";
 import { formatEventDateRange } from "@/app/events/_components/date-format";
 import { EntityPostPreviewCard } from "@/app/posts/_components/entity-post-preview-card";
 import { getEventStatusLabel, getObjectTypeLabel } from "@/lib/display";
@@ -69,6 +70,12 @@ export default async function ObjectPage({ params }: ObjectPageProps) {
                   initialFollowing={object.isFollowedByCurrentUser}
                 />
               ) : null}
+              {user ? (
+                <ObjectLikeButton
+                  objectId={object.id}
+                  initialLiked={object.isLikedByCurrentUser}
+                />
+              ) : null}
               <Link
                 href={`/reports/new?targetType=OBJECT&targetId=${object.id}`}
                 className="border border-zinc-300 px-4 py-2 text-sm text-zinc-800 hover:border-zinc-950"
@@ -89,12 +96,15 @@ export default async function ObjectPage({ params }: ObjectPageProps) {
           <p className="mt-4 text-sm text-zinc-600">
             Подписчиков: {object.followerCount}
           </p>
+          <p className="mt-2 text-sm text-zinc-600">
+            Нравится: {object.likesCount}
+          </p>
           {!user ? (
             <Link
               href="/api/auth/signin"
               className="mt-3 inline-flex text-sm text-zinc-600 hover:text-zinc-950"
             >
-              Войдите, чтобы подписаться
+              Войдите, чтобы подписаться или поставить лайк
             </Link>
           ) : null}
 
