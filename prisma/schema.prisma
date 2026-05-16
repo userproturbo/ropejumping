@@ -227,6 +227,8 @@ model User {
   teamInvitationsSent     TeamInvitation[]     @relation("TeamInvitationsSent")
   notifications           Notification[]       @relation("UserNotifications")
   createdPostPins         PostPin[]            @relation("PostPinsCreated")
+  teamFollows             TeamFollow[]
+  objectFollows           ObjectFollow[]
 }
 
 model VerificationToken {
@@ -279,10 +281,26 @@ model Team {
   posts        Post[]
   joinRequests TeamJoinRequest[]
   invitations  TeamInvitation[]
+  followers    TeamFollow[]
 
   @@index([status])
   @@index([region])
   @@index([logoMediaId])
+}
+
+model TeamFollow {
+  id        String   @id @default(cuid())
+  userId    String
+  teamId    String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, teamId])
+  @@index([userId])
+  @@index([teamId])
+  @@index([createdAt])
 }
 
 model TeamMember {
@@ -388,6 +406,7 @@ model JumpObject {
   events        Event[]
   galleryImages ObjectGalleryImage[]
   posts         Post[]
+  followers     ObjectFollow[]
 
   @@index([visibility])
   @@index([type])
@@ -395,6 +414,21 @@ model JumpObject {
   @@index([createdById])
   @@index([createdByTeamId])
   @@index([coverMediaId])
+}
+
+model ObjectFollow {
+  id        String   @id @default(cuid())
+  userId    String
+  objectId  String
+  createdAt DateTime @default(now())
+
+  user   User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  object JumpObject @relation(fields: [objectId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, objectId])
+  @@index([userId])
+  @@index([objectId])
+  @@index([createdAt])
 }
 
 model Event {

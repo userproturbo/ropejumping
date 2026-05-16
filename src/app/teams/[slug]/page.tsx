@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { FollowButton } from "@/app/_components/follow-button";
 import { EventStatus } from "@/generated/prisma/enums";
 import {
   getEventStatusLabel,
@@ -92,11 +93,31 @@ export default async function TeamPage({ params }: TeamPageProps) {
                 </span>
               </div>
 
+              <div className="mt-4 flex flex-wrap items-center gap-3">
+                {currentUser ? (
+                  <FollowButton
+                    targetId={team.id}
+                    targetType="team"
+                    initialFollowing={team.isFollowedByCurrentUser}
+                  />
+                ) : (
+                  <Link
+                    href="/api/auth/signin"
+                    className="border border-zinc-300 px-4 py-2 text-sm text-zinc-800 hover:border-zinc-950"
+                  >
+                    Войдите, чтобы подписаться
+                  </Link>
+                )}
+                <span className="text-sm text-zinc-600">
+                  Подписчиков: {team.followerCount}
+                </span>
+              </div>
+
               {team.region ? (
                 <p className="mt-4 text-sm text-zinc-600">{team.region}</p>
               ) : null}
 
-              <dl className="mt-5 grid gap-3 text-sm sm:grid-cols-4">
+              <dl className="mt-5 grid gap-3 text-sm sm:grid-cols-5">
                 <div className="border border-zinc-200 p-3">
                   <dt className="text-zinc-500">Участников</dt>
                   <dd className="mt-1 font-medium text-zinc-950">
@@ -119,6 +140,12 @@ export default async function TeamPage({ params }: TeamPageProps) {
                   <dt className="text-zinc-500">Постов</dt>
                   <dd className="mt-1 font-medium text-zinc-950">
                     {team.posts.length}
+                  </dd>
+                </div>
+                <div className="border border-zinc-200 p-3">
+                  <dt className="text-zinc-500">Подписчиков</dt>
+                  <dd className="mt-1 font-medium text-zinc-950">
+                    {team.followerCount}
                   </dd>
                 </div>
               </dl>

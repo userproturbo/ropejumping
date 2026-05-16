@@ -32,12 +32,20 @@ export default async function ProfilePage() {
               Основная информация, которая отображается в публичном профиле.
             </p>
           </div>
-          <Link
-            href="/profile/edit"
-            className="border border-zinc-300 px-4 py-2 text-sm text-zinc-800 hover:border-zinc-950"
-          >
-            {profile ? "Редактировать" : "Создать"}
-          </Link>
+          <div className="flex flex-wrap items-center gap-3">
+            <Link
+              href="/profile/follows"
+              className="border border-zinc-300 px-4 py-2 text-sm text-zinc-800 hover:border-zinc-950"
+            >
+              Мои подписки
+            </Link>
+            <Link
+              href="/profile/edit"
+              className="border border-zinc-300 px-4 py-2 text-sm text-zinc-800 hover:border-zinc-950"
+            >
+              {profile ? "Редактировать" : "Создать"}
+            </Link>
+          </div>
         </div>
 
         {profile ? (
