@@ -13,6 +13,9 @@ const createDb = (count: number) => ({
   comment: {
     count: vi.fn().mockResolvedValue(count),
   },
+  objectLike: {
+    count: vi.fn().mockResolvedValue(count),
+  },
   post: {
     count: vi.fn().mockResolvedValue(count),
   },

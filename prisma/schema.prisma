@@ -234,6 +234,7 @@ model User {
   createdPostPins         PostPin[]            @relation("PostPinsCreated")
   teamFollows             TeamFollow[]
   objectFollows           ObjectFollow[]
+  objectLikes             ObjectLike[]
 }
 
 model VerificationToken {
@@ -412,6 +413,7 @@ model JumpObject {
   galleryImages ObjectGalleryImage[]
   posts         Post[]
   followers     ObjectFollow[]
+  likes         ObjectLike[]
 
   @@index([visibility])
   @@index([type])
@@ -422,6 +424,21 @@ model JumpObject {
 }
 
 model ObjectFollow {
+  id        String   @id @default(cuid())
+  userId    String
+  objectId  String
+  createdAt DateTime @default(now())
+
+  user   User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  object JumpObject @relation(fields: [objectId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, objectId])
+  @@index([userId])
+  @@index([objectId])
+  @@index([createdAt])
+}
+
+model ObjectLike {
   id        String   @id @default(cuid())
   userId    String
   objectId  String

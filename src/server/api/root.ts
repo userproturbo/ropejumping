@@ -5,6 +5,7 @@ import { eventRouter } from "@/server/api/routers/event";
 import { followRouter } from "@/server/api/routers/follow";
 import { galleryRouter } from "@/server/api/routers/gallery";
 import { notificationRouter } from "@/server/api/routers/notification";
+import { objectLikeRouter } from "@/server/api/routers/object-like";
 import { objectRouter } from "@/server/api/routers/object";
 import { postRouter } from "@/server/api/routers/post";
 import { profileRouter } from "@/server/api/routers/profile";
@@ -29,6 +30,7 @@ export const appRouter = createTRPCRouter({
   follow: followRouter,
   gallery: galleryRouter,
   notification: notificationRouter,
+  objectLike: objectLikeRouter,
   object: objectRouter,
   post: postRouter,
   profile: profileRouter,
