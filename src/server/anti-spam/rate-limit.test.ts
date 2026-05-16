@@ -2,6 +2,7 @@ import type { TRPCError } from "@trpc/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
+  assertEventChatMessageCreateLimit,
   assertPostCreateLimit,
   assertUserActionLimit,
   type RateLimitDb,
@@ -11,6 +12,9 @@ const userId = "user-1";
 
 const createDb = (count: number) => ({
   comment: {
+    count: vi.fn().mockResolvedValue(count),
+  },
+  eventChatMessage: {
     count: vi.fn().mockResolvedValue(count),
   },
   objectLike: {
@@ -137,6 +141,18 @@ describe("anti-spam rate limits", () => {
     ).rejects.toMatchObject({
       code: "TOO_MANY_REQUESTS",
       message: "Слишком много публикаций за последний час. Попробуйте позже.",
+    } satisfies Partial<TRPCError>);
+  });
+
+  it("limits event chat messages per hour", async () => {
+    const db = createDb(60);
+
+    await expect(
+      assertEventChatMessageCreateLimit(asRateLimitDb(db), userId),
+    ).rejects.toMatchObject({
+      code: "TOO_MANY_REQUESTS",
+      message:
+        "Слишком много сообщений за последний час. Попробуйте позже.",
     } satisfies Partial<TRPCError>);
   });
 });

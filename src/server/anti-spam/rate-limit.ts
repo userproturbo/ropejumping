@@ -7,6 +7,7 @@ export type RateLimitDb =
   | Pick<
       typeof database,
       | "comment"
+      | "eventChatMessage"
       | "objectImpression"
       | "objectLike"
       | "post"
@@ -16,6 +17,7 @@ export type RateLimitDb =
   | Pick<
       Prisma.TransactionClient,
       | "comment"
+      | "eventChatMessage"
       | "objectImpression"
       | "objectLike"
       | "post"
@@ -26,6 +28,7 @@ export type RateLimitDb =
 type UserActionModel =
   | "post"
   | "comment"
+  | "eventChatMessage"
   | "like"
   | "objectLike"
   | "objectImpression"
@@ -71,6 +74,18 @@ const countUserActions = async ({
     return db.comment.count({
       where: {
         ...(where as Prisma.CommentWhereInput),
+        authorId: userId,
+        createdAt: {
+          gte: since,
+        },
+      },
+    });
+  }
+
+  if (model === "eventChatMessage") {
+    return db.eventChatMessage.count({
+      where: {
+        ...(where as Prisma.EventChatMessageWhereInput),
         authorId: userId,
         createdAt: {
           gte: since,
@@ -188,6 +203,29 @@ export const assertCommentCreateLimit = (db: RateLimitDb, userId: string) =>
         windowMs: dayMs,
         max: 100,
         message: "Слишком много комментариев за сегодня. Попробуйте позже.",
+      },
+    ],
+  });
+
+export const assertEventChatMessageCreateLimit = (
+  db: RateLimitDb,
+  userId: string,
+) =>
+  assertUserActionLimit({
+    db,
+    userId,
+    model: "eventChatMessage",
+    limits: [
+      {
+        windowMs: hourMs,
+        max: 60,
+        message:
+          "Слишком много сообщений за последний час. Попробуйте позже.",
+      },
+      {
+        windowMs: dayMs,
+        max: 300,
+        message: "Слишком много сообщений за сегодня. Попробуйте позже.",
       },
     ],
   });

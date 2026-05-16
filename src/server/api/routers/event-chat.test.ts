@@ -1,0 +1,407 @@
+import { beforeAll, describe, expect, it, vi } from "vitest";
+
+import type { eventChatRouter as EventChatRouter } from "@/server/api/routers/event-chat";
+import type { createCallerFactory as CreateCallerFactory } from "@/server/api/trpc";
+
+process.env.DATABASE_URL ??= "postgresql://user:password@localhost:5432/test";
+process.env.MODERATOR_EMAILS = "moderator@example.com";
+
+vi.mock("@/server/auth", () => ({
+  auth: vi.fn(),
+}));
+
+vi.mock("@/server/db", () => ({
+  db: {},
+}));
+
+vi.mock("server-only", () => ({}));
+
+const eventId = "clx0a1b2c0000abcd1234efgh";
+const messageId = "clx0a1b2c0001abcd1234efgh";
+const userId = "clx0a1b2c0002abcd1234efgh";
+const otherUserId = "clx0a1b2c0003abcd1234efgh";
+const replyToMessageId = "clx0a1b2c0004abcd1234efgh";
+const body = "Буду на месте к началу сбора.";
+
+const createAccessEvent = (allowed = true) => ({
+  createdById: allowed ? userId : otherUserId,
+  team: {
+    members: [],
+  },
+  applications: [],
+  participations: [],
+});
+
+const createChatMessage = (authorId = userId) => ({
+  id: messageId,
+  body,
+  createdAt: new Date("2026-05-16T12:00:00.000Z"),
+  editedAt: null,
+  authorId,
+  eventId,
+  parentMessage: null,
+  author: {
+    profile: {
+      username: "user",
+      displayName: "Участник",
+      avatarUrl: null,
+      avatarMedia: null,
+    },
+  },
+});
+
+const createDb = ({
+  accessEvent = createAccessEvent(),
+  message = createChatMessage(),
+  hideManager = false,
+  replyParent = { id: replyToMessageId },
+}: {
+  accessEvent?: ReturnType<typeof createAccessEvent> | null;
+  message?: ReturnType<typeof createChatMessage> | null;
+  hideManager?: boolean;
+  replyParent?: { id: string } | null;
+} = {}) => ({
+  event: {
+    findUnique: vi.fn().mockResolvedValue(accessEvent),
+  },
+  eventChatMessage: {
+    count: vi.fn().mockResolvedValue(0),
+    findMany: vi.fn().mockResolvedValue([
+      {
+        ...createChatMessage(),
+        parentMessage: {
+          id: replyToMessageId,
+          body: "Во сколько сбор?",
+          deletedAt: null,
+          hiddenAt: null,
+          author: {
+            profile: {
+              username: "parent-user",
+              displayName: "Автор вопроса",
+            },
+          },
+        },
+      },
+    ]),
+    findFirst: vi.fn().mockImplementation(
+      (input: { where?: { id?: string } } = {}) => {
+        if (input.where?.id === replyToMessageId) {
+          return Promise.resolve(replyParent);
+        }
+
+        return Promise.resolve(
+          message
+            ? {
+                ...message,
+                event: {
+                  team: {
+                    members: hideManager ? [{ id: "manager-member-id" }] : [],
+                  },
+                },
+              }
+            : null,
+        );
+      },
+    ),
+    create: vi.fn().mockResolvedValue(createChatMessage()),
+    update: vi.fn().mockResolvedValue(createChatMessage()),
+  },
+});
+
+const createContext = (
+  db: ReturnType<typeof createDb>,
+  sessionUser: { id: string; email?: string | null } | null = {
+    id: userId,
+    email: "user@example.com",
+  },
+) =>
+  ({
+    db,
+    session: sessionUser ? { user: sessionUser } : null,
+    headers: new Headers(),
+  }) as never;
+
+describe("eventChatRouter", () => {
+  let createCaller: typeof CreateCallerFactory;
+  let eventChatRouter: typeof EventChatRouter;
+
+  beforeAll(async () => {
+    ({ createCallerFactory: createCaller } = await import("@/server/api/trpc"));
+    ({ eventChatRouter } = await import("@/server/api/routers/event-chat"));
+  });
+
+  it("denies guests through protected procedures", async () => {
+    const db = createDb();
+    const caller = createCaller(eventChatRouter)(createContext(db, null));
+
+    await expect(caller.list({ eventId })).rejects.toMatchObject({
+      code: "UNAUTHORIZED",
+    });
+  });
+
+  it("denies list without event chat access", async () => {
+    const db = createDb({ accessEvent: createAccessEvent(false) });
+    const caller = createCaller(eventChatRouter)(createContext(db));
+
+    await expect(caller.list({ eventId })).rejects.toMatchObject({
+      code: "FORBIDDEN",
+      message: "У вас нет доступа к чату этого мероприятия.",
+    });
+    expect(db.eventChatMessage.findMany).not.toHaveBeenCalled();
+  });
+
+  it("lists visible messages with access", async () => {
+    const db = createDb();
+    const caller = createCaller(eventChatRouter)(createContext(db));
+
+    await caller.list({ eventId });
+
+    expect(db.eventChatMessage.findMany).toHaveBeenCalledWith({
+      where: {
+        eventId,
+        deletedAt: null,
+        hiddenAt: null,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+      take: 31,
+      select: expect.objectContaining({
+        parentMessage: expect.any(Object) as object,
+      }) as object,
+    });
+  });
+
+  it("returns parent message preview in list results", async () => {
+    const db = createDb();
+    const caller = createCaller(eventChatRouter)(createContext(db));
+
+    const result = await caller.list({ eventId });
+
+    expect(result.messages[0]?.parentMessage).toMatchObject({
+      id: replyToMessageId,
+      body: "Во сколько сбор?",
+      deletedAt: null,
+      hiddenAt: null,
+      author: {
+        profile: {
+          username: "parent-user",
+          displayName: "Автор вопроса",
+        },
+      },
+    });
+  });
+
+  it("sends a message with access", async () => {
+    const db = createDb();
+    const caller = createCaller(eventChatRouter)(createContext(db));
+
+    await caller.send({ eventId, body });
+
+    expect(db.eventChatMessage.create).toHaveBeenCalledWith({
+      data: {
+        eventId,
+        authorId: userId,
+        parentMessageId: null,
+        body,
+      },
+      select: expect.any(Object) as object,
+    });
+  });
+
+  it("sends a reply to a visible message in the same event", async () => {
+    const db = createDb();
+    const caller = createCaller(eventChatRouter)(createContext(db));
+
+    await caller.send({
+      eventId,
+      body: "В 10:00 у парковки.",
+      replyToMessageId,
+    });
+
+    expect(db.eventChatMessage.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: replyToMessageId,
+        eventId,
+        deletedAt: null,
+        hiddenAt: null,
+      },
+      select: {
+        id: true,
+      },
+    });
+    expect(db.eventChatMessage.create).toHaveBeenCalledWith({
+      data: {
+        eventId,
+        authorId: userId,
+        parentMessageId: replyToMessageId,
+        body: "В 10:00 у парковки.",
+      },
+      select: expect.any(Object) as object,
+    });
+  });
+
+  it("rejects reply to a message from another event", async () => {
+    const db = createDb({ replyParent: null });
+    const caller = createCaller(eventChatRouter)(createContext(db));
+
+    await expect(
+      caller.send({
+        eventId,
+        body: "Ответ.",
+        replyToMessageId,
+      }),
+    ).rejects.toMatchObject({
+      code: "NOT_FOUND",
+      message: "Сообщение для ответа не найдено.",
+    });
+    expect(db.eventChatMessage.create).not.toHaveBeenCalled();
+  });
+
+  it("rejects reply to a deleted message", async () => {
+    const db = createDb({ replyParent: null });
+    const caller = createCaller(eventChatRouter)(createContext(db));
+
+    await expect(
+      caller.send({
+        eventId,
+        body: "Ответ.",
+        replyToMessageId,
+      }),
+    ).rejects.toMatchObject({
+      code: "NOT_FOUND",
+      message: "Сообщение для ответа не найдено.",
+    });
+    expect(db.eventChatMessage.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: replyToMessageId,
+        eventId,
+        deletedAt: null,
+        hiddenAt: null,
+      },
+      select: {
+        id: true,
+      },
+    });
+  });
+
+  it("rejects reply to a hidden message", async () => {
+    const db = createDb({ replyParent: null });
+    const caller = createCaller(eventChatRouter)(createContext(db));
+
+    await expect(
+      caller.send({
+        eventId,
+        body: "Ответ.",
+        replyToMessageId,
+      }),
+    ).rejects.toMatchObject({
+      code: "NOT_FOUND",
+      message: "Сообщение для ответа не найдено.",
+    });
+    expect(db.eventChatMessage.create).not.toHaveBeenCalled();
+  });
+
+  it("denies send without access", async () => {
+    const db = createDb({ accessEvent: createAccessEvent(false) });
+    const caller = createCaller(eventChatRouter)(createContext(db));
+
+    await expect(caller.send({ eventId, body })).rejects.toMatchObject({
+      code: "FORBIDDEN",
+    });
+    expect(db.eventChatMessage.create).not.toHaveBeenCalled();
+  });
+
+  it("updates only own messages", async () => {
+    const db = createDb();
+    const caller = createCaller(eventChatRouter)(createContext(db));
+
+    await caller.updateMine({ messageId, body: "Обновление по времени сбора." });
+
+    expect(db.eventChatMessage.update).toHaveBeenCalledWith({
+      where: {
+        id: messageId,
+      },
+      data: {
+        body: "Обновление по времени сбора.",
+        editedAt: expect.any(Date) as Date,
+      },
+      select: expect.any(Object) as object,
+    });
+  });
+
+  it("denies editing another user's message", async () => {
+    const db = createDb({ message: createChatMessage(otherUserId) });
+    const caller = createCaller(eventChatRouter)(createContext(db));
+
+    await expect(
+      caller.updateMine({ messageId, body: "Обновление." }),
+    ).rejects.toMatchObject({
+      code: "FORBIDDEN",
+      message: "Можно редактировать только своё сообщение.",
+    });
+  });
+
+  it("soft deletes only own messages", async () => {
+    const db = createDb();
+    const caller = createCaller(eventChatRouter)(createContext(db));
+
+    await caller.deleteMine({ messageId });
+
+    expect(db.eventChatMessage.update).toHaveBeenCalledWith({
+      where: {
+        id: messageId,
+      },
+      data: {
+        deletedAt: expect.any(Date) as Date,
+      },
+    });
+  });
+
+  it("does not delete replies when parent message is deleted", async () => {
+    const db = createDb();
+    const caller = createCaller(eventChatRouter)(createContext(db));
+
+    await caller.deleteMine({ messageId });
+
+    expect(db.eventChatMessage.update).toHaveBeenCalledTimes(1);
+    expect(db.eventChatMessage.update).toHaveBeenCalledWith({
+      where: {
+        id: messageId,
+      },
+      data: {
+        deletedAt: expect.any(Date) as Date,
+      },
+    });
+  });
+
+  it("allows event managers to hide messages", async () => {
+    const db = createDb({
+      message: createChatMessage(otherUserId),
+      hideManager: true,
+    });
+    const caller = createCaller(eventChatRouter)(createContext(db));
+
+    await expect(caller.hideMessage({ messageId })).resolves.toEqual({
+      success: true,
+    });
+    expect(db.eventChatMessage.update).toHaveBeenCalledWith({
+      where: {
+        id: messageId,
+      },
+      data: {
+        hiddenAt: expect.any(Date) as Date,
+      },
+    });
+  });
+
+  it("denies random users hiding messages", async () => {
+    const db = createDb({ message: createChatMessage(otherUserId) });
+    const caller = createCaller(eventChatRouter)(createContext(db));
+
+    await expect(caller.hideMessage({ messageId })).rejects.toMatchObject({
+      code: "FORBIDDEN",
+      message: "У вас нет прав скрыть это сообщение.",
+    });
+  });
+});
