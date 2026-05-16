@@ -7,6 +7,7 @@ import {
   TeamStatus,
 } from "@/generated/prisma/enums";
 import {
+  hideObjectImpressionInputSchema,
   hideTargetInputSchema,
   reportActionInputSchema,
   reportCreateInputSchema,
@@ -20,6 +21,7 @@ import { publicPostWhere } from "@/server/api/routers/post";
 import type { db as database } from "@/server/db";
 import { requireModerator } from "@/server/moderation/permissions";
 import { createNotification } from "@/server/notifications/service";
+import { REPORT_TARGET_TYPES } from "@/server/reports/targets";
 
 type ReportRouterDb = typeof database;
 
@@ -76,7 +78,7 @@ const ensureReportableTarget = async (
   targetType: ReportTargetType,
   targetId: string,
 ) => {
-  if (targetType === "POST") {
+  if (targetType === REPORT_TARGET_TYPES.POST) {
     const post = await db.post.findFirst({
       where: {
         id: targetId,
@@ -95,7 +97,7 @@ const ensureReportableTarget = async (
     return;
   }
 
-  if (targetType === "OBJECT") {
+  if (targetType === REPORT_TARGET_TYPES.OBJECT) {
     const object = await db.jumpObject.findFirst({
       where: {
         id: targetId,
@@ -108,6 +110,26 @@ const ensureReportableTarget = async (
       throw new TRPCError({
         code: "NOT_FOUND",
         message: "Объект не найден.",
+      });
+    }
+
+    return;
+  }
+
+  if (targetType === REPORT_TARGET_TYPES.OBJECT_IMPRESSION) {
+    const impression = await db.objectImpression.findFirst({
+      where: {
+        id: targetId,
+        hiddenAt: null,
+        object: publicReportableObjectWhere,
+      },
+      select: { id: true },
+    });
+
+    if (!impression) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "Объект жалобы не найден.",
       });
     }
 
@@ -141,38 +163,163 @@ const addReportTargetPreviews = async <
   reports: TReport[],
 ) => {
   const objectIds = reports
-    .filter((report) => report.targetType === "OBJECT")
+    .filter((report) => report.targetType === REPORT_TARGET_TYPES.OBJECT)
+    .map((report) => report.targetId);
+  const impressionIds = reports
+    .filter(
+      (report) => report.targetType === REPORT_TARGET_TYPES.OBJECT_IMPRESSION,
+    )
     .map((report) => report.targetId);
 
-  if (objectIds.length === 0) {
+  if (objectIds.length === 0 && impressionIds.length === 0) {
     return reports.map((report) => ({
       ...report,
       targetObject: null,
+      targetObjectImpression: null,
     }));
   }
 
-  const objects = await db.jumpObject.findMany({
-    where: {
-      id: {
-        in: objectIds,
-      },
-    },
-    select: {
-      id: true,
-      name: true,
-      slug: true,
-      visibility: true,
-    },
-  });
+  const [objects, impressions] = await Promise.all([
+    objectIds.length > 0
+      ? db.jumpObject.findMany({
+          where: {
+            id: {
+              in: objectIds,
+            },
+          },
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            visibility: true,
+          },
+        })
+      : Promise.resolve([]),
+    impressionIds.length > 0
+      ? db.objectImpression.findMany({
+          where: {
+            id: {
+              in: impressionIds,
+            },
+          },
+          select: {
+            id: true,
+            body: true,
+            hiddenAt: true,
+            author: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                profile: {
+                  select: {
+                    username: true,
+                    displayName: true,
+                    avatarUrl: true,
+                  },
+                },
+              },
+            },
+            object: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+                visibility: true,
+              },
+            },
+          },
+        })
+      : Promise.resolve([]),
+  ]);
   const objectById = new Map(objects.map((object) => [object.id, object]));
+  const impressionById = new Map(
+    impressions.map((impression) => [impression.id, impression]),
+  );
 
   return reports.map((report) => ({
     ...report,
     targetObject:
-      report.targetType === "OBJECT"
+      report.targetType === REPORT_TARGET_TYPES.OBJECT
         ? (objectById.get(report.targetId) ?? null)
         : null,
+    targetObjectImpression:
+      report.targetType === REPORT_TARGET_TYPES.OBJECT_IMPRESSION
+        ? (impressionById.get(report.targetId) ?? null)
+        : null,
   }));
+};
+
+type ReviewReportDb = Pick<ReportRouterDb, "notification" | "report">;
+
+const reviewReportRecord = async (
+  db: ReviewReportDb,
+  reportId: string,
+  reviewerId: string,
+  status: ReportStatus,
+) => {
+  const report = await db.report.update({
+    where: { id: reportId },
+    data: {
+      status,
+      reviewedById: reviewerId,
+      reviewedAt: new Date(),
+    },
+    include: reportInclude,
+  });
+
+  if (status === ReportStatus.RESOLVED) {
+    await createNotification(db, {
+      userId: report.reporter.id,
+      type: NotificationType.REPORT_RESOLVED,
+      title: "Жалоба рассмотрена",
+      body: "Ваша жалоба была рассмотрена и отмечена как решённая.",
+      href: null,
+    });
+  }
+
+  if (status === ReportStatus.DISMISSED) {
+    await createNotification(db, {
+      userId: report.reporter.id,
+      type: NotificationType.REPORT_DISMISSED,
+      title: "Жалоба отклонена",
+      body: "Ваша жалоба была рассмотрена и отклонена.",
+      href: null,
+    });
+  }
+
+  return report;
+};
+
+const hideObjectImpression = async (
+  db: ReportRouterDb,
+  input: {
+    impressionId: string;
+    reportId?: string;
+    reviewerId: string;
+  },
+) => {
+  await db.$transaction(async (tx) => {
+    await tx.objectImpression.update({
+      where: {
+        id: input.impressionId,
+      },
+      data: {
+        hiddenAt: new Date(),
+      },
+    });
+
+    if (input.reportId) {
+      await reviewReportRecord(
+        tx,
+        input.reportId,
+        input.reviewerId,
+        ReportStatus.RESOLVED,
+      );
+    }
+  });
+
+  return { success: true };
 };
 
 const reviewReport = async (
@@ -182,37 +329,7 @@ const reviewReport = async (
   status: ReportStatus,
 ) => {
   return db.$transaction(async (tx) => {
-    const report = await tx.report.update({
-      where: { id: reportId },
-      data: {
-        status,
-        reviewedById: reviewerId,
-        reviewedAt: new Date(),
-      },
-      include: reportInclude,
-    });
-
-    if (status === ReportStatus.RESOLVED) {
-      await createNotification(tx, {
-        userId: report.reporter.id,
-        type: NotificationType.REPORT_RESOLVED,
-        title: "Жалоба рассмотрена",
-        body: "Ваша жалоба была рассмотрена и отмечена как решённая.",
-        href: null,
-      });
-    }
-
-    if (status === ReportStatus.DISMISSED) {
-      await createNotification(tx, {
-        userId: report.reporter.id,
-        type: NotificationType.REPORT_DISMISSED,
-        title: "Жалоба отклонена",
-        body: "Ваша жалоба была рассмотрена и отклонена.",
-        href: null,
-      });
-    }
-
-    return report;
+    return reviewReportRecord(tx, reportId, reviewerId, status);
   });
 };
 
@@ -399,7 +516,7 @@ export const reportRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       requireModerator(ctx);
 
-      if (input.targetType === "POST") {
+      if (input.targetType === REPORT_TARGET_TYPES.POST) {
         return ctx.db.post.update({
           where: { id: input.targetId },
           data: {
@@ -408,7 +525,7 @@ export const reportRouter = createTRPCRouter({
         });
       }
 
-      if (input.targetType === "OBJECT") {
+      if (input.targetType === REPORT_TARGET_TYPES.OBJECT) {
         return ctx.db.jumpObject.update({
           where: { id: input.targetId },
           data: {
@@ -417,11 +534,30 @@ export const reportRouter = createTRPCRouter({
         });
       }
 
+      if (input.targetType === REPORT_TARGET_TYPES.OBJECT_IMPRESSION) {
+        return hideObjectImpression(ctx.db, {
+          impressionId: input.targetId,
+          reviewerId: ctx.session.user.id,
+        });
+      }
+
       return ctx.db.comment.update({
         where: { id: input.targetId },
         data: {
           hiddenAt: new Date(),
         },
+      });
+    }),
+
+  hideObjectImpression: protectedProcedure
+    .input(hideObjectImpressionInputSchema)
+    .mutation(async ({ ctx, input }) => {
+      requireModerator(ctx);
+
+      return hideObjectImpression(ctx.db, {
+        impressionId: input.impressionId,
+        reportId: input.reportId,
+        reviewerId: ctx.session.user.id,
       });
     }),
 });

@@ -13,6 +13,15 @@ type ReportCardProps = {
   showActions?: boolean;
 };
 
+type ModerationUserPreview = {
+  name?: string | null;
+  email?: string | null;
+  profile?: {
+    displayName?: string | null;
+    username?: string | null;
+  } | null;
+};
+
 export function ReportCard({ report, showActions = false }: ReportCardProps) {
   const targetType = getReportTargetType(report.targetType);
   const targetTitle = getTargetTitle(report);
@@ -92,6 +101,30 @@ export function ReportCard({ report, showActions = false }: ReportCardProps) {
           <p className="mt-4 text-sm text-zinc-500">Объект уже скрыт.</p>
         )
       ) : null}
+      {report.targetType === "OBJECT_IMPRESSION" &&
+      report.targetObjectImpression ? (
+        <div className="mt-4 grid gap-2 text-sm">
+          <p className="text-zinc-600">
+            Автор: {getUserName(report.targetObjectImpression.author)}
+          </p>
+          <p className="line-clamp-3 whitespace-pre-wrap text-zinc-600">
+            {report.targetObjectImpression.body}
+          </p>
+          {report.targetObjectImpression.object.visibility === "PUBLIC" ? (
+            <Link
+              href={`/objects/${report.targetObjectImpression.object.slug}`}
+              className="inline-flex text-zinc-600 hover:text-zinc-950"
+            >
+              Открыть объект: {report.targetObjectImpression.object.name}
+            </Link>
+          ) : (
+            <p className="text-zinc-500">Объект уже скрыт.</p>
+          )}
+          {report.targetObjectImpression.hiddenAt ? (
+            <p className="text-zinc-500">Впечатление уже скрыто.</p>
+          ) : null}
+        </div>
+      ) : null}
 
       {showActions && targetType ? (
         <ModerationActions
@@ -105,7 +138,12 @@ export function ReportCard({ report, showActions = false }: ReportCardProps) {
 }
 
 const getReportTargetType = (value: string): ReportTargetType | null => {
-  if (value === "POST" || value === "COMMENT" || value === "OBJECT") {
+  if (
+    value === "POST" ||
+    value === "COMMENT" ||
+    value === "OBJECT" ||
+    value === "OBJECT_IMPRESSION"
+  ) {
     return value;
   }
 
@@ -116,6 +154,7 @@ const getTargetTypeLabel = (targetType: string) => {
   if (targetType === "POST") return "Пост";
   if (targetType === "COMMENT") return "Комментарий";
   if (targetType === "OBJECT") return "Объект";
+  if (targetType === "OBJECT_IMPRESSION") return "Впечатление об объекте";
 
   return targetType;
 };
@@ -123,6 +162,13 @@ const getTargetTypeLabel = (targetType: string) => {
 const getTargetTitle = (report: ModerationReport) => {
   if (report.targetType === "OBJECT" && report.targetObject) {
     return report.targetObject.name;
+  }
+
+  if (
+    report.targetType === "OBJECT_IMPRESSION" &&
+    report.targetObjectImpression
+  ) {
+    return report.targetObjectImpression.object.name;
   }
 
   return report.targetId;
@@ -137,7 +183,7 @@ const getReportStatusLabel = (status: string) => {
   return status;
 };
 
-const getUserName = (user: ModerationReport["reporter"]) =>
+const getUserName = (user: ModerationUserPreview) =>
   user.profile?.displayName ??
   user.profile?.username ??
   user.name ??

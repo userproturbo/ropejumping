@@ -20,6 +20,9 @@ export function ModerationActions({
   const hideTarget = api.report.hideTarget.useMutation({
     onSuccess: () => router.refresh(),
   });
+  const hideObjectImpression = api.report.hideObjectImpression.useMutation({
+    onSuccess: () => router.refresh(),
+  });
   const resolve = api.report.resolve.useMutation({
     onSuccess: () => router.refresh(),
   });
@@ -28,16 +31,28 @@ export function ModerationActions({
   });
 
   const isPending =
-    hideTarget.isPending || resolve.isPending || dismiss.isPending;
-  const error = hideTarget.error ?? resolve.error ?? dismiss.error;
+    hideTarget.isPending ||
+    hideObjectImpression.isPending ||
+    resolve.isPending ||
+    dismiss.isPending;
+  const error =
+    hideTarget.error ?? hideObjectImpression.error ?? resolve.error ?? dismiss.error;
   const hideButtonLabel = getHideButtonLabel(targetType);
+  const handleHide = () => {
+    if (targetType === "OBJECT_IMPRESSION") {
+      hideObjectImpression.mutate({ impressionId: targetId, reportId });
+      return;
+    }
+
+    hideTarget.mutate({ targetType, targetId });
+  };
 
   return (
     <div className="mt-4 flex flex-wrap items-center gap-3">
       <button
         type="button"
         disabled={isPending}
-        onClick={() => hideTarget.mutate({ targetType, targetId })}
+        onClick={handleHide}
         className="border border-zinc-300 px-3 py-2 text-sm text-zinc-800 hover:border-zinc-950 disabled:cursor-not-allowed disabled:text-zinc-400"
       >
         {hideButtonLabel}
@@ -66,6 +81,7 @@ export function ModerationActions({
 const getHideButtonLabel = (targetType: ReportTargetType) => {
   if (targetType === "POST") return "Скрыть пост";
   if (targetType === "COMMENT") return "Скрыть комментарий";
+  if (targetType === "OBJECT_IMPRESSION") return "Скрыть впечатление";
 
   return "Скрыть объект";
 };

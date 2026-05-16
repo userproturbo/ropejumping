@@ -50,6 +50,18 @@ export function ObjectImpressions({
       router.refresh();
     },
   });
+  const [reportedImpressionIds, setReportedImpressionIds] = useState<
+    Set<string>
+  >(new Set());
+  const reportImpression = api.report.create.useMutation({
+    onSuccess: (_report, variables) => {
+      setReportedImpressionIds((current) => {
+        const next = new Set(current);
+        next.add(variables.targetId);
+        return next;
+      });
+    },
+  });
   const error =
     createImpression.error ?? updateImpression.error ?? deleteImpression.error;
   const isPending =
@@ -211,16 +223,47 @@ export function ObjectImpressions({
                     ) : null}
                   </div>
                 </div>
-                <p className="text-xs text-zinc-500">
-                  {formatImpressionDate(impression.createdAt)}
-                  {impression.editedAt ? " · отредактировано" : ""}
-                </p>
+                <div className="flex flex-wrap items-center justify-end gap-3">
+                  <p className="text-xs text-zinc-500">
+                    {formatImpressionDate(impression.createdAt)}
+                    {impression.editedAt ? " · отредактировано" : ""}
+                  </p>
+                  {isAuthenticated &&
+                  impression.authorId !== myImpression?.authorId ? (
+                    <button
+                      type="button"
+                      disabled={
+                        reportImpression.isPending ||
+                        reportedImpressionIds.has(impression.id)
+                      }
+                      onClick={() =>
+                        reportImpression.mutate({
+                          targetType: "OBJECT_IMPRESSION",
+                          targetId: impression.id,
+                          reason:
+                            "Нарушение правил безопасности или сообщества",
+                          details: null,
+                        })
+                      }
+                      className="text-xs text-zinc-500 hover:text-zinc-950 disabled:cursor-not-allowed disabled:text-zinc-400"
+                    >
+                      {reportedImpressionIds.has(impression.id)
+                        ? "Жалоба отправлена"
+                        : "Пожаловаться"}
+                    </button>
+                  ) : null}
+                </div>
               </div>
               <p className="mt-3 text-sm leading-6 whitespace-pre-wrap text-zinc-600">
                 {impression.body}
               </p>
             </article>
           ))}
+          {reportImpression.error ? (
+            <p className="text-sm text-red-700">
+              {reportImpression.error.message}
+            </p>
+          ) : null}
         </div>
       ) : (
         <p className="mt-5 text-sm text-zinc-600">
