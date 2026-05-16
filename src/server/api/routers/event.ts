@@ -40,7 +40,11 @@ import {
   resolveImageMediaForCreate,
   resolveImageMediaForUpdate,
 } from "@/server/media/usage";
-import { createNotifications } from "@/server/notifications/service";
+import {
+  createNotifications,
+  notifyObjectFollowersAboutEvent,
+  notifyTeamFollowersAboutEvent,
+} from "@/server/notifications/service";
 
 const manageableTeamRoles = [
   TeamRole.OWNER,
@@ -999,6 +1003,28 @@ export const eventRouter = createTRPCRouter({
             status: EventStatus.PUBLISHED,
           },
         });
+
+        try {
+          const notifiedUserIds = await notifyTeamFollowersAboutEvent(ctx.db, {
+            teamId: createdEvent.teamId,
+            eventTitle: createdEvent.title,
+            eventSlug: createdEvent.slug,
+            actorUserId: ctx.session.user.id,
+          });
+
+          if (createdEvent.objectId) {
+            await notifyObjectFollowersAboutEvent(ctx.db, {
+              objectId: createdEvent.objectId,
+              teamId: createdEvent.teamId,
+              eventTitle: createdEvent.title,
+              eventSlug: createdEvent.slug,
+              actorUserId: ctx.session.user.id,
+              excludeUserIds: notifiedUserIds,
+            });
+          }
+        } catch {
+          // Best effort: event creation must not fail because notifications did.
+        }
 
         return createdEvent;
       } catch (error) {
