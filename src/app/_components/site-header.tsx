@@ -11,6 +11,7 @@ import { SiteMobileMenu } from "./site-mobile-menu";
 const mainLinks = [
   { href: "/", label: "Главная" },
   { href: "/teams", label: "Команды" },
+  { href: "/users", label: "Участники" },
   { href: "/events", label: "Мероприятия" },
   { href: "/objects", label: "Объекты" },
   { href: "/feed", label: "Лента" },

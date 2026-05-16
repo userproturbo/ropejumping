@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { profileInputSchema } from "@/lib/validation/profile";
+import {
+  profileInputSchema,
+  profilePublicListInputSchema,
+} from "@/lib/validation/profile";
 
 const validProfileInput = {
   avatarMediaId: "",
@@ -102,6 +105,45 @@ describe("profile validation", () => {
         ...validProfileInput,
         selfReportedExperience: "а".repeat(1001),
       }).success,
+    ).toBe(false);
+  });
+});
+
+describe("public profile list validation", () => {
+  it("converts empty q to undefined", () => {
+    const result = profilePublicListInputSchema.parse({ q: "" });
+
+    expect(result.q).toBeUndefined();
+  });
+
+  it("trims q", () => {
+    const result = profilePublicListInputSchema.parse({ q: "  oleg  " });
+
+    expect(result.q).toBe("oleg");
+  });
+
+  it("rejects too long q", () => {
+    expect(
+      profilePublicListInputSchema.safeParse({ q: "a".repeat(101) }).success,
+    ).toBe(false);
+  });
+
+  it("converts empty city to undefined", () => {
+    const result = profilePublicListInputSchema.parse({ city: "" });
+
+    expect(result.city).toBeUndefined();
+  });
+
+  it("trims city", () => {
+    const result = profilePublicListInputSchema.parse({ city: "  Москва  " });
+
+    expect(result.city).toBe("Москва");
+  });
+
+  it("rejects too long city", () => {
+    expect(
+      profilePublicListInputSchema.safeParse({ city: "a".repeat(101) })
+        .success,
     ).toBe(false);
   });
 });

@@ -1,8 +1,10 @@
 import { TRPCError } from "@trpc/server";
 
+import type { Prisma } from "@/generated/prisma/client";
 import { TeamStatus } from "@/generated/prisma/enums";
 import {
   profileInputSchema,
+  profilePublicListInputSchema,
   profileUsernameLookupSchema,
 } from "@/lib/validation/profile";
 import {
@@ -17,6 +19,100 @@ import { resolveImageMediaForUpdate } from "@/server/media/usage";
 const publicTeamStatuses = [TeamStatus.REGULAR, TeamStatus.VERIFIED];
 
 export const profileRouter = createTRPCRouter({
+  listPublic: publicProcedure
+    .input(profilePublicListInputSchema.optional())
+    .query(async ({ ctx, input }) => {
+      const q = input?.q ?? "";
+      const city = input?.city ?? "";
+      const where: Prisma.ProfileWhereInput = {
+        username: {
+          not: null,
+        },
+      };
+
+      if (city) {
+        where.city = {
+          contains: city,
+          mode: "insensitive",
+        };
+      }
+
+      if (q) {
+        where.OR = [
+          {
+            username: {
+              contains: q,
+              mode: "insensitive",
+            },
+          },
+          {
+            displayName: {
+              contains: q,
+              mode: "insensitive",
+            },
+          },
+          {
+            bio: {
+              contains: q,
+              mode: "insensitive",
+            },
+          },
+          {
+            city: {
+              contains: q,
+              mode: "insensitive",
+            },
+          },
+        ];
+      }
+
+      const profiles = await ctx.db.profile.findMany({
+        where,
+        orderBy: {
+          updatedAt: "desc",
+        },
+        take: 50,
+        select: {
+          id: true,
+          username: true,
+          displayName: true,
+          avatarUrl: true,
+          city: true,
+          bio: true,
+          selfReportedJumpCount: true,
+          selfReportedMaxHeightMeters: true,
+          createdAt: true,
+          avatarMedia: {
+            select: {
+              alt: true,
+            },
+          },
+          user: {
+            select: {
+              name: true,
+              badges: {
+                take: 3,
+                orderBy: {
+                  awardedAt: "desc",
+                },
+                include: {
+                  badge: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      return {
+        profiles,
+        filters: {
+          q,
+          city,
+        },
+      };
+    }),
+
   getMine: protectedProcedure.query(({ ctx }) => {
     return ctx.db.profile.findUnique({
       where: { userId: ctx.session.user.id },

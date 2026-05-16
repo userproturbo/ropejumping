@@ -10,6 +10,18 @@ const emptyToNull = (value: unknown) => {
 const nullableString = (schema: z.ZodString) =>
   z.preprocess(emptyToNull, schema.nullable().optional());
 
+const emptyToUndefined = (value: unknown) => {
+  if (typeof value !== "string") return value;
+
+  const trimmed = value.trim();
+  return trimmed === "" ? undefined : trimmed;
+};
+
+const optionalFilterString = z.preprocess(
+  emptyToUndefined,
+  z.string().max(100).optional(),
+);
+
 const nullableInteger = (max: number, message: string) =>
   z
     .preprocess(
@@ -74,5 +86,10 @@ export const profileUsernameLookupSchema = usernameSchema.refine(
   (value) => value !== null,
   "Имя пользователя обязательно",
 );
+
+export const profilePublicListInputSchema = z.object({
+  q: optionalFilterString,
+  city: optionalFilterString,
+});
 
 export type ProfileInput = z.infer<typeof profileInputSchema>;
