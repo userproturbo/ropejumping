@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   assertEventChatMessageCreateLimit,
   assertPostCreateLimit,
+  assertTeamChatMessageCreateLimit,
   assertUserActionLimit,
   type RateLimitDb,
 } from "@/server/anti-spam/rate-limit";
@@ -30,6 +31,9 @@ const createDb = (count: number) => ({
     count: vi.fn().mockResolvedValue(count),
   },
   report: {
+    count: vi.fn().mockResolvedValue(count),
+  },
+  teamChatMessage: {
     count: vi.fn().mockResolvedValue(count),
   },
 });
@@ -149,6 +153,18 @@ describe("anti-spam rate limits", () => {
 
     await expect(
       assertEventChatMessageCreateLimit(asRateLimitDb(db), userId),
+    ).rejects.toMatchObject({
+      code: "TOO_MANY_REQUESTS",
+      message:
+        "Слишком много сообщений за последний час. Попробуйте позже.",
+    } satisfies Partial<TRPCError>);
+  });
+
+  it("limits team chat messages per hour", async () => {
+    const db = createDb(60);
+
+    await expect(
+      assertTeamChatMessageCreateLimit(asRateLimitDb(db), userId),
     ).rejects.toMatchObject({
       code: "TOO_MANY_REQUESTS",
       message:

@@ -5,59 +5,56 @@ import { useState, type FormEvent } from "react";
 
 import { api, type RouterOutputs } from "@/trpc/react";
 
-type EventChatMessage =
-  RouterOutputs["eventChat"]["list"]["messages"][number];
+type TeamChatMessage = RouterOutputs["teamChat"]["list"]["messages"][number];
 
-type EventChatProps = {
-  eventId: string;
-  eventSlug: string;
-  eventTitle: string;
+type TeamChatProps = {
+  teamId: string;
+  teamName: string;
   canAccess: boolean;
   canModerate: boolean;
   currentUserId: string | null;
   isAuthenticated: boolean;
 };
 
-export function EventChat({
-  eventId,
-  eventSlug,
-  eventTitle,
+export function TeamChat({
+  teamId,
+  teamName,
   canAccess,
   canModerate,
   currentUserId,
   isAuthenticated,
-}: EventChatProps) {
+}: TeamChatProps) {
   const [body, setBody] = useState("");
-  const [replyTo, setReplyTo] = useState<EventChatMessage | null>(null);
+  const [replyTo, setReplyTo] = useState<TeamChatMessage | null>(null);
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editingBody, setEditingBody] = useState("");
-  const messagesQuery = api.eventChat.list.useQuery(
-    { eventId },
+  const messagesQuery = api.teamChat.list.useQuery(
+    { teamId },
     {
       enabled: canAccess,
       refetchInterval: canAccess ? 5000 : false,
     },
   );
-  const sendMessage = api.eventChat.send.useMutation({
+  const sendMessage = api.teamChat.send.useMutation({
     onSuccess: async () => {
       setBody("");
       setReplyTo(null);
       await messagesQuery.refetch();
     },
   });
-  const updateMessage = api.eventChat.updateMine.useMutation({
+  const updateMessage = api.teamChat.updateMine.useMutation({
     onSuccess: async () => {
       setEditingMessageId(null);
       setEditingBody("");
       await messagesQuery.refetch();
     },
   });
-  const deleteMessage = api.eventChat.deleteMine.useMutation({
+  const deleteMessage = api.teamChat.deleteMine.useMutation({
     onSuccess: async () => {
       await messagesQuery.refetch();
     },
   });
-  const hideMessage = api.eventChat.hideMessage.useMutation({
+  const hideMessage = api.teamChat.hideMessage.useMutation({
     onSuccess: async () => {
       await messagesQuery.refetch();
     },
@@ -79,7 +76,7 @@ export function EventChat({
     event.preventDefault();
 
     sendMessage.mutate({
-      eventId,
+      teamId,
       body,
       replyToMessageId: replyTo?.id,
     });
@@ -100,28 +97,25 @@ export function EventChat({
     <section className="mt-6 border border-zinc-200 bg-white p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h2 className="text-xl font-semibold text-zinc-950">
-            Чат мероприятия
-          </h2>
+          <h2 className="text-xl font-semibold text-zinc-950">Чат команды</h2>
           <p className="mt-2 text-sm text-zinc-600">
-            Здесь организаторы и участники могут обсудить вопросы по
-            мероприятию.
+            Внутренний чат для участников команды.
           </p>
         </div>
       </div>
 
       <p className="mt-4 border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900">
-        Не публикуйте точные координаты, точки крепления и технические детали
-        организации прыжков.
+        Пишите уважительно и по делу. Не публикуйте личные данные и
+        чувствительные технические детали.
       </p>
 
       {!isAuthenticated ? (
         <div className="mt-5">
           <p className="text-sm text-zinc-600">
-            Войдите, чтобы увидеть чат мероприятия.
+            Войдите, чтобы увидеть чат команды.
           </p>
           <Link
-            href={`/api/auth/signin?callbackUrl=${encodeURIComponent(`/events/${eventSlug}`)}`}
+            href="/api/auth/signin"
             className="mt-4 inline-flex border border-zinc-300 px-4 py-2 text-sm text-zinc-800 hover:border-zinc-950"
           >
             Войти
@@ -129,7 +123,7 @@ export function EventChat({
         </div>
       ) : !canAccess ? (
         <p className="mt-5 text-sm text-zinc-600">
-          Чат доступен организаторам и принятым участникам мероприятия.
+          Чат доступен только участникам команды.
         </p>
       ) : (
         <>
@@ -276,10 +270,10 @@ export function EventChat({
 
           <form onSubmit={handleSend} className="mt-5 grid gap-3">
             <label
-              htmlFor="eventChatMessage"
+              htmlFor="teamChatMessage"
               className="text-sm font-medium text-zinc-950"
             >
-              Сообщение для участников «{eventTitle}»
+              Сообщение для команды «{teamName}»
             </label>
             {replyTo ? (
               <div className="border border-zinc-200 bg-zinc-50 p-3 text-sm">
@@ -306,7 +300,7 @@ export function EventChat({
               </div>
             ) : null}
             <textarea
-              id="eventChatMessage"
+              id="teamChatMessage"
               value={body}
               onChange={(event) => setBody(event.target.value)}
               rows={4}
@@ -331,13 +325,13 @@ export function EventChat({
   );
 }
 
-const getAuthorName = (message: EventChatMessage) =>
+const getAuthorName = (message: TeamChatMessage) =>
   message.author.profile?.displayName ??
   message.author.profile?.username ??
   "Участник";
 
 const getParentAuthorName = (
-  parentMessage: NonNullable<EventChatMessage["parentMessage"]>,
+  parentMessage: NonNullable<TeamChatMessage["parentMessage"]>,
 ) =>
   parentMessage.author.profile?.displayName ??
   parentMessage.author.profile?.username ??
@@ -351,7 +345,7 @@ const getMessagePreview = (body: string) => {
     : normalized;
 };
 
-function ReplyPreview({ message }: { message: EventChatMessage }) {
+function ReplyPreview({ message }: { message: TeamChatMessage }) {
   if (!message.parentMessage) return null;
 
   if (message.parentMessage.deletedAt || message.parentMessage.hiddenAt) {

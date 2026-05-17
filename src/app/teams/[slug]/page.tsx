@@ -12,10 +12,16 @@ import {
   getTeamStatusLabel,
 } from "@/lib/display";
 import { getCurrentUser } from "@/server/auth/session";
+import { db } from "@/server/db";
+import {
+  canAccessTeamChat,
+  canModerateTeamChat,
+} from "@/server/teams/chat-permissions";
 import { api } from "@/trpc/server";
 import type { RouterOutputs } from "@/trpc/react";
 
 import { formatEventDateRange } from "../../events/_components/date-format";
+import { TeamChat } from "../_components/team-chat";
 import { TeamJoinRequestPanel } from "./team-join-request-panel";
 
 type TeamPageProps = {
@@ -58,6 +64,25 @@ export default async function TeamPage({ params }: TeamPageProps) {
   const joinRequestState = currentUser
     ? await api.teamJoinRequest.getMineForTeam(slug).catch(() => null)
     : null;
+  const canAccessChat = currentUser
+    ? (
+        await canAccessTeamChat({
+          db,
+          teamId: team.id,
+          userId: currentUser.id,
+        })
+      ).allowed
+    : false;
+  const canModerateChat = currentUser
+    ? (
+        await canModerateTeamChat({
+          db,
+          teamId: team.id,
+          userId: currentUser.id,
+          user: currentUser,
+        })
+      ).allowed
+    : false;
   const activeEvents = team.events
     .filter((event) => activeEventStatuses.has(event.status))
     .sort((left, right) => left.startsAt.getTime() - right.startsAt.getTime());
@@ -168,6 +193,17 @@ export default async function TeamPage({ params }: TeamPageProps) {
           isAuthenticated={Boolean(currentUser)}
           state={joinRequestState}
         />
+
+        {canAccessChat ? (
+          <TeamChat
+            teamId={team.id}
+            teamName={team.name}
+            canAccess
+            canModerate={canModerateChat}
+            currentUserId={currentUser?.id ?? null}
+            isAuthenticated={Boolean(currentUser)}
+          />
+        ) : null}
 
         <section className="mt-6 border border-zinc-200 bg-white p-6">
           <h2 className="text-xl font-semibold text-zinc-950">Участники</h2>

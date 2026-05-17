@@ -13,6 +13,7 @@ import { postRouter } from "@/server/api/routers/post";
 import { profileRouter } from "@/server/api/routers/profile";
 import { reportRouter } from "@/server/api/routers/report";
 import { systemRouter } from "@/server/api/routers/system";
+import { teamChatRouter } from "@/server/api/routers/team-chat";
 import { teamInvitationRouter } from "@/server/api/routers/team-invitation";
 import { teamJoinRequestRouter } from "@/server/api/routers/team-join-request";
 import { teamRouter } from "@/server/api/routers/team";
@@ -40,6 +41,7 @@ export const appRouter = createTRPCRouter({
   profile: profileRouter,
   report: reportRouter,
   system: systemRouter,
+  teamChat: teamChatRouter,
   teamInvitation: teamInvitationRouter,
   teamJoinRequest: teamJoinRequestRouter,
   team: teamRouter,
