@@ -74,6 +74,12 @@ export function EventLogistics({
   const hidePost = api.eventLogistics.hidePost.useMutation({
     onSuccess: async () => logisticsQuery.refetch(),
   });
+  const joinPost = api.eventLogistics.join.useMutation({
+    onSuccess: async () => logisticsQuery.refetch(),
+  });
+  const leavePost = api.eventLogistics.leave.useMutation({
+    onSuccess: async () => logisticsQuery.refetch(),
+  });
 
   if (!canAccess) return null;
 
@@ -85,13 +91,17 @@ export function EventLogistics({
     closePost.error ??
     reopenPost.error ??
     hidePost.error ??
+    joinPost.error ??
+    leavePost.error ??
     logisticsQuery.error;
   const isPending =
     createPost.isPending ||
     updatePost.isPending ||
     closePost.isPending ||
     reopenPost.isPending ||
-    hidePost.isPending;
+    hidePost.isPending ||
+    joinPost.isPending ||
+    leavePost.isPending;
 
   const handleCreate = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -180,6 +190,19 @@ export function EventLogistics({
           posts.map((post) => {
             const isOwnPost = post.authorId === currentUserId;
             const isClosed = post.status === EventLogisticsStatus.CLOSED;
+            const joinedCount = post.joins.length;
+            const seatsAvailable = post.seatsAvailable ?? 0;
+            const remainingSeats = Math.max(0, seatsAvailable - joinedCount);
+            const isJoinedByCurrentUser = post.joins.some(
+              (join) => join.userId === currentUserId,
+            );
+            const canJoin =
+              post.type === EventLogisticsType.OFFER_SEAT &&
+              !isClosed &&
+              !isReadOnly &&
+              !isOwnPost &&
+              !isJoinedByCurrentUser &&
+              remainingSeats > 0;
 
             return (
               <article key={post.id} className="border border-zinc-200 p-4">
@@ -271,6 +294,66 @@ export function EventLogistics({
                 <p className="mt-4 whitespace-pre-wrap text-sm leading-6 text-zinc-600">
                   {post.body}
                 </p>
+                {post.type === EventLogisticsType.OFFER_SEAT ? (
+                  <div className="mt-4 border border-zinc-200 bg-zinc-50 p-3 text-sm">
+                    <div className="flex flex-wrap gap-3 text-zinc-600">
+                      <span>
+                        Занято: {joinedCount} из {seatsAvailable}
+                      </span>
+                      <span>Осталось мест: {remainingSeats}</span>
+                    </div>
+                    <div className="mt-3">
+                      <p className="font-medium text-zinc-950">
+                        Присоединились:
+                      </p>
+                      {post.joins.length > 0 ? (
+                        <ul className="mt-2 grid gap-1 text-zinc-600">
+                          {post.joins.map((join) => (
+                            <li key={join.id}>{getJoinUserName(join)}</li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="mt-2 text-zinc-600">
+                          Пока никто не присоединился.
+                        </p>
+                      )}
+                    </div>
+                    <div className="mt-3 flex flex-wrap items-center gap-3">
+                      {isOwnPost ? (
+                        <p className="text-xs text-zinc-500">
+                          Это ваша запись.
+                        </p>
+                      ) : isJoinedByCurrentUser ? (
+                        <>
+                          <p className="text-xs text-zinc-500">
+                            Вы присоединились к этой поездке.
+                          </p>
+                          <button
+                            type="button"
+                            disabled={isPending}
+                            onClick={() => leavePost.mutate({ postId: post.id })}
+                            className="border border-zinc-300 px-3 py-2 text-xs text-zinc-800 hover:border-zinc-950 disabled:cursor-not-allowed disabled:text-zinc-400"
+                          >
+                            Отменить участие
+                          </button>
+                        </>
+                      ) : canJoin ? (
+                        <button
+                          type="button"
+                          disabled={isPending}
+                          onClick={() => joinPost.mutate({ postId: post.id })}
+                          className="border border-zinc-300 px-3 py-2 text-xs text-zinc-800 hover:border-zinc-950 disabled:cursor-not-allowed disabled:text-zinc-400"
+                        >
+                          Присоединиться
+                        </button>
+                      ) : remainingSeats <= 0 ? (
+                        <p className="text-xs text-zinc-500">
+                          Мест больше нет.
+                        </p>
+                      ) : null}
+                    </div>
+                  </div>
+                ) : null}
                 <p className="mt-3 text-xs text-zinc-500">
                   Для деталей договоритесь в чате мероприятия.
                 </p>
@@ -440,6 +523,11 @@ const getStatusLabel = (status: EventLogisticsStatus) =>
 const getAuthorName = (post: LogisticsPost) =>
   post.author.profile?.displayName ??
   post.author.profile?.username ??
+  "Участник";
+
+const getJoinUserName = (join: LogisticsPost["joins"][number]) =>
+  join.user.profile?.displayName ??
+  join.user.profile?.username ??
   "Участник";
 
 const formatLogisticsDate = (date: Date) =>
