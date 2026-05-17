@@ -4,6 +4,7 @@ import { TeamRole } from "@/generated/prisma/enums";
 import {
   eventChatDeleteInputSchema,
   eventChatListInputSchema,
+  eventChatMarkReadInputSchema,
   eventChatSendInputSchema,
   eventChatUpdateInputSchema,
 } from "@/lib/validation/event-chat";
@@ -70,32 +71,91 @@ export const eventChatRouter = createTRPCRouter({
       });
 
       const limit = input.limit ?? 30;
-      const messages = await ctx.db.eventChatMessage.findMany({
+      const readState = await ctx.db.eventChatReadState.findUnique({
         where: {
-          eventId: input.eventId,
-          deletedAt: null,
-          hiddenAt: null,
+          eventId_userId: {
+            eventId: input.eventId,
+            userId: ctx.session.user.id,
+          },
         },
-        orderBy: {
-          createdAt: "desc",
+        select: {
+          lastReadAt: true,
         },
-        take: limit + 1,
-        ...(input.cursor
-          ? {
-              cursor: {
-                id: input.cursor,
-              },
-              skip: 1,
-            }
-          : {}),
-        select: messageSelect,
       });
+      const lastReadAt = readState?.lastReadAt ?? new Date(0);
+      const [messages, unreadCount] = await Promise.all([
+        ctx.db.eventChatMessage.findMany({
+          where: {
+            eventId: input.eventId,
+            deletedAt: null,
+            hiddenAt: null,
+          },
+          orderBy: {
+            createdAt: "desc",
+          },
+          take: limit + 1,
+          ...(input.cursor
+            ? {
+                cursor: {
+                  id: input.cursor,
+                },
+                skip: 1,
+              }
+            : {}),
+          select: messageSelect,
+        }),
+        ctx.db.eventChatMessage.count({
+          where: {
+            eventId: input.eventId,
+            authorId: {
+              not: ctx.session.user.id,
+            },
+            createdAt: {
+              gt: lastReadAt,
+            },
+            deletedAt: null,
+            hiddenAt: null,
+          },
+        }),
+      ]);
       const nextMessage = messages.length > limit ? messages.pop() : undefined;
 
       return {
         messages,
         nextCursor: nextMessage?.id ?? null,
+        unreadCount,
       };
+    }),
+
+  markRead: protectedProcedure
+    .input(eventChatMarkReadInputSchema)
+    .mutation(async ({ ctx, input }) => {
+      await assertCanAccessEventChat({
+        db: ctx.db,
+        eventId: input.eventId,
+        userId: ctx.session.user.id,
+      });
+
+      const lastReadAt = new Date();
+
+      await ctx.db.eventChatReadState.upsert({
+        where: {
+          eventId_userId: {
+            eventId: input.eventId,
+            userId: ctx.session.user.id,
+          },
+        },
+        create: {
+          eventId: input.eventId,
+          userId: ctx.session.user.id,
+          lastReadAt,
+        },
+        update: {
+          lastReadAt,
+        },
+      });
+
+      return { success: true };
     }),
 
   send: protectedProcedure

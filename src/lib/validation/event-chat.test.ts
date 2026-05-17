@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   eventChatDeleteInputSchema,
   eventChatListInputSchema,
+  eventChatMarkReadInputSchema,
   eventChatSendInputSchema,
   eventChatUpdateInputSchema,
 } from "@/lib/validation/event-chat";
@@ -111,5 +112,17 @@ describe("event chat validation", () => {
     expect(
       eventChatListInputSchema.parse({ eventId, cursor: messageId }).cursor,
     ).toBe(messageId);
+  });
+
+  it("accepts valid mark-read input", () => {
+    expect(eventChatMarkReadInputSchema.parse({ eventId })).toEqual({
+      eventId,
+    });
+  });
+
+  it("rejects invalid mark-read event id", () => {
+    expect(
+      eventChatMarkReadInputSchema.safeParse({ eventId: "bad-id" }).success,
+    ).toBe(false);
   });
 });

@@ -3,6 +3,7 @@ import { TRPCError } from "@trpc/server";
 import {
   teamChatDeleteInputSchema,
   teamChatListInputSchema,
+  teamChatMarkReadInputSchema,
   teamChatSendInputSchema,
   teamChatUpdateInputSchema,
 } from "@/lib/validation/team-chat";
@@ -66,32 +67,91 @@ export const teamChatRouter = createTRPCRouter({
       });
 
       const limit = input.limit ?? 30;
-      const messages = await ctx.db.teamChatMessage.findMany({
+      const readState = await ctx.db.teamChatReadState.findUnique({
         where: {
-          teamId: input.teamId,
-          deletedAt: null,
-          hiddenAt: null,
+          teamId_userId: {
+            teamId: input.teamId,
+            userId: ctx.session.user.id,
+          },
         },
-        orderBy: {
-          createdAt: "desc",
+        select: {
+          lastReadAt: true,
         },
-        take: limit + 1,
-        ...(input.cursor
-          ? {
-              cursor: {
-                id: input.cursor,
-              },
-              skip: 1,
-            }
-          : {}),
-        select: messageSelect,
       });
+      const lastReadAt = readState?.lastReadAt ?? new Date(0);
+      const [messages, unreadCount] = await Promise.all([
+        ctx.db.teamChatMessage.findMany({
+          where: {
+            teamId: input.teamId,
+            deletedAt: null,
+            hiddenAt: null,
+          },
+          orderBy: {
+            createdAt: "desc",
+          },
+          take: limit + 1,
+          ...(input.cursor
+            ? {
+                cursor: {
+                  id: input.cursor,
+                },
+                skip: 1,
+              }
+            : {}),
+          select: messageSelect,
+        }),
+        ctx.db.teamChatMessage.count({
+          where: {
+            teamId: input.teamId,
+            authorId: {
+              not: ctx.session.user.id,
+            },
+            createdAt: {
+              gt: lastReadAt,
+            },
+            deletedAt: null,
+            hiddenAt: null,
+          },
+        }),
+      ]);
       const nextMessage = messages.length > limit ? messages.pop() : undefined;
 
       return {
         messages,
         nextCursor: nextMessage?.id ?? null,
+        unreadCount,
       };
+    }),
+
+  markRead: protectedProcedure
+    .input(teamChatMarkReadInputSchema)
+    .mutation(async ({ ctx, input }) => {
+      await assertCanAccessTeamChat({
+        db: ctx.db,
+        teamId: input.teamId,
+        userId: ctx.session.user.id,
+      });
+
+      const lastReadAt = new Date();
+
+      await ctx.db.teamChatReadState.upsert({
+        where: {
+          teamId_userId: {
+            teamId: input.teamId,
+            userId: ctx.session.user.id,
+          },
+        },
+        create: {
+          teamId: input.teamId,
+          userId: ctx.session.user.id,
+          lastReadAt,
+        },
+        update: {
+          lastReadAt,
+        },
+      });
+
+      return { success: true };
     }),
 
   send: protectedProcedure

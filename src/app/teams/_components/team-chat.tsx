@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 
 import { api, type RouterOutputs } from "@/trpc/react";
 
@@ -35,6 +35,7 @@ export function TeamChat({
       refetchInterval: canAccess ? 5000 : false,
     },
   );
+  const markRead = api.teamChat.markRead.useMutation();
   const sendMessage = api.teamChat.send.useMutation({
     onSuccess: async () => {
       setBody("");
@@ -71,6 +72,33 @@ export function TeamChat({
     deleteMessage.isPending ||
     hideMessage.isPending;
   const messages = [...(messagesQuery.data?.messages ?? [])].reverse();
+  const latestMessageId = messagesQuery.data?.messages[0]?.id ?? null;
+  const [markedReadMessageId, setMarkedReadMessageId] = useState<string | null>(
+    null,
+  );
+
+  useEffect(() => {
+    if (
+      !canAccess ||
+      !latestMessageId ||
+      markedReadMessageId === latestMessageId
+    ) {
+      return;
+    }
+
+    setMarkedReadMessageId(latestMessageId);
+    void markRead
+      .mutateAsync({ teamId })
+      .then(() => messagesQuery.refetch())
+      .catch(() => undefined);
+  }, [
+    canAccess,
+    latestMessageId,
+    markRead,
+    markedReadMessageId,
+    messagesQuery,
+    teamId,
+  ]);
 
   const handleSend = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();

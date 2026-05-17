@@ -26,3 +26,7 @@ export const eventChatUpdateInputSchema = z.object({
 export const eventChatDeleteInputSchema = z.object({
   messageId: z.string().cuid(),
 });
+
+export const eventChatMarkReadInputSchema = z.object({
+  eventId: z.string().cuid(),
+});

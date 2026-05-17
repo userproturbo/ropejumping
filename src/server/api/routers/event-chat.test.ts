@@ -22,6 +22,7 @@ const userId = "clx0a1b2c0002abcd1234efgh";
 const otherUserId = "clx0a1b2c0003abcd1234efgh";
 const replyToMessageId = "clx0a1b2c0004abcd1234efgh";
 const body = "Буду на месте к началу сбора.";
+const oldReadAt = new Date("2026-05-16T10:00:00.000Z");
 
 const createAccessEvent = (allowed = true) => ({
   createdById: allowed ? userId : otherUserId,
@@ -54,59 +55,100 @@ const createDb = ({
   accessEvent = createAccessEvent(),
   message = createChatMessage(),
   hideManager = false,
+  readState = null,
   replyParent = { id: replyToMessageId },
+  unreadCount = 0,
 }: {
   accessEvent?: ReturnType<typeof createAccessEvent> | null;
   message?: ReturnType<typeof createChatMessage> | null;
   hideManager?: boolean;
+  readState?: { lastReadAt: Date } | null;
   replyParent?: { id: string } | null;
-} = {}) => ({
-  event: {
-    findUnique: vi.fn().mockResolvedValue(accessEvent),
-  },
-  eventChatMessage: {
-    count: vi.fn().mockResolvedValue(0),
-    findMany: vi.fn().mockResolvedValue([
-      {
-        ...createChatMessage(),
-        parentMessage: {
-          id: replyToMessageId,
-          body: "Во сколько сбор?",
-          deletedAt: null,
-          hiddenAt: null,
-          author: {
-            profile: {
-              username: "parent-user",
-              displayName: "Автор вопроса",
+  unreadCount?: number;
+} = {}) => {
+  const storedReadState = { current: readState };
+
+  return {
+    event: {
+      findUnique: vi.fn().mockResolvedValue(accessEvent),
+    },
+    eventChatReadState: {
+      findUnique: vi.fn().mockImplementation(() =>
+        Promise.resolve(storedReadState.current),
+      ),
+      upsert: vi.fn().mockImplementation(
+        (input: {
+          create: { lastReadAt: Date };
+          update: { lastReadAt: Date };
+        }) => {
+          storedReadState.current = {
+            lastReadAt: input.update.lastReadAt,
+          };
+
+          return Promise.resolve({
+            id: "read-state-id",
+            eventId,
+            userId,
+            lastReadAt: input.update.lastReadAt,
+          });
+        },
+      ),
+    },
+    eventChatMessage: {
+      count: vi.fn().mockImplementation(
+        (input: { where?: { createdAt?: { gt?: Date; gte?: Date } } } = {}) =>
+          Promise.resolve(
+            input.where?.createdAt?.gt
+              ? storedReadState.current
+                ? 0
+                : unreadCount
+              : 0,
+          ),
+      ),
+      findMany: vi.fn().mockResolvedValue([
+        {
+          ...createChatMessage(),
+          parentMessage: {
+            id: replyToMessageId,
+            body: "Во сколько сбор?",
+            deletedAt: null,
+            hiddenAt: null,
+            author: {
+              profile: {
+                username: "parent-user",
+                displayName: "Автор вопроса",
+              },
             },
           },
         },
-      },
-    ]),
-    findFirst: vi.fn().mockImplementation(
-      (input: { where?: { id?: string } } = {}) => {
-        if (input.where?.id === replyToMessageId) {
-          return Promise.resolve(replyParent);
-        }
+      ]),
+      findFirst: vi.fn().mockImplementation(
+        (input: { where?: { id?: string } } = {}) => {
+          if (input.where?.id === replyToMessageId) {
+            return Promise.resolve(replyParent);
+          }
 
-        return Promise.resolve(
-          message
-            ? {
-                ...message,
-                event: {
-                  team: {
-                    members: hideManager ? [{ id: "manager-member-id" }] : [],
+          return Promise.resolve(
+            message
+              ? {
+                  ...message,
+                  event: {
+                    team: {
+                      members: hideManager
+                        ? [{ id: "manager-member-id" }]
+                        : [],
+                    },
                   },
-                },
-              }
-            : null,
-        );
-      },
-    ),
-    create: vi.fn().mockResolvedValue(createChatMessage()),
-    update: vi.fn().mockResolvedValue(createChatMessage()),
-  },
-});
+                }
+              : null,
+          );
+        },
+      ),
+      create: vi.fn().mockResolvedValue(createChatMessage()),
+      update: vi.fn().mockResolvedValue(createChatMessage()),
+    },
+  };
+};
 
 const createContext = (
   db: ReturnType<typeof createDb>,
@@ -148,6 +190,7 @@ describe("eventChatRouter", () => {
       message: "У вас нет доступа к чату этого мероприятия.",
     });
     expect(db.eventChatMessage.findMany).not.toHaveBeenCalled();
+    expect(db.eventChatMessage.count).not.toHaveBeenCalled();
   });
 
   it("lists visible messages with access", async () => {
@@ -189,6 +232,118 @@ describe("eventChatRouter", () => {
           displayName: "Автор вопроса",
         },
       },
+    });
+  });
+
+  it("returns unread count in list results", async () => {
+    const db = createDb({ unreadCount: 2 });
+    const caller = createCaller(eventChatRouter)(createContext(db));
+
+    const result = await caller.list({ eventId });
+
+    expect(result.unreadCount).toBe(2);
+    expect(db.eventChatReadState.findUnique).toHaveBeenCalledWith({
+      where: {
+        eventId_userId: {
+          eventId,
+          userId,
+        },
+      },
+      select: {
+        lastReadAt: true,
+      },
+    });
+  });
+
+  it("excludes own messages from unread count", async () => {
+    const db = createDb({ unreadCount: 1 });
+    const caller = createCaller(eventChatRouter)(createContext(db));
+
+    await caller.list({ eventId });
+
+    expect(db.eventChatMessage.count).toHaveBeenCalledWith({
+      where: expect.objectContaining({
+        authorId: {
+          not: userId,
+        },
+      }) as object,
+    });
+  });
+
+  it("excludes hidden and deleted messages from unread count", async () => {
+    const db = createDb({ unreadCount: 1 });
+    const caller = createCaller(eventChatRouter)(createContext(db));
+
+    await caller.list({ eventId });
+
+    expect(db.eventChatMessage.count).toHaveBeenCalledWith({
+      where: expect.objectContaining({
+        deletedAt: null,
+        hiddenAt: null,
+      }) as object,
+    });
+  });
+
+  it("marks event chat as read by creating read state", async () => {
+    const db = createDb();
+    const caller = createCaller(eventChatRouter)(createContext(db));
+
+    await expect(caller.markRead({ eventId })).resolves.toEqual({
+      success: true,
+    });
+    expect(db.eventChatReadState.upsert).toHaveBeenCalledWith({
+      where: {
+        eventId_userId: {
+          eventId,
+          userId,
+        },
+      },
+      create: {
+        eventId,
+        userId,
+        lastReadAt: expect.any(Date) as Date,
+      },
+      update: {
+        lastReadAt: expect.any(Date) as Date,
+      },
+    });
+  });
+
+  it("marks event chat as read by updating existing read state", async () => {
+    const db = createDb({ readState: { lastReadAt: oldReadAt } });
+    const caller = createCaller(eventChatRouter)(createContext(db));
+
+    await expect(caller.markRead({ eventId })).resolves.toEqual({
+      success: true,
+    });
+    expect(db.eventChatReadState.upsert).toHaveBeenCalledWith({
+      where: {
+        eventId_userId: {
+          eventId,
+          userId,
+        },
+      },
+      create: {
+        eventId,
+        userId,
+        lastReadAt: expect.any(Date) as Date,
+      },
+      update: {
+        lastReadAt: expect.any(Date) as Date,
+      },
+    });
+  });
+
+  it("returns zero unread count after markRead", async () => {
+    const db = createDb({ unreadCount: 1 });
+    const caller = createCaller(eventChatRouter)(createContext(db));
+
+    await expect(caller.list({ eventId })).resolves.toMatchObject({
+      unreadCount: 1,
+    });
+    await caller.markRead({ eventId });
+    await expect(caller.list({ eventId })).resolves.toMatchObject({
+      unreadCount: 0,
     });
   });
 
