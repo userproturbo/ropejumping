@@ -16,6 +16,7 @@ type EventChatProps = {
   canModerate: boolean;
   currentUserId: string | null;
   isAuthenticated: boolean;
+  isReadOnly: boolean;
 };
 
 export function EventChat({
@@ -26,6 +27,7 @@ export function EventChat({
   canModerate,
   currentUserId,
   isAuthenticated,
+  isReadOnly: initialIsReadOnly,
 }: EventChatProps) {
   const [body, setBody] = useState("");
   const [replyTo, setReplyTo] = useState<EventChatMessage | null>(null);
@@ -76,9 +78,18 @@ export function EventChat({
     hideMessage.isPending;
   const messages = [...(messagesQuery.data?.messages ?? [])].reverse();
   const latestMessageId = messagesQuery.data?.messages[0]?.id ?? null;
+  const isReadOnly = messagesQuery.data?.isReadOnly ?? initialIsReadOnly;
   const [markedReadMessageId, setMarkedReadMessageId] = useState<string | null>(
     null,
   );
+
+  useEffect(() => {
+    if (!isReadOnly) return;
+
+    setReplyTo(null);
+    setEditingMessageId(null);
+    setEditingBody("");
+  }, [isReadOnly]);
 
   useEffect(() => {
     if (
@@ -143,6 +154,16 @@ export function EventChat({
         организации прыжков.
       </p>
 
+      {canAccess && isReadOnly ? (
+        <div className="mt-4 border border-zinc-200 bg-zinc-50 p-3">
+          <p className="text-sm font-medium text-zinc-950">Чат в архиве</p>
+          <p className="mt-1 text-sm leading-6 text-zinc-600">
+            Мероприятие завершено или закрыто. История чата доступна для
+            чтения, новые сообщения отправлять нельзя.
+          </p>
+        </div>
+      ) : null}
+
       {!isAuthenticated ? (
         <div className="mt-5">
           <p className="text-sm text-zinc-600">
@@ -200,7 +221,7 @@ export function EventChat({
                         </div>
                       </div>
                       <div className="flex flex-wrap justify-end gap-3 text-xs">
-                        {isOwnMessage && !isEditing ? (
+                        {isOwnMessage && !isEditing && !isReadOnly ? (
                           <button
                             type="button"
                             onClick={() => {
@@ -212,7 +233,7 @@ export function EventChat({
                             Редактировать
                           </button>
                         ) : null}
-                        {!isEditing ? (
+                        {!isEditing && !isReadOnly ? (
                           <button
                             type="button"
                             onClick={() => setReplyTo(message)}
@@ -310,55 +331,57 @@ export function EventChat({
             )}
           </div>
 
-          <form onSubmit={handleSend} className="mt-5 grid gap-3">
-            <label
-              htmlFor="eventChatMessage"
-              className="text-sm font-medium text-zinc-950"
-            >
-              Сообщение для участников «{eventTitle}»
-            </label>
-            {replyTo ? (
-              <div className="border border-zinc-200 bg-zinc-50 p-3 text-sm">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <p className="font-medium text-zinc-950">
-                      Ответ на сообщение
-                    </p>
-                    <p className="mt-1 text-zinc-500">
-                      {getAuthorName(replyTo)}
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setReplyTo(null)}
-                    className="text-xs text-zinc-500 hover:text-zinc-950"
-                  >
-                    Отменить
-                  </button>
-                </div>
-                <p className="mt-2 text-zinc-600">
-                  {getMessagePreview(replyTo.body)}
-                </p>
-              </div>
-            ) : null}
-            <textarea
-              id="eventChatMessage"
-              value={body}
-              onChange={(event) => setBody(event.target.value)}
-              rows={4}
-              maxLength={2000}
-              className="resize-y border border-zinc-300 px-3 py-2 text-sm text-zinc-950 outline-none focus:border-zinc-950"
-            />
-            <div>
-              <button
-                type="submit"
-                disabled={isPending}
-                className="bg-zinc-950 px-4 py-2 text-sm text-white hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-400"
+          {!isReadOnly ? (
+            <form onSubmit={handleSend} className="mt-5 grid gap-3">
+              <label
+                htmlFor="eventChatMessage"
+                className="text-sm font-medium text-zinc-950"
               >
-                {sendMessage.isPending ? "Отправка..." : "Отправить"}
-              </button>
-            </div>
-          </form>
+                Сообщение для участников «{eventTitle}»
+              </label>
+              {replyTo ? (
+                <div className="border border-zinc-200 bg-zinc-50 p-3 text-sm">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="font-medium text-zinc-950">
+                        Ответ на сообщение
+                      </p>
+                      <p className="mt-1 text-zinc-500">
+                        {getAuthorName(replyTo)}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setReplyTo(null)}
+                      className="text-xs text-zinc-500 hover:text-zinc-950"
+                    >
+                      Отменить
+                    </button>
+                  </div>
+                  <p className="mt-2 text-zinc-600">
+                    {getMessagePreview(replyTo.body)}
+                  </p>
+                </div>
+              ) : null}
+              <textarea
+                id="eventChatMessage"
+                value={body}
+                onChange={(event) => setBody(event.target.value)}
+                rows={4}
+                maxLength={2000}
+                className="resize-y border border-zinc-300 px-3 py-2 text-sm text-zinc-950 outline-none focus:border-zinc-950"
+              />
+              <div>
+                <button
+                  type="submit"
+                  disabled={isPending}
+                  className="bg-zinc-950 px-4 py-2 text-sm text-white hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-400"
+                >
+                  {sendMessage.isPending ? "Отправка..." : "Отправить"}
+                </button>
+              </div>
+            </form>
+          ) : null}
         </>
       )}
 

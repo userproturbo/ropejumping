@@ -1,6 +1,7 @@
 import { TRPCError } from "@trpc/server";
 
 import { ApplicationStatus, TeamRole } from "@/generated/prisma/enums";
+import type { EventStatus } from "@/generated/prisma/enums";
 import {
   eventChatDeleteInputSchema,
   eventChatListInputSchema,
@@ -14,6 +15,7 @@ import {
   assertCanAccessEventChat,
   canAccessEventChat,
 } from "@/server/events/chat-permissions";
+import { isEventChatReadOnlyStatus } from "@/server/events/chat-lifecycle";
 import { isModeratorUser } from "@/server/moderation/permissions";
 
 const messageSelect = {
@@ -63,6 +65,10 @@ const chatApplicationStatuses = [
   ApplicationStatus.ACCEPTED,
   ApplicationStatus.CONFIRMED_PARTICIPATION,
 ];
+const archivedChatMessage =
+  "Чат мероприятия переведён в архив. Новые сообщения недоступны.";
+const archivedEditMessage =
+  "Чат мероприятия переведён в архив. Редактирование сообщений недоступно.";
 
 const getPreviewAuthorName = (message: {
   author: {
@@ -77,6 +83,32 @@ const getPreviewAuthorName = (message: {
   message.author.profile?.username ??
   message.author.name ??
   "Участник";
+
+const getEventChatReadOnly = async (
+  db: {
+    event: {
+      findUnique: (input: {
+        where: { id: string };
+        select: { status: true };
+      }) => Promise<{ status: EventStatus } | null>;
+    };
+  },
+  eventId: string,
+) => {
+  const event = await db.event.findUnique({
+    where: { id: eventId },
+    select: { status: true },
+  });
+
+  if (!event) {
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: "Мероприятие не найдено.",
+    });
+  }
+
+  return isEventChatReadOnlyStatus(event.status);
+};
 
 export const eventChatRouter = createTRPCRouter({
   getMyChats: protectedProcedure.query(async ({ ctx }) => {
@@ -187,6 +219,7 @@ export const eventChatRouter = createTRPCRouter({
           eventTitle: event.title,
           eventSlug: event.slug,
           eventStatus: event.status,
+          isReadOnly: isEventChatReadOnlyStatus(event.status),
           sortDate: lastMessage?.createdAt ?? event.updatedAt,
           lastMessage: lastMessage
             ? {
@@ -216,6 +249,7 @@ export const eventChatRouter = createTRPCRouter({
         userId: ctx.session.user.id,
       });
 
+      const isReadOnly = await getEventChatReadOnly(ctx.db, input.eventId);
       const limit = input.limit ?? 30;
       const readState = await ctx.db.eventChatReadState.findUnique({
         where: {
@@ -270,6 +304,7 @@ export const eventChatRouter = createTRPCRouter({
         messages,
         nextCursor: nextMessage?.id ?? null,
         unreadCount,
+        isReadOnly,
       };
     }),
 
@@ -312,6 +347,14 @@ export const eventChatRouter = createTRPCRouter({
         eventId: input.eventId,
         userId: ctx.session.user.id,
       });
+
+      if (await getEventChatReadOnly(ctx.db, input.eventId)) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: archivedChatMessage,
+        });
+      }
+
       await assertEventChatMessageCreateLimit(ctx.db, ctx.session.user.id);
 
       if (input.replyToMessageId) {
@@ -381,6 +424,13 @@ export const eventChatRouter = createTRPCRouter({
         eventId: message.eventId,
         userId: ctx.session.user.id,
       });
+
+      if (await getEventChatReadOnly(ctx.db, message.eventId)) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: archivedEditMessage,
+        });
+      }
 
       return ctx.db.eventChatMessage.update({
         where: {
