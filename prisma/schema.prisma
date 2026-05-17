@@ -238,6 +238,8 @@ model User {
   objectImpressions       ObjectImpression[]
   eventChatMessages       EventChatMessage[]
   teamChatMessages        TeamChatMessage[]
+  eventChatReadStates     EventChatReadState[]
+  teamChatReadStates      TeamChatReadState[]
 }
 
 model VerificationToken {
@@ -292,6 +294,7 @@ model Team {
   invitations  TeamInvitation[]
   followers    TeamFollow[]
   chatMessages TeamChatMessage[]
+  chatReadStates TeamChatReadState[]
 
   @@index([status])
   @@index([region])
@@ -510,6 +513,7 @@ model Event {
   galleryImages  EventGalleryImage[]
   posts          Post[]
   chatMessages   EventChatMessage[]
+  chatReadStates EventChatReadState[]
 
   @@index([status])
   @@index([startsAt])
@@ -586,6 +590,22 @@ model EventChatMessage {
   @@index([hiddenAt])
 }
 
+model EventChatReadState {
+  id         String   @id @default(cuid())
+  eventId    String
+  userId     String
+  lastReadAt DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, userId])
+  @@index([eventId])
+  @@index([userId])
+  @@index([lastReadAt])
+}
+
 model TeamChatMessage {
   id              String    @id @default(cuid())
   teamId          String
@@ -609,6 +629,22 @@ model TeamChatMessage {
   @@index([createdAt])
   @@index([deletedAt])
   @@index([hiddenAt])
+}
+
+model TeamChatReadState {
+  id         String   @id @default(cuid())
+  teamId     String
+  userId     String
+  lastReadAt DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId])
+  @@index([teamId])
+  @@index([userId])
+  @@index([lastReadAt])
 }
 
 model EventCrewMember {

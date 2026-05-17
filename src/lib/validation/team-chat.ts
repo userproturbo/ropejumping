@@ -26,3 +26,7 @@ export const teamChatUpdateInputSchema = z.object({
 export const teamChatDeleteInputSchema = z.object({
   messageId: z.string().cuid(),
 });
+
+export const teamChatMarkReadInputSchema = z.object({
+  teamId: z.string().cuid(),
+});

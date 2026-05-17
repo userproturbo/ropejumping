@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   teamChatDeleteInputSchema,
   teamChatListInputSchema,
+  teamChatMarkReadInputSchema,
   teamChatSendInputSchema,
   teamChatUpdateInputSchema,
 } from "@/lib/validation/team-chat";
@@ -96,6 +97,18 @@ describe("team chat validation", () => {
     expect(teamChatListInputSchema.parse({ teamId, limit: 50 }).limit).toBe(50);
     expect(
       teamChatListInputSchema.safeParse({ teamId, limit: 51 }).success,
+    ).toBe(false);
+  });
+
+  it("accepts valid mark-read input", () => {
+    expect(teamChatMarkReadInputSchema.parse({ teamId })).toEqual({
+      teamId,
+    });
+  });
+
+  it("rejects invalid mark-read team id", () => {
+    expect(
+      teamChatMarkReadInputSchema.safeParse({ teamId: "bad-id" }).success,
     ).toBe(false);
   });
 });
