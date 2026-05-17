@@ -7,6 +7,7 @@ import {
   TeamStatus,
 } from "@/generated/prisma/enums";
 import {
+  hideChatMessageInputSchema,
   hideObjectImpressionInputSchema,
   hideTargetInputSchema,
   reportActionInputSchema,
@@ -19,9 +20,11 @@ import { assertReportCreateLimit } from "@/server/anti-spam/rate-limit";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { publicPostWhere } from "@/server/api/routers/post";
 import type { db as database } from "@/server/db";
+import { assertCanAccessEventChat } from "@/server/events/chat-permissions";
 import { requireModerator } from "@/server/moderation/permissions";
 import { createNotification } from "@/server/notifications/service";
 import { REPORT_TARGET_TYPES } from "@/server/reports/targets";
+import { assertCanAccessTeamChat } from "@/server/teams/chat-permissions";
 
 type ReportRouterDb = typeof database;
 
@@ -77,6 +80,7 @@ const ensureReportableTarget = async (
   db: ReportRouterDb,
   targetType: ReportTargetType,
   targetId: string,
+  reporterId: string,
 ) => {
   if (targetType === REPORT_TARGET_TYPES.POST) {
     const post = await db.post.findFirst({
@@ -136,6 +140,86 @@ const ensureReportableTarget = async (
     return;
   }
 
+  if (targetType === REPORT_TARGET_TYPES.EVENT_CHAT_MESSAGE) {
+    const message = await db.eventChatMessage.findFirst({
+      where: {
+        id: targetId,
+        deletedAt: null,
+        hiddenAt: null,
+      },
+      select: {
+        id: true,
+        eventId: true,
+      },
+    });
+
+    if (!message) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "Объект жалобы не найден.",
+      });
+    }
+
+    try {
+      await assertCanAccessEventChat({
+        db,
+        eventId: message.eventId,
+        userId: reporterId,
+      });
+    } catch (error) {
+      if (!(error instanceof TRPCError)) {
+        throw error;
+      }
+
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "Объект жалобы не найден.",
+      });
+    }
+
+    return;
+  }
+
+  if (targetType === REPORT_TARGET_TYPES.TEAM_CHAT_MESSAGE) {
+    const message = await db.teamChatMessage.findFirst({
+      where: {
+        id: targetId,
+        deletedAt: null,
+        hiddenAt: null,
+      },
+      select: {
+        id: true,
+        teamId: true,
+      },
+    });
+
+    if (!message) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "Объект жалобы не найден.",
+      });
+    }
+
+    try {
+      await assertCanAccessTeamChat({
+        db,
+        teamId: message.teamId,
+        userId: reporterId,
+      });
+    } catch (error) {
+      if (!(error instanceof TRPCError)) {
+        throw error;
+      }
+
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "Объект жалобы не найден.",
+      });
+    }
+
+    return;
+  }
+
   const comment = await db.comment.findFirst({
     where: {
       id: targetId,
@@ -170,16 +254,34 @@ const addReportTargetPreviews = async <
       (report) => report.targetType === REPORT_TARGET_TYPES.OBJECT_IMPRESSION,
     )
     .map((report) => report.targetId);
+  const eventChatMessageIds = reports
+    .filter(
+      (report) => report.targetType === REPORT_TARGET_TYPES.EVENT_CHAT_MESSAGE,
+    )
+    .map((report) => report.targetId);
+  const teamChatMessageIds = reports
+    .filter(
+      (report) => report.targetType === REPORT_TARGET_TYPES.TEAM_CHAT_MESSAGE,
+    )
+    .map((report) => report.targetId);
 
-  if (objectIds.length === 0 && impressionIds.length === 0) {
+  if (
+    objectIds.length === 0 &&
+    impressionIds.length === 0 &&
+    eventChatMessageIds.length === 0 &&
+    teamChatMessageIds.length === 0
+  ) {
     return reports.map((report) => ({
       ...report,
       targetObject: null,
       targetObjectImpression: null,
+      targetEventChatMessage: null,
+      targetTeamChatMessage: null,
     }));
   }
 
-  const [objects, impressions] = await Promise.all([
+  const [objects, impressions, eventChatMessages, teamChatMessages] =
+    await Promise.all([
     objectIds.length > 0
       ? db.jumpObject.findMany({
           where: {
@@ -231,10 +333,86 @@ const addReportTargetPreviews = async <
           },
         })
       : Promise.resolve([]),
+    eventChatMessageIds.length > 0
+      ? db.eventChatMessage.findMany({
+          where: {
+            id: {
+              in: eventChatMessageIds,
+            },
+          },
+          select: {
+            id: true,
+            body: true,
+            hiddenAt: true,
+            deletedAt: true,
+            author: {
+              select: {
+                id: true,
+                name: true,
+                profile: {
+                  select: {
+                    username: true,
+                    displayName: true,
+                    avatarUrl: true,
+                  },
+                },
+              },
+            },
+            event: {
+              select: {
+                id: true,
+                title: true,
+                slug: true,
+              },
+            },
+          },
+        })
+      : Promise.resolve([]),
+    teamChatMessageIds.length > 0
+      ? db.teamChatMessage.findMany({
+          where: {
+            id: {
+              in: teamChatMessageIds,
+            },
+          },
+          select: {
+            id: true,
+            body: true,
+            hiddenAt: true,
+            deletedAt: true,
+            author: {
+              select: {
+                id: true,
+                name: true,
+                profile: {
+                  select: {
+                    username: true,
+                    displayName: true,
+                    avatarUrl: true,
+                  },
+                },
+              },
+            },
+            team: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+              },
+            },
+          },
+        })
+      : Promise.resolve([]),
   ]);
   const objectById = new Map(objects.map((object) => [object.id, object]));
   const impressionById = new Map(
     impressions.map((impression) => [impression.id, impression]),
+  );
+  const eventChatMessageById = new Map(
+    eventChatMessages.map((message) => [message.id, message]),
+  );
+  const teamChatMessageById = new Map(
+    teamChatMessages.map((message) => [message.id, message]),
   );
 
   return reports.map((report) => ({
@@ -246,6 +424,14 @@ const addReportTargetPreviews = async <
     targetObjectImpression:
       report.targetType === REPORT_TARGET_TYPES.OBJECT_IMPRESSION
         ? (impressionById.get(report.targetId) ?? null)
+        : null,
+    targetEventChatMessage:
+      report.targetType === REPORT_TARGET_TYPES.EVENT_CHAT_MESSAGE
+        ? (eventChatMessageById.get(report.targetId) ?? null)
+        : null,
+    targetTeamChatMessage:
+      report.targetType === REPORT_TARGET_TYPES.TEAM_CHAT_MESSAGE
+        ? (teamChatMessageById.get(report.targetId) ?? null)
         : null,
   }));
 };
@@ -322,6 +508,92 @@ const hideObjectImpression = async (
   return { success: true };
 };
 
+const hideEventChatMessage = async (
+  db: ReportRouterDb,
+  input: {
+    messageId: string;
+    reportId?: string;
+    reviewerId: string;
+  },
+) => {
+  const message = await db.eventChatMessage.findUnique({
+    where: { id: input.messageId },
+    select: { id: true },
+  });
+
+  if (!message) {
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: "Сообщение не найдено.",
+    });
+  }
+
+  await db.$transaction(async (tx) => {
+    await tx.eventChatMessage.update({
+      where: {
+        id: input.messageId,
+      },
+      data: {
+        hiddenAt: new Date(),
+      },
+    });
+
+    if (input.reportId) {
+      await reviewReportRecord(
+        tx,
+        input.reportId,
+        input.reviewerId,
+        ReportStatus.RESOLVED,
+      );
+    }
+  });
+
+  return { success: true };
+};
+
+const hideTeamChatMessage = async (
+  db: ReportRouterDb,
+  input: {
+    messageId: string;
+    reportId?: string;
+    reviewerId: string;
+  },
+) => {
+  const message = await db.teamChatMessage.findUnique({
+    where: { id: input.messageId },
+    select: { id: true },
+  });
+
+  if (!message) {
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: "Сообщение не найдено.",
+    });
+  }
+
+  await db.$transaction(async (tx) => {
+    await tx.teamChatMessage.update({
+      where: {
+        id: input.messageId,
+      },
+      data: {
+        hiddenAt: new Date(),
+      },
+    });
+
+    if (input.reportId) {
+      await reviewReportRecord(
+        tx,
+        input.reportId,
+        input.reviewerId,
+        ReportStatus.RESOLVED,
+      );
+    }
+  });
+
+  return { success: true };
+};
+
 const reviewReport = async (
   db: ReportRouterDb,
   reportId: string,
@@ -369,7 +641,12 @@ export const reportRouter = createTRPCRouter({
     .input(reportCreateInputSchema)
     .mutation(async ({ ctx, input }) => {
       await ensureProfile(ctx.db, ctx.session.user.id);
-      await ensureReportableTarget(ctx.db, input.targetType, input.targetId);
+      await ensureReportableTarget(
+        ctx.db,
+        input.targetType,
+        input.targetId,
+        ctx.session.user.id,
+      );
       await assertReportCreateLimit(ctx.db, ctx.session.user.id);
 
       return ctx.db.report.create({
@@ -541,6 +818,20 @@ export const reportRouter = createTRPCRouter({
         });
       }
 
+      if (input.targetType === REPORT_TARGET_TYPES.EVENT_CHAT_MESSAGE) {
+        return hideEventChatMessage(ctx.db, {
+          messageId: input.targetId,
+          reviewerId: ctx.session.user.id,
+        });
+      }
+
+      if (input.targetType === REPORT_TARGET_TYPES.TEAM_CHAT_MESSAGE) {
+        return hideTeamChatMessage(ctx.db, {
+          messageId: input.targetId,
+          reviewerId: ctx.session.user.id,
+        });
+      }
+
       return ctx.db.comment.update({
         where: { id: input.targetId },
         data: {
@@ -556,6 +847,30 @@ export const reportRouter = createTRPCRouter({
 
       return hideObjectImpression(ctx.db, {
         impressionId: input.impressionId,
+        reportId: input.reportId,
+        reviewerId: ctx.session.user.id,
+      });
+    }),
+
+  hideEventChatMessage: protectedProcedure
+    .input(hideChatMessageInputSchema)
+    .mutation(async ({ ctx, input }) => {
+      requireModerator(ctx);
+
+      return hideEventChatMessage(ctx.db, {
+        messageId: input.messageId,
+        reportId: input.reportId,
+        reviewerId: ctx.session.user.id,
+      });
+    }),
+
+  hideTeamChatMessage: protectedProcedure
+    .input(hideChatMessageInputSchema)
+    .mutation(async ({ ctx, input }) => {
+      requireModerator(ctx);
+
+      return hideTeamChatMessage(ctx.db, {
+        messageId: input.messageId,
         reportId: input.reportId,
         reviewerId: ctx.session.user.id,
       });

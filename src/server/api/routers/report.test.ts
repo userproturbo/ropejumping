@@ -18,6 +18,8 @@ vi.mock("@/server/db", () => ({
   db: {},
 }));
 
+vi.mock("server-only", () => ({}));
+
 vi.mock("@/server/api/routers/post", () => ({
   publicPostWhere: {
     hiddenAt: null,
@@ -28,6 +30,10 @@ const reporterId = "clx0a1b2c0000abcd1234efgh";
 const moderatorId = "clx0a1b2c0001abcd1234efgh";
 const impressionId = "clx0a1b2c0002abcd1234efgh";
 const reportId = "clx0a1b2c0003abcd1234efgh";
+const eventChatMessageId = "clx0a1b2c0004abcd1234efgh";
+const teamChatMessageId = "clx0a1b2c0005abcd1234efgh";
+const eventId = "clx0a1b2c0006abcd1234efgh";
+const teamId = "clx0a1b2c0007abcd1234efgh";
 const reason = "Нарушение правил безопасности или сообщества";
 
 const createReport = () => ({
@@ -44,12 +50,26 @@ const createReport = () => ({
 
 const createDb = ({
   reportableImpression = { id: impressionId },
+  reportableEventChatMessage = { id: eventChatMessageId, eventId },
+  reportableTeamChatMessage = { id: teamChatMessageId, teamId },
+  eventAccessAllowed = true,
+  teamAccessAllowed = true,
 }: {
   reportableImpression?: { id: string } | null;
+  reportableEventChatMessage?: { id: string; eventId: string } | null;
+  reportableTeamChatMessage?: { id: string; teamId: string } | null;
+  eventAccessAllowed?: boolean;
+  teamAccessAllowed?: boolean;
 } = {}) => {
   const tx = {
     objectImpression: {
       update: vi.fn().mockResolvedValue({ id: impressionId }),
+    },
+    eventChatMessage: {
+      update: vi.fn().mockResolvedValue({ id: eventChatMessageId }),
+    },
+    teamChatMessage: {
+      update: vi.fn().mockResolvedValue({ id: teamChatMessageId }),
     },
     report: {
       update: vi.fn().mockResolvedValue(createReport()),
@@ -84,6 +104,33 @@ const createDb = ({
       findFirst: vi.fn().mockResolvedValue(reportableImpression),
       findMany: vi.fn().mockResolvedValue([]),
       update: vi.fn().mockResolvedValue({ id: impressionId }),
+    },
+    event: {
+      findUnique: vi.fn().mockResolvedValue({
+        createdById: eventAccessAllowed ? reporterId : "other-user-id",
+        team: {
+          members: [],
+        },
+        applications: [],
+        participations: [],
+      }),
+    },
+    team: {
+      findUnique: vi.fn().mockResolvedValue({
+        members: teamAccessAllowed ? [{ id: "member-id" }] : [],
+      }),
+    },
+    eventChatMessage: {
+      findFirst: vi.fn().mockResolvedValue(reportableEventChatMessage),
+      findUnique: vi.fn().mockResolvedValue({ id: eventChatMessageId }),
+      findMany: vi.fn().mockResolvedValue([]),
+      update: vi.fn().mockResolvedValue({ id: eventChatMessageId }),
+    },
+    teamChatMessage: {
+      findFirst: vi.fn().mockResolvedValue(reportableTeamChatMessage),
+      findUnique: vi.fn().mockResolvedValue({ id: teamChatMessageId }),
+      findMany: vi.fn().mockResolvedValue([]),
+      update: vi.fn().mockResolvedValue({ id: teamChatMessageId }),
     },
     report: {
       count: vi.fn().mockResolvedValue(0),
@@ -260,5 +307,259 @@ describe("reportRouter object impression support", () => {
       message: "У вас нет прав модератора.",
     });
     expect(db.$transaction).not.toHaveBeenCalled();
+  });
+
+  it("allows users with event chat access to report visible event chat messages", async () => {
+    const db = createDb();
+    const caller = createCaller(reportRouter)(createContext(db));
+
+    await caller.create({
+      targetType: "EVENT_CHAT_MESSAGE",
+      targetId: eventChatMessageId,
+      reason,
+      details: null,
+    });
+
+    expect(db.eventChatMessage.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: eventChatMessageId,
+        deletedAt: null,
+        hiddenAt: null,
+      },
+      select: {
+        id: true,
+        eventId: true,
+      },
+    });
+    expect(db.report.create).toHaveBeenCalledWith({
+      data: {
+        reporterId,
+        targetType: "EVENT_CHAT_MESSAGE",
+        targetId: eventChatMessageId,
+        reason,
+        details: null,
+        status: ReportStatus.OPEN,
+      },
+    });
+  });
+
+  it("rejects event chat message reports without chat access", async () => {
+    const db = createDb({ eventAccessAllowed: false });
+    const caller = createCaller(reportRouter)(createContext(db));
+
+    await expect(
+      caller.create({
+        targetType: "EVENT_CHAT_MESSAGE",
+        targetId: eventChatMessageId,
+        reason,
+        details: null,
+      }),
+    ).rejects.toMatchObject({
+      code: "NOT_FOUND",
+      message: "Объект жалобы не найден.",
+    });
+    expect(db.report.create).not.toHaveBeenCalled();
+  });
+
+  it("rejects deleted or hidden event chat messages", async () => {
+    const db = createDb({ reportableEventChatMessage: null });
+    const caller = createCaller(reportRouter)(createContext(db));
+
+    await expect(
+      caller.create({
+        targetType: "EVENT_CHAT_MESSAGE",
+        targetId: eventChatMessageId,
+        reason,
+        details: null,
+      }),
+    ).rejects.toMatchObject({
+      code: "NOT_FOUND",
+      message: "Объект жалобы не найден.",
+    });
+    expect(db.event.findUnique).not.toHaveBeenCalled();
+  });
+
+  it("allows team members to report visible team chat messages", async () => {
+    const db = createDb();
+    const caller = createCaller(reportRouter)(createContext(db));
+
+    await caller.create({
+      targetType: "TEAM_CHAT_MESSAGE",
+      targetId: teamChatMessageId,
+      reason,
+      details: null,
+    });
+
+    expect(db.teamChatMessage.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: teamChatMessageId,
+        deletedAt: null,
+        hiddenAt: null,
+      },
+      select: {
+        id: true,
+        teamId: true,
+      },
+    });
+    expect(db.report.create).toHaveBeenCalledWith({
+      data: {
+        reporterId,
+        targetType: "TEAM_CHAT_MESSAGE",
+        targetId: teamChatMessageId,
+        reason,
+        details: null,
+        status: ReportStatus.OPEN,
+      },
+    });
+  });
+
+  it("rejects team chat message reports without chat access", async () => {
+    const db = createDb({ teamAccessAllowed: false });
+    const caller = createCaller(reportRouter)(createContext(db));
+
+    await expect(
+      caller.create({
+        targetType: "TEAM_CHAT_MESSAGE",
+        targetId: teamChatMessageId,
+        reason,
+        details: null,
+      }),
+    ).rejects.toMatchObject({
+      code: "NOT_FOUND",
+      message: "Объект жалобы не найден.",
+    });
+    expect(db.report.create).not.toHaveBeenCalled();
+  });
+
+  it("rejects deleted or hidden team chat messages", async () => {
+    const db = createDb({ reportableTeamChatMessage: null });
+    const caller = createCaller(reportRouter)(createContext(db));
+
+    await expect(
+      caller.create({
+        targetType: "TEAM_CHAT_MESSAGE",
+        targetId: teamChatMessageId,
+        reason,
+        details: null,
+      }),
+    ).rejects.toMatchObject({
+      code: "NOT_FOUND",
+      message: "Объект жалобы не найден.",
+    });
+    expect(db.team.findUnique).not.toHaveBeenCalled();
+  });
+
+  it("allows moderators to hide event chat messages", async () => {
+    const db = createDb();
+    const caller = createCaller(reportRouter)(
+      createContext(db, {
+        id: moderatorId,
+        email: "moderator@example.com",
+      }),
+    );
+
+    await expect(
+      caller.hideEventChatMessage({ messageId: eventChatMessageId }),
+    ).resolves.toEqual({ success: true });
+    expect(db.tx.eventChatMessage.update).toHaveBeenCalledWith({
+      where: {
+        id: eventChatMessageId,
+      },
+      data: {
+        hiddenAt: expect.any(Date) as Date,
+      },
+    });
+  });
+
+  it("rejects non-moderators hiding event chat messages", async () => {
+    const db = createDb();
+    const caller = createCaller(reportRouter)(createContext(db));
+
+    await expect(
+      caller.hideEventChatMessage({ messageId: eventChatMessageId }),
+    ).rejects.toMatchObject({
+      code: "FORBIDDEN",
+      message: "У вас нет прав модератора.",
+    });
+    expect(db.$transaction).not.toHaveBeenCalled();
+  });
+
+  it("resolves the report when hiding an event chat message with reportId", async () => {
+    const db = createDb();
+    const caller = createCaller(reportRouter)(
+      createContext(db, {
+        id: moderatorId,
+        email: "moderator@example.com",
+      }),
+    );
+
+    await caller.hideEventChatMessage({ messageId: eventChatMessageId, reportId });
+
+    expect(db.tx.report.update).toHaveBeenCalledWith({
+      where: { id: reportId },
+      data: {
+        status: ReportStatus.RESOLVED,
+        reviewedById: moderatorId,
+        reviewedAt: expect.any(Date) as Date,
+      },
+      include: expect.any(Object) as object,
+    });
+  });
+
+  it("allows moderators to hide team chat messages", async () => {
+    const db = createDb();
+    const caller = createCaller(reportRouter)(
+      createContext(db, {
+        id: moderatorId,
+        email: "moderator@example.com",
+      }),
+    );
+
+    await expect(
+      caller.hideTeamChatMessage({ messageId: teamChatMessageId }),
+    ).resolves.toEqual({ success: true });
+    expect(db.tx.teamChatMessage.update).toHaveBeenCalledWith({
+      where: {
+        id: teamChatMessageId,
+      },
+      data: {
+        hiddenAt: expect.any(Date) as Date,
+      },
+    });
+  });
+
+  it("rejects non-moderators hiding team chat messages", async () => {
+    const db = createDb();
+    const caller = createCaller(reportRouter)(createContext(db));
+
+    await expect(
+      caller.hideTeamChatMessage({ messageId: teamChatMessageId }),
+    ).rejects.toMatchObject({
+      code: "FORBIDDEN",
+      message: "У вас нет прав модератора.",
+    });
+    expect(db.$transaction).not.toHaveBeenCalled();
+  });
+
+  it("resolves the report when hiding a team chat message with reportId", async () => {
+    const db = createDb();
+    const caller = createCaller(reportRouter)(
+      createContext(db, {
+        id: moderatorId,
+        email: "moderator@example.com",
+      }),
+    );
+
+    await caller.hideTeamChatMessage({ messageId: teamChatMessageId, reportId });
+
+    expect(db.tx.report.update).toHaveBeenCalledWith({
+      where: { id: reportId },
+      data: {
+        status: ReportStatus.RESOLVED,
+        reviewedById: moderatorId,
+        reviewedAt: expect.any(Date) as Date,
+      },
+      include: expect.any(Object) as object,
+    });
   });
 });
