@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { EventLogisticsType } from "@/generated/prisma/enums";
 import {
   eventLogisticsCreateInputSchema,
+  eventLogisticsJoinInputSchema,
   eventLogisticsPostIdInputSchema,
 } from "@/lib/validation/event-logistics";
 
@@ -89,6 +90,16 @@ describe("event logistics validation", () => {
     expect(eventLogisticsPostIdInputSchema.parse({ postId }).postId).toBe(
       postId,
     );
+  });
+
+  it("accepts valid join post id", () => {
+    expect(eventLogisticsJoinInputSchema.parse({ postId }).postId).toBe(postId);
+  });
+
+  it("rejects invalid join post id", () => {
+    expect(
+      eventLogisticsJoinInputSchema.safeParse({ postId: "bad-id" }).success,
+    ).toBe(false);
   });
 
   it("rejects negative seats count", () => {

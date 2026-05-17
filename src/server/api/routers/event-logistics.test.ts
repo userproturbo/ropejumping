@@ -5,6 +5,7 @@ import {
   EventLogisticsType,
   EventStatus,
 } from "@/generated/prisma/enums";
+import { Prisma } from "@/generated/prisma/client";
 import type { eventLogisticsRouter as EventLogisticsRouter } from "@/server/api/routers/event-logistics";
 import type { createCallerFactory as CreateCallerFactory } from "@/server/api/trpc";
 
@@ -25,6 +26,7 @@ const eventId = "clx0a1b2c0000abcd1234efgh";
 const postId = "clx0a1b2c0001abcd1234efgh";
 const userId = "clx0a1b2c0002abcd1234efgh";
 const otherUserId = "clx0a1b2c0003abcd1234efgh";
+const joinId = "clx0a1b2c0004abcd1234efgh";
 
 const createAccessEvent = ({
   allowed = true,
@@ -44,20 +46,57 @@ const createAccessEvent = ({
   participations: [],
 });
 
-const createPost = (authorId = userId) => ({
+const createJoin = ({
+  cancelled = false,
+  userId: joinUserId = userId,
+}: {
+  cancelled?: boolean;
+  userId?: string;
+} = {}) => ({
+  id: joinId,
+  postId,
+  userId: joinUserId,
+  createdAt: new Date("2026-05-17T10:30:00.000Z"),
+  cancelledAt: cancelled ? new Date("2026-05-17T11:00:00.000Z") : null,
+  user: {
+    profile: {
+      username: "joined-user",
+      displayName: "Попутчик",
+      avatarUrl: null,
+      avatarMedia: null,
+    },
+  },
+});
+
+const createPost = ({
+  authorId = userId,
+  hidden = false,
+  joins = [],
+  seatsAvailable = null,
+  status = EventLogisticsStatus.ACTIVE,
+  type = EventLogisticsType.NEED_SEAT,
+}: {
+  authorId?: string;
+  hidden?: boolean;
+  joins?: ReturnType<typeof createJoin>[];
+  seatsAvailable?: number | null;
+  status?: EventLogisticsStatus;
+  type?: EventLogisticsType;
+} = {}) => ({
   id: postId,
   eventId,
   authorId,
-  type: EventLogisticsType.NEED_SEAT,
-  status: EventLogisticsStatus.ACTIVE,
+  type,
+  status,
   fromLocation: "Москва",
   departureTimeText: "суббота утром",
-  seatsAvailable: null,
+  seatsAvailable,
   baggageNote: null,
   body: "Ищу место до общего района сбора.",
   createdAt: new Date("2026-05-17T10:00:00.000Z"),
   updatedAt: new Date("2026-05-17T10:00:00.000Z"),
   closedAt: null,
+  hiddenAt: hidden ? new Date("2026-05-17T11:00:00.000Z") : null,
   author: {
     profile: {
       username: "user",
@@ -66,40 +105,88 @@ const createPost = (authorId = userId) => ({
       avatarMedia: null,
     },
   },
+  joins,
 });
 
 const createDb = ({
   accessEvent = createAccessEvent(),
   post = createPost(),
   createCount = 0,
+  existingJoin = null,
+  activeJoinsCount = 0,
 }: {
   accessEvent?: ReturnType<typeof createAccessEvent> | null;
   post?: ReturnType<typeof createPost> | null;
   createCount?: number;
-} = {}) => ({
-  event: {
-    findUnique: vi.fn().mockResolvedValue(accessEvent),
-  },
-  eventLogisticsPost: {
-    count: vi.fn().mockResolvedValue(createCount),
-    findMany: vi.fn().mockResolvedValue(post ? [post] : []),
-    findFirst: vi.fn().mockResolvedValue(
-      post
-        ? {
-            ...post,
-            event: {
-              createdById: accessEvent?.createdById ?? otherUserId,
-              team: {
-                members: accessEvent?.team.members ?? [],
-              },
-            },
-          }
-        : null,
+  existingJoin?: ReturnType<typeof createJoin> | null;
+  activeJoinsCount?: number;
+} = {}) => {
+  const db = {
+    $transaction: vi.fn(
+      async (
+        callback: (tx: typeof db) => unknown,
+        _options?: { isolationLevel?: Prisma.TransactionIsolationLevel },
+      ) => callback(db),
     ),
-    create: vi.fn().mockResolvedValue(post ?? createPost()),
-    update: vi.fn().mockResolvedValue(post ?? createPost()),
-  },
-});
+    event: {
+      findUnique: vi.fn().mockResolvedValue(accessEvent),
+    },
+    eventLogisticsPost: {
+      count: vi.fn().mockResolvedValue(createCount),
+      findMany: vi.fn().mockResolvedValue(
+        post
+          ? [
+              {
+                ...post,
+                joins: post.joins.filter((join) => !join.cancelledAt),
+              },
+            ]
+          : [],
+      ),
+      findFirst: vi.fn().mockImplementation(() =>
+        Promise.resolve(
+          post && !post.hiddenAt
+            ? {
+                ...post,
+                event: {
+                  createdById: accessEvent?.createdById ?? otherUserId,
+                  team: {
+                    members: accessEvent?.team.members ?? [],
+                  },
+                },
+              }
+            : null,
+        ),
+      ),
+      create: vi.fn().mockResolvedValue(post ?? createPost()),
+      update: vi.fn().mockResolvedValue(post ?? createPost()),
+    },
+    eventLogisticsJoin: {
+      count: vi.fn().mockResolvedValue(activeJoinsCount),
+      findUnique: vi.fn().mockResolvedValue(
+        existingJoin
+          ? {
+              ...existingJoin,
+              post: {
+                eventId,
+              },
+            }
+          : null,
+      ),
+      create: vi.fn().mockResolvedValue(createJoin()),
+      update: vi.fn().mockResolvedValue(
+        existingJoin
+          ? {
+              ...existingJoin,
+              cancelledAt: null,
+            }
+          : createJoin({ cancelled: true }),
+      ),
+    },
+  };
+
+  return db;
+};
 
 const createContext = (
   db: ReturnType<typeof createDb>,
@@ -199,6 +286,271 @@ describe("eventLogisticsRouter", () => {
     });
   });
 
+  it("allows accepted participants to join offer-seat posts", async () => {
+    const db = createDb({
+      post: createPost({
+        authorId: otherUserId,
+        type: EventLogisticsType.OFFER_SEAT,
+        seatsAvailable: 2,
+      }),
+    });
+    const caller = createCaller(eventLogisticsRouter)(createContext(db));
+
+    await caller.join({ postId });
+
+    expect(db.eventLogisticsJoin.create).toHaveBeenCalledWith({
+      data: {
+        postId,
+        userId,
+      },
+      select: expect.any(Object) as object,
+    });
+    expect(db.$transaction).toHaveBeenCalledWith(
+      expect.any(Function),
+      {
+        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+      },
+    );
+  });
+
+  it("rejects random users joining posts", async () => {
+    const db = createDb({
+      accessEvent: createAccessEvent({ allowed: false }),
+      post: createPost({
+        authorId: otherUserId,
+        type: EventLogisticsType.OFFER_SEAT,
+        seatsAvailable: 2,
+      }),
+    });
+    const caller = createCaller(eventLogisticsRouter)(createContext(db));
+
+    await expect(caller.join({ postId })).rejects.toMatchObject({
+      code: "FORBIDDEN",
+    });
+    expect(db.eventLogisticsJoin.create).not.toHaveBeenCalled();
+  });
+
+  it("rejects author joining own post", async () => {
+    const db = createDb({
+      post: createPost({
+        type: EventLogisticsType.OFFER_SEAT,
+        seatsAvailable: 2,
+      }),
+    });
+    const caller = createCaller(eventLogisticsRouter)(createContext(db));
+
+    await expect(caller.join({ postId })).rejects.toMatchObject({
+      code: "FORBIDDEN",
+      message: "Нельзя присоединиться к своей поездке.",
+    });
+  });
+
+  it("rejects joining need-seat posts", async () => {
+    const db = createDb({
+      post: createPost({
+        authorId: otherUserId,
+        type: EventLogisticsType.NEED_SEAT,
+        seatsAvailable: 2,
+      }),
+    });
+    const caller = createCaller(eventLogisticsRouter)(createContext(db));
+
+    await expect(caller.join({ postId })).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+      message: "Присоединиться можно только к поездке с местами.",
+    });
+  });
+
+  it("rejects joining going-together posts", async () => {
+    const db = createDb({
+      post: createPost({
+        authorId: otherUserId,
+        type: EventLogisticsType.GOING_TOGETHER,
+        seatsAvailable: 2,
+      }),
+    });
+    const caller = createCaller(eventLogisticsRouter)(createContext(db));
+
+    await expect(caller.join({ postId })).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+      message: "Присоединиться можно только к поездке с местами.",
+    });
+  });
+
+  it("rejects joining closed posts", async () => {
+    const db = createDb({
+      post: createPost({
+        authorId: otherUserId,
+        type: EventLogisticsType.OFFER_SEAT,
+        seatsAvailable: 2,
+        status: EventLogisticsStatus.CLOSED,
+      }),
+    });
+    const caller = createCaller(eventLogisticsRouter)(createContext(db));
+
+    await expect(caller.join({ postId })).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+      message: "Эта запись уже закрыта.",
+    });
+  });
+
+  it("rejects joining hidden posts", async () => {
+    const db = createDb({
+      post: createPost({
+        authorId: otherUserId,
+        hidden: true,
+        type: EventLogisticsType.OFFER_SEAT,
+        seatsAvailable: 2,
+      }),
+    });
+    const caller = createCaller(eventLogisticsRouter)(createContext(db));
+
+    await expect(caller.join({ postId })).rejects.toMatchObject({
+      code: "NOT_FOUND",
+      message: "Запись не найдена.",
+    });
+  });
+
+  it("rejects joining full posts", async () => {
+    const db = createDb({
+      activeJoinsCount: 2,
+      post: createPost({
+        authorId: otherUserId,
+        type: EventLogisticsType.OFFER_SEAT,
+        seatsAvailable: 2,
+      }),
+    });
+    const caller = createCaller(eventLogisticsRouter)(createContext(db));
+
+    await expect(caller.join({ postId })).rejects.toMatchObject({
+      code: "CONFLICT",
+      message: "Свободных мест больше нет.",
+    });
+  });
+
+  it("rejects joining same ride twice", async () => {
+    const db = createDb({
+      existingJoin: createJoin(),
+      post: createPost({
+        authorId: otherUserId,
+        type: EventLogisticsType.OFFER_SEAT,
+        seatsAvailable: 2,
+      }),
+    });
+    const caller = createCaller(eventLogisticsRouter)(createContext(db));
+
+    await expect(caller.join({ postId })).rejects.toMatchObject({
+      code: "CONFLICT",
+      message: "Вы уже присоединились к этой поездке.",
+    });
+  });
+
+  it("restores cancelled join", async () => {
+    const db = createDb({
+      existingJoin: createJoin({ cancelled: true }),
+      post: createPost({
+        authorId: otherUserId,
+        type: EventLogisticsType.OFFER_SEAT,
+        seatsAvailable: 2,
+      }),
+    });
+    const caller = createCaller(eventLogisticsRouter)(createContext(db));
+
+    await caller.join({ postId });
+
+    expect(db.eventLogisticsJoin.update).toHaveBeenCalledWith({
+      where: { id: joinId },
+      data: { cancelledAt: null },
+      select: expect.any(Object) as object,
+    });
+  });
+
+  it("rejects joining read-only event posts", async () => {
+    const db = createDb({
+      accessEvent: createAccessEvent({ status: EventStatus.COMPLETED }),
+      post: createPost({
+        authorId: otherUserId,
+        type: EventLogisticsType.OFFER_SEAT,
+        seatsAvailable: 2,
+      }),
+    });
+    const caller = createCaller(eventLogisticsRouter)(createContext(db));
+
+    await expect(caller.join({ postId })).rejects.toMatchObject({
+      code: "FORBIDDEN",
+      message: "Мероприятие закрыто. Новые записи по логистике недоступны.",
+    });
+  });
+
+  it("allows user to leave active join without hard delete", async () => {
+    const db = createDb({
+      existingJoin: createJoin(),
+      post: createPost({
+        authorId: otherUserId,
+        type: EventLogisticsType.OFFER_SEAT,
+        seatsAvailable: 2,
+      }),
+    });
+    const caller = createCaller(eventLogisticsRouter)(createContext(db));
+
+    await expect(caller.leave({ postId })).resolves.toEqual({ success: true });
+    expect(db.eventLogisticsJoin.update).toHaveBeenCalledWith({
+      where: { id: joinId },
+      data: {
+        cancelledAt: expect.any(Date) as Date,
+      },
+    });
+  });
+
+  it("rejects leaving when user is not joined", async () => {
+    const db = createDb({
+      existingJoin: null,
+      post: createPost({
+        authorId: otherUserId,
+        type: EventLogisticsType.OFFER_SEAT,
+        seatsAvailable: 2,
+      }),
+    });
+    const caller = createCaller(eventLogisticsRouter)(createContext(db));
+
+    await expect(caller.leave({ postId })).rejects.toMatchObject({
+      code: "NOT_FOUND",
+      message: "Вы не присоединены к этой поездке.",
+    });
+  });
+
+  it("allows leaving read-only event posts", async () => {
+    const db = createDb({
+      accessEvent: createAccessEvent({ status: EventStatus.COMPLETED }),
+      existingJoin: createJoin(),
+      post: createPost({
+        authorId: otherUserId,
+        type: EventLogisticsType.OFFER_SEAT,
+        seatsAvailable: 2,
+      }),
+    });
+    const caller = createCaller(eventLogisticsRouter)(createContext(db));
+
+    await expect(caller.leave({ postId })).resolves.toEqual({ success: true });
+  });
+
+  it("returns active joins and excludes cancelled joins from list", async () => {
+    const db = createDb({
+      post: createPost({
+        authorId: otherUserId,
+        joins: [createJoin(), createJoin({ cancelled: true, userId: otherUserId })],
+        type: EventLogisticsType.OFFER_SEAT,
+        seatsAvailable: 2,
+      }),
+    });
+    const caller = createCaller(eventLogisticsRouter)(createContext(db));
+
+    const result = await caller.list({ eventId });
+
+    expect(result.posts[0]?.joins).toHaveLength(1);
+    expect(result.posts[0]?.joins[0]?.userId).toBe(userId);
+  });
+
   it("allows author to update own post", async () => {
     const db = createDb();
     const caller = createCaller(eventLogisticsRouter)(createContext(db));
@@ -218,7 +570,7 @@ describe("eventLogisticsRouter", () => {
   });
 
   it("rejects updating another user's post", async () => {
-    const db = createDb({ post: createPost(otherUserId) });
+    const db = createDb({ post: createPost({ authorId: otherUserId }) });
     const caller = createCaller(eventLogisticsRouter)(createContext(db));
 
     await expect(
@@ -276,7 +628,7 @@ describe("eventLogisticsRouter", () => {
   it("allows managers to hide posts", async () => {
     const db = createDb({
       accessEvent: createAccessEvent({ allowed: false, manager: true }),
-      post: createPost(otherUserId),
+      post: createPost({ authorId: otherUserId }),
     });
     const caller = createCaller(eventLogisticsRouter)(createContext(db));
 
@@ -294,7 +646,7 @@ describe("eventLogisticsRouter", () => {
   it("rejects random users hiding posts", async () => {
     const db = createDb({
       accessEvent: createAccessEvent({ allowed: false }),
-      post: createPost(otherUserId),
+      post: createPost({ authorId: otherUserId }),
     });
     const caller = createCaller(eventLogisticsRouter)(createContext(db));
 

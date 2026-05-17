@@ -49,3 +49,7 @@ export const eventLogisticsUpdateInputSchema = z.object({
 export const eventLogisticsPostIdInputSchema = z.object({
   postId: z.string().cuid(),
 });
+
+export const eventLogisticsJoinInputSchema = z.object({
+  postId: z.string().cuid(),
+});

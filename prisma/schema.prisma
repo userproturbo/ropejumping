@@ -250,6 +250,7 @@ model User {
   eventChatMessages       EventChatMessage[]
   teamChatMessages        TeamChatMessage[]
   eventLogisticsPosts     EventLogisticsPost[]
+  eventLogisticsJoins     EventLogisticsJoin[]
   eventChatReadStates     EventChatReadState[]
   teamChatReadStates      TeamChatReadState[]
 }
@@ -554,6 +555,7 @@ model EventLogisticsPost {
 
   event  Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
   author User  @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  joins  EventLogisticsJoin[]
 
   @@index([eventId])
   @@index([authorId])
@@ -561,6 +563,22 @@ model EventLogisticsPost {
   @@index([status])
   @@index([createdAt])
   @@index([hiddenAt])
+}
+
+model EventLogisticsJoin {
+  id          String    @id @default(cuid())
+  postId      String
+  userId      String
+  createdAt   DateTime  @default(now())
+  cancelledAt DateTime?
+
+  post EventLogisticsPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@index([postId])
+  @@index([userId])
+  @@index([cancelledAt])
 }
 
 model EventApplication {
