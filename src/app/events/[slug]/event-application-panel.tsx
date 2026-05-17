@@ -50,16 +50,32 @@ export function EventApplicationPanel({
   if (application) {
     const canCancel =
       application.status === "PENDING" || application.status === "ACCEPTED";
+    const statusHelp = getApplicationStatusHelp(application.status);
 
     return (
       <div className="mt-4 space-y-4">
         <div className="border border-zinc-200 p-4">
-          <p className="text-sm font-medium text-zinc-950">
-            Статус заявки: {getApplicationStatusLabel(application.status)}
-          </p>
+          <h3 className="text-lg font-semibold text-zinc-950">Ваша заявка</h3>
+          <dl className="mt-3 grid gap-3 text-sm text-zinc-600 sm:grid-cols-2">
+            <div>
+              <dt className="font-medium text-zinc-950">Статус заявки</dt>
+              <dd className="mt-1">
+                {getOwnApplicationStatusLabel(application.status)}
+              </dd>
+            </div>
+            <div>
+              <dt className="font-medium text-zinc-950">Отправлена</dt>
+              <dd className="mt-1">
+                {formatApplicationDate(application.createdAt)}
+              </dd>
+            </div>
+          </dl>
+          <p className="mt-3 text-sm text-zinc-600">{statusHelp}</p>
           {application.message ? (
             <div className="mt-3">
-              <h3 className="text-sm font-medium text-zinc-950">Сообщение</h3>
+              <h4 className="text-sm font-medium text-zinc-950">
+                Ваше сообщение
+              </h4>
               <p className="mt-1 text-sm leading-6 whitespace-pre-wrap text-zinc-600">
                 {application.message}
               </p>
@@ -67,9 +83,9 @@ export function EventApplicationPanel({
           ) : null}
           {application.organizerNote ? (
             <div className="mt-3">
-              <h3 className="text-sm font-medium text-zinc-950">
-                Комментарий организатора
-              </h3>
+              <h4 className="text-sm font-medium text-zinc-950">
+                Заметка организатора
+              </h4>
               <p className="mt-1 text-sm leading-6 whitespace-pre-wrap text-zinc-600">
                 {application.organizerNote}
               </p>
@@ -153,3 +169,33 @@ export function EventApplicationPanel({
     </form>
   );
 }
+
+const getApplicationStatusHelp = (
+  status: NonNullable<EventApplication>["status"],
+) => {
+  if (status === "PENDING") return "Организатор ещё не рассмотрел вашу заявку.";
+  if (status === "ACCEPTED") {
+    return "Ваша заявка принята. Вам доступен чат мероприятия и блок логистики.";
+  }
+  if (status === "REJECTED") return "Заявка отклонена.";
+  if (status === "CANCELLED_BY_USER") return "Вы отменили заявку.";
+  if (status === "CONFIRMED_PARTICIPATION") {
+    return "Организатор подтвердил ваше участие.";
+  }
+
+  return "Организатор отметил, что вы не явились.";
+};
+
+const getOwnApplicationStatusLabel = (
+  status: NonNullable<EventApplication>["status"],
+) => {
+  if (status === "CANCELLED_BY_USER") return "Отменена вами";
+
+  return getApplicationStatusLabel(status);
+};
+
+const formatApplicationDate = (date: Date) =>
+  new Intl.DateTimeFormat("ru-RU", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
