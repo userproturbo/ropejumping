@@ -125,6 +125,52 @@ export function ReportCard({ report, showActions = false }: ReportCardProps) {
           ) : null}
         </div>
       ) : null}
+      {report.targetType === "EVENT_CHAT_MESSAGE" &&
+      report.targetEventChatMessage ? (
+        <div className="mt-4 grid gap-2 text-sm">
+          <p className="text-zinc-600">
+            Автор: {getUserName(report.targetEventChatMessage.author)}
+          </p>
+          <p className="line-clamp-3 whitespace-pre-wrap text-zinc-600">
+            {report.targetEventChatMessage.body}
+          </p>
+          <Link
+            href={`/events/${report.targetEventChatMessage.event.slug}#event-chat`}
+            className="inline-flex text-zinc-600 hover:text-zinc-950"
+          >
+            Открыть чат: {report.targetEventChatMessage.event.title}
+          </Link>
+          {report.targetEventChatMessage.hiddenAt ? (
+            <p className="text-zinc-500">Сообщение уже скрыто.</p>
+          ) : null}
+          {report.targetEventChatMessage.deletedAt ? (
+            <p className="text-zinc-500">Сообщение удалено автором.</p>
+          ) : null}
+        </div>
+      ) : null}
+      {report.targetType === "TEAM_CHAT_MESSAGE" &&
+      report.targetTeamChatMessage ? (
+        <div className="mt-4 grid gap-2 text-sm">
+          <p className="text-zinc-600">
+            Автор: {getUserName(report.targetTeamChatMessage.author)}
+          </p>
+          <p className="line-clamp-3 whitespace-pre-wrap text-zinc-600">
+            {report.targetTeamChatMessage.body}
+          </p>
+          <Link
+            href={`/teams/${report.targetTeamChatMessage.team.slug}#team-chat`}
+            className="inline-flex text-zinc-600 hover:text-zinc-950"
+          >
+            Открыть чат: {report.targetTeamChatMessage.team.name}
+          </Link>
+          {report.targetTeamChatMessage.hiddenAt ? (
+            <p className="text-zinc-500">Сообщение уже скрыто.</p>
+          ) : null}
+          {report.targetTeamChatMessage.deletedAt ? (
+            <p className="text-zinc-500">Сообщение удалено автором.</p>
+          ) : null}
+        </div>
+      ) : null}
 
       {showActions && targetType ? (
         <ModerationActions
@@ -142,7 +188,9 @@ const getReportTargetType = (value: string): ReportTargetType | null => {
     value === "POST" ||
     value === "COMMENT" ||
     value === "OBJECT" ||
-    value === "OBJECT_IMPRESSION"
+    value === "OBJECT_IMPRESSION" ||
+    value === "EVENT_CHAT_MESSAGE" ||
+    value === "TEAM_CHAT_MESSAGE"
   ) {
     return value;
   }
@@ -155,6 +203,9 @@ const getTargetTypeLabel = (targetType: string) => {
   if (targetType === "COMMENT") return "Комментарий";
   if (targetType === "OBJECT") return "Объект";
   if (targetType === "OBJECT_IMPRESSION") return "Впечатление об объекте";
+  if (targetType === "EVENT_CHAT_MESSAGE")
+    return "Сообщение в чате мероприятия";
+  if (targetType === "TEAM_CHAT_MESSAGE") return "Сообщение в чате команды";
 
   return targetType;
 };
@@ -169,6 +220,20 @@ const getTargetTitle = (report: ModerationReport) => {
     report.targetObjectImpression
   ) {
     return report.targetObjectImpression.object.name;
+  }
+
+  if (
+    report.targetType === "EVENT_CHAT_MESSAGE" &&
+    report.targetEventChatMessage
+  ) {
+    return report.targetEventChatMessage.event.title;
+  }
+
+  if (
+    report.targetType === "TEAM_CHAT_MESSAGE" &&
+    report.targetTeamChatMessage
+  ) {
+    return report.targetTeamChatMessage.team.name;
   }
 
   return report.targetId;

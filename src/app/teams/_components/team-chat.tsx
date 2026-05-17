@@ -215,6 +215,14 @@ export function TeamChat({
                             Ответить
                           </button>
                         ) : null}
+                        {isAuthenticated && canAccess && !isOwnMessage ? (
+                          <Link
+                            href={`/reports/new?targetType=TEAM_CHAT_MESSAGE&targetId=${message.id}`}
+                            className="text-zinc-500 hover:text-zinc-950"
+                          >
+                            Пожаловаться
+                          </Link>
+                        ) : null}
                         {isOwnMessage ? (
                           <button
                             type="button"

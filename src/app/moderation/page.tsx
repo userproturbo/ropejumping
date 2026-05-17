@@ -25,6 +25,8 @@ const targetTypeOptions = [
   { value: "COMMENT", label: "Комментарий" },
   { value: "OBJECT", label: "Объект" },
   { value: "OBJECT_IMPRESSION", label: "Впечатление об объекте" },
+  { value: "EVENT_CHAT_MESSAGE", label: "Сообщение в чате мероприятия" },
+  { value: "TEAM_CHAT_MESSAGE", label: "Сообщение в чате команды" },
 ];
 
 const getSearchParamValue = (
@@ -61,7 +63,8 @@ export default async function ModerationPage({
               Модерация
             </h1>
             <p className="mt-2 text-sm text-zinc-600">
-              Жалобы на посты, комментарии, объекты и впечатления.
+              Жалобы на посты, комментарии, объекты, впечатления и сообщения в
+              чатах.
             </p>
           </div>
           <div className="flex flex-wrap gap-3">

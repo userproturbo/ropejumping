@@ -32,6 +32,8 @@ describe("report list validation", () => {
       "COMMENT",
       "OBJECT",
       "OBJECT_IMPRESSION",
+      "EVENT_CHAT_MESSAGE",
+      "TEAM_CHAT_MESSAGE",
     ]) {
       expect(reportListInputSchema.parse({ targetType }).targetType).toBe(
         targetType,
@@ -59,6 +61,28 @@ describe("report list validation", () => {
       reason: "Нарушение правил безопасности или сообщества",
       details: null,
     });
+  });
+
+  it("accepts event chat message reports", () => {
+    expect(
+      reportCreateInputSchema.parse({
+        targetType: "EVENT_CHAT_MESSAGE",
+        targetId,
+        reason: "Нарушение правил безопасности или сообщества",
+        details: null,
+      }).targetType,
+    ).toBe("EVENT_CHAT_MESSAGE");
+  });
+
+  it("accepts team chat message reports", () => {
+    expect(
+      reportCreateInputSchema.parse({
+        targetType: "TEAM_CHAT_MESSAGE",
+        targetId,
+        reason: "Нарушение правил безопасности или сообщества",
+        details: null,
+      }).targetType,
+    ).toBe("TEAM_CHAT_MESSAGE");
   });
 
   it("rejects invalid create target types", () => {

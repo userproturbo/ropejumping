@@ -221,6 +221,14 @@ export function EventChat({
                             Ответить
                           </button>
                         ) : null}
+                        {isAuthenticated && canAccess && !isOwnMessage ? (
+                          <Link
+                            href={`/reports/new?targetType=EVENT_CHAT_MESSAGE&targetId=${message.id}`}
+                            className="text-zinc-500 hover:text-zinc-950"
+                          >
+                            Пожаловаться
+                          </Link>
+                        ) : null}
                         {isOwnMessage ? (
                           <button
                             type="button"
