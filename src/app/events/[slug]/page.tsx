@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 
 import { ImageGalleryViewer } from "@/app/_components/image-gallery-viewer";
 import { EntityPostPreviewCard } from "@/app/posts/_components/entity-post-preview-card";
-import { EventStatus } from "@/generated/prisma/enums";
+import { ApplicationStatus, EventStatus } from "@/generated/prisma/enums";
 import {
   getEventStatusLabel,
   getObjectTypeLabel,
@@ -22,6 +22,7 @@ import { api } from "@/trpc/server";
 import { EventChat } from "../_components/event-chat";
 import { formatEventDateRange } from "../_components/date-format";
 import { EventLogistics } from "../_components/event-logistics";
+import { EventOrganizerWorkspace } from "../_components/event-organizer-workspace";
 import { EventApplicationPanel } from "./event-application-panel";
 
 type EventPageProps = {
@@ -53,6 +54,15 @@ const getApplicationUnavailableMessage = (status: EventStatus) => {
   }
 };
 
+const emptyApplicationCounts = () => ({
+  [ApplicationStatus.PENDING]: 0,
+  [ApplicationStatus.ACCEPTED]: 0,
+  [ApplicationStatus.REJECTED]: 0,
+  [ApplicationStatus.CANCELLED_BY_USER]: 0,
+  [ApplicationStatus.CONFIRMED_PARTICIPATION]: 0,
+  [ApplicationStatus.NO_SHOW]: 0,
+});
+
 export default async function EventPage({ params }: EventPageProps) {
   const { slug } = await params;
   const user = await getCurrentUser();
@@ -71,6 +81,23 @@ export default async function EventPage({ params }: EventPageProps) {
         .then(() => true)
         .catch(() => false)
     : false;
+  const applicationCounts = emptyApplicationCounts();
+  const applicationStatusCounts = canManage
+    ? await db.eventApplication.groupBy({
+        by: ["status"],
+        where: { eventId: event.id },
+        _count: { _all: true },
+      })
+    : [];
+
+  for (const statusCount of applicationStatusCounts) {
+    applicationCounts[statusCount.status] = statusCount._count._all;
+  }
+
+  const totalApplications = applicationStatusCounts.reduce(
+    (total, statusCount) => total + statusCount._count._all,
+    0,
+  );
   const canAccessChat = user
     ? (
         await canAccessEventChat({
@@ -191,6 +218,19 @@ export default async function EventPage({ params }: EventPageProps) {
             ) : null}
           </dl>
         </section>
+
+        {canManage ? (
+          <EventOrganizerWorkspace
+            applicationCounts={applicationCounts}
+            dateText={formatEventDateRange(event.startsAt, event.endsAt)}
+            eventSlug={event.slug}
+            eventStatus={event.status}
+            objectName={event.object?.name ?? null}
+            teamName={event.team.name}
+            totalApplications={totalApplications}
+            isReadOnly={isEventChatReadOnlyStatus(event.status)}
+          />
+        ) : null}
 
         {galleryImages.length > 0 ? (
           <section className="mt-6 border border-zinc-200 bg-white p-6">
