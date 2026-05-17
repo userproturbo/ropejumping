@@ -46,14 +46,57 @@ const createChatMessage = (authorId = userId) => ({
   },
 });
 
+const createInboxTeam = ({
+  chatMessages = [
+    {
+      id: messageId,
+      body: "Проверим список снаряжения.",
+      createdAt: new Date("2026-05-17T13:00:00.000Z"),
+      author: {
+        name: null,
+        profile: {
+          username: "team-user",
+          displayName: "Участник команды",
+        },
+      },
+    },
+  ],
+  chatReadStates = [],
+}: {
+  chatMessages?: {
+    id: string;
+    body: string;
+    createdAt: Date;
+    author: {
+      name: string | null;
+      profile: {
+        username: string | null;
+        displayName: string | null;
+      } | null;
+    };
+  }[];
+  chatReadStates?: { lastReadAt: Date }[];
+} = {}) => ({
+  id: teamId,
+  name: "Команда тест",
+  slug: "test-team",
+  status: "REGULAR",
+  createdAt: new Date("2026-05-16T12:00:00.000Z"),
+  updatedAt: new Date("2026-05-16T13:00:00.000Z"),
+  chatReadStates,
+  chatMessages,
+});
+
 const createDb = ({
   accessTeam = createAccessTeam(),
+  inboxTeams = [createInboxTeam()],
   message = createChatMessage(),
   readState = null,
   replyParent = { id: replyToMessageId },
   unreadCount = 0,
 }: {
   accessTeam?: ReturnType<typeof createAccessTeam> | null;
+  inboxTeams?: ReturnType<typeof createInboxTeam>[];
   message?: ReturnType<typeof createChatMessage> | null;
   readState?: { lastReadAt: Date } | null;
   replyParent?: { id: string } | null;
@@ -64,6 +107,7 @@ const createDb = ({
   return {
     team: {
       findUnique: vi.fn().mockResolvedValue(accessTeam),
+      findMany: vi.fn().mockResolvedValue(inboxTeams),
     },
     teamChatReadState: {
       findUnique: vi.fn().mockImplementation(() =>
@@ -158,6 +202,101 @@ describe("teamChatRouter", () => {
 
     await expect(caller.list({ teamId })).rejects.toMatchObject({
       code: "UNAUTHORIZED",
+    });
+  });
+
+  it("returns team chats for team members", async () => {
+    const db = createDb({ unreadCount: 1 });
+    const caller = createCaller(teamChatRouter)(createContext(db));
+
+    const result = await caller.getMyChats();
+
+    expect(result).toEqual([
+      {
+        teamId,
+        teamName: "Команда тест",
+        teamSlug: "test-team",
+        teamStatus: "REGULAR",
+        lastMessage: {
+          id: messageId,
+          body: "Проверим список снаряжения.",
+          createdAt: new Date("2026-05-17T13:00:00.000Z"),
+          authorName: "Участник команды",
+        },
+        unreadCount: 1,
+      },
+    ]);
+    expect(db.team.findMany).toHaveBeenCalledWith({
+      where: {
+        members: {
+          some: {
+            userId,
+            role: {
+              in: ["OWNER", "ADMIN", "ORGANIZER", "MEMBER"],
+            },
+          },
+        },
+      },
+      select: expect.any(Object) as object,
+    });
+  });
+
+  it("does not return team chats for random users", async () => {
+    const db = createDb({ inboxTeams: [] });
+    const caller = createCaller(teamChatRouter)(createContext(db));
+
+    await expect(caller.getMyChats()).resolves.toEqual([]);
+  });
+
+  it("excludes own messages from team chat inbox unread count", async () => {
+    const db = createDb({ unreadCount: 1 });
+    const caller = createCaller(teamChatRouter)(createContext(db));
+
+    await caller.getMyChats();
+
+    expect(db.teamChatMessage.count).toHaveBeenCalledWith({
+      where: expect.objectContaining({
+        authorId: {
+          not: userId,
+        },
+      }) as object,
+    });
+  });
+
+  it("excludes deleted and hidden messages from team chat inbox unread count", async () => {
+    const db = createDb({ unreadCount: 1 });
+    const caller = createCaller(teamChatRouter)(createContext(db));
+
+    await caller.getMyChats();
+
+    expect(db.teamChatMessage.count).toHaveBeenCalledWith({
+      where: expect.objectContaining({
+        deletedAt: null,
+        hiddenAt: null,
+      }) as object,
+    });
+  });
+
+  it("ignores deleted and hidden messages for team chat inbox last message", async () => {
+    const db = createDb();
+    const caller = createCaller(teamChatRouter)(createContext(db));
+
+    await caller.getMyChats();
+
+    expect(db.team.findMany).toHaveBeenCalledWith({
+      where: expect.any(Object) as object,
+      select: expect.objectContaining({
+        chatMessages: expect.objectContaining({
+          where: {
+            deletedAt: null,
+            hiddenAt: null,
+          },
+          orderBy: {
+            createdAt: "desc",
+          },
+          take: 1,
+        }) as object,
+      }) as object,
     });
   });
 

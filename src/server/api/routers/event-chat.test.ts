@@ -51,8 +51,50 @@ const createChatMessage = (authorId = userId) => ({
   },
 });
 
+const createInboxEvent = ({
+  chatMessages = [
+    {
+      id: messageId,
+      body: "Проверим связь перед сбором.",
+      createdAt: new Date("2026-05-16T13:00:00.000Z"),
+      author: {
+        name: null,
+        profile: {
+          username: "event-user",
+          displayName: "Участник события",
+        },
+      },
+    },
+  ],
+  chatReadStates = [],
+}: {
+  chatMessages?: {
+    id: string;
+    body: string;
+    createdAt: Date;
+    author: {
+      name: string | null;
+      profile: {
+        username: string | null;
+        displayName: string | null;
+      } | null;
+    };
+  }[];
+  chatReadStates?: { lastReadAt: Date }[];
+} = {}) => ({
+  id: eventId,
+  title: "Открытая тренировка",
+  slug: "open-training",
+  status: "PUBLISHED",
+  createdAt: new Date("2026-05-15T12:00:00.000Z"),
+  updatedAt: new Date("2026-05-15T13:00:00.000Z"),
+  chatReadStates,
+  chatMessages,
+});
+
 const createDb = ({
   accessEvent = createAccessEvent(),
+  inboxEvents = [createInboxEvent()],
   message = createChatMessage(),
   hideManager = false,
   readState = null,
@@ -60,6 +102,7 @@ const createDb = ({
   unreadCount = 0,
 }: {
   accessEvent?: ReturnType<typeof createAccessEvent> | null;
+  inboxEvents?: ReturnType<typeof createInboxEvent>[];
   message?: ReturnType<typeof createChatMessage> | null;
   hideManager?: boolean;
   readState?: { lastReadAt: Date } | null;
@@ -71,6 +114,7 @@ const createDb = ({
   return {
     event: {
       findUnique: vi.fn().mockResolvedValue(accessEvent),
+      findMany: vi.fn().mockResolvedValue(inboxEvents),
     },
     eventChatReadState: {
       findUnique: vi.fn().mockImplementation(() =>
@@ -178,6 +222,105 @@ describe("eventChatRouter", () => {
 
     await expect(caller.list({ eventId })).rejects.toMatchObject({
       code: "UNAUTHORIZED",
+    });
+  });
+
+  it("returns accessible event chats for accepted participants", async () => {
+    const db = createDb({ unreadCount: 1 });
+    const caller = createCaller(eventChatRouter)(createContext(db));
+
+    const result = await caller.getMyChats();
+
+    expect(result).toEqual([
+      {
+        eventId,
+        eventTitle: "Открытая тренировка",
+        eventSlug: "open-training",
+        eventStatus: "PUBLISHED",
+        lastMessage: {
+          id: messageId,
+          body: "Проверим связь перед сбором.",
+          createdAt: new Date("2026-05-16T13:00:00.000Z"),
+          authorName: "Участник события",
+        },
+        unreadCount: 1,
+      },
+    ]);
+    expect(db.event.findMany).toHaveBeenCalledWith({
+      where: expect.objectContaining({
+        OR: expect.arrayContaining([
+          expect.objectContaining({
+            applications: {
+              some: {
+                userId,
+                status: {
+                  in: ["ACCEPTED", "CONFIRMED_PARTICIPATION"],
+                },
+              },
+            },
+          }) as object,
+        ]) as object[],
+      }) as object,
+      select: expect.any(Object) as object,
+    });
+  });
+
+  it("does not return event chats for random users", async () => {
+    const db = createDb({ inboxEvents: [] });
+    const caller = createCaller(eventChatRouter)(createContext(db));
+
+    await expect(caller.getMyChats()).resolves.toEqual([]);
+  });
+
+  it("excludes own messages from event chat inbox unread count", async () => {
+    const db = createDb({ unreadCount: 1 });
+    const caller = createCaller(eventChatRouter)(createContext(db));
+
+    await caller.getMyChats();
+
+    expect(db.eventChatMessage.count).toHaveBeenCalledWith({
+      where: expect.objectContaining({
+        authorId: {
+          not: userId,
+        },
+      }) as object,
+    });
+  });
+
+  it("excludes deleted and hidden messages from event chat inbox unread count", async () => {
+    const db = createDb({ unreadCount: 1 });
+    const caller = createCaller(eventChatRouter)(createContext(db));
+
+    await caller.getMyChats();
+
+    expect(db.eventChatMessage.count).toHaveBeenCalledWith({
+      where: expect.objectContaining({
+        deletedAt: null,
+        hiddenAt: null,
+      }) as object,
+    });
+  });
+
+  it("ignores deleted and hidden messages for event chat inbox last message", async () => {
+    const db = createDb();
+    const caller = createCaller(eventChatRouter)(createContext(db));
+
+    await caller.getMyChats();
+
+    expect(db.event.findMany).toHaveBeenCalledWith({
+      where: expect.any(Object) as object,
+      select: expect.objectContaining({
+        chatMessages: expect.objectContaining({
+          where: {
+            deletedAt: null,
+            hiddenAt: null,
+          },
+          orderBy: {
+            createdAt: "desc",
+          },
+          take: 1,
+        }) as object,
+      }) as object,
     });
   });
 

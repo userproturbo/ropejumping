@@ -34,6 +34,12 @@ export default async function ProfilePage() {
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <Link
+              href="/profile/chats"
+              className="border border-zinc-300 px-4 py-2 text-sm text-zinc-800 hover:border-zinc-950"
+            >
+              Мои чаты
+            </Link>
+            <Link
               href="/profile/follows"
               className="border border-zinc-300 px-4 py-2 text-sm text-zinc-800 hover:border-zinc-950"
             >
