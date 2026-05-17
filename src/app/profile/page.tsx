@@ -2,7 +2,8 @@
 import Link from "next/link";
 
 import { getBadgeCategoryLabel } from "@/lib/display";
-import { getCurrentUser, requireCurrentUser } from "@/server/auth/session";
+import { requireCurrentUser } from "@/server/auth/session";
+import { db } from "@/server/db";
 import { isModeratorUser } from "@/server/moderation/permissions";
 import { api } from "@/trpc/server";
 
@@ -10,21 +11,59 @@ import { formatEventDateRange } from "../events/_components/date-format";
 import { BadgeRecalculateButton } from "./badge-recalculate-button";
 
 export default async function ProfilePage() {
-  await requireCurrentUser("/profile");
+  const user = await requireCurrentUser("/profile");
 
-  const user = await getCurrentUser();
-  const [profile, participations, badges, eventChats, teamChats] =
-    await Promise.all([
-      api.profile.getMine(),
-      api.profile.getMyParticipations(),
-      api.badge.getMine(),
-      api.eventChat.getMyChats(),
-      api.teamChat.getMyChats(),
-    ]);
+  const [
+    profile,
+    participations,
+    badges,
+    eventChats,
+    teamChats,
+    unreadNotifications,
+    postsCount,
+    teamFollowsCount,
+    objectFollowsCount,
+    applicationsCount,
+    teamMembershipsCount,
+  ] = await Promise.all([
+    api.profile.getMine(),
+    api.profile.getMyParticipations(),
+    api.badge.getMine(),
+    api.eventChat.getMyChats(),
+    api.teamChat.getMyChats(),
+    api.notification.getUnreadCount(),
+    db.post.count({
+      where: {
+        authorId: user.id,
+        hiddenAt: null,
+      },
+    }),
+    db.teamFollow.count({
+      where: {
+        userId: user.id,
+      },
+    }),
+    db.objectFollow.count({
+      where: {
+        userId: user.id,
+      },
+    }),
+    db.eventApplication.count({
+      where: {
+        userId: user.id,
+      },
+    }),
+    db.teamMember.count({
+      where: {
+        userId: user.id,
+      },
+    }),
+  ]);
   const totalUnread = [...eventChats, ...teamChats].reduce(
     (total, chat) => total + chat.unreadCount,
     0,
   );
+  const followsCount = teamFollowsCount + objectFollowsCount;
   const canModerate = isModeratorUser(user);
   const hasSelfReportedStats =
     profile !== null &&
@@ -214,32 +253,37 @@ export default async function ProfilePage() {
               href="/profile/chats"
               title="Мои чаты"
               description="Открыть чаты мероприятий и команд."
-              meta={`Непрочитанных сообщений: ${totalUnread}`}
+              meta={`Непрочитанных: ${totalUnread}`}
             />
             <DashboardCard
               href="/profile/follows"
               title="Мои подписки"
               description="Команды и объекты, на которые вы подписаны."
+              meta={`Подписок: ${followsCount}`}
             />
             <DashboardCard
               href="/posts/my"
               title="Мои публикации"
               description="Посты, которые вы создали."
+              meta={`Публикаций: ${postsCount}`}
             />
             <DashboardCard
               href="/notifications"
               title="Уведомления"
               description="Заявки, ответы, подписки и события."
+              meta={`Новых: ${unreadNotifications.count}`}
             />
             <DashboardCard
               href="/events/my"
               title="Мои мероприятия"
               description="Мероприятия, которые вы создали или в которых участвуете."
+              meta={`Заявок: ${applicationsCount}`}
             />
             <DashboardCard
               href="/teams"
               title="Мои команды"
               description="Команды сообщества и ваши командные страницы."
+              meta={`Команд: ${teamMembershipsCount}`}
             />
             {canModerate ? (
               <DashboardCard
