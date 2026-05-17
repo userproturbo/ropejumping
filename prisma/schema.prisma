@@ -108,6 +108,17 @@ enum ApplicationStatus {
   NO_SHOW
 }
 
+enum EventLogisticsType {
+  OFFER_SEAT
+  NEED_SEAT
+  GOING_TOGETHER
+}
+
+enum EventLogisticsStatus {
+  ACTIVE
+  CLOSED
+}
+
 enum BadgeCategory {
   PARTICIPATION
   OBJECTS
@@ -238,6 +249,7 @@ model User {
   objectImpressions       ObjectImpression[]
   eventChatMessages       EventChatMessage[]
   teamChatMessages        TeamChatMessage[]
+  eventLogisticsPosts     EventLogisticsPost[]
   eventChatReadStates     EventChatReadState[]
   teamChatReadStates      TeamChatReadState[]
 }
@@ -513,6 +525,7 @@ model Event {
   galleryImages  EventGalleryImage[]
   posts          Post[]
   chatMessages   EventChatMessage[]
+  logisticsPosts EventLogisticsPost[]
   chatReadStates EventChatReadState[]
 
   @@index([status])
@@ -521,6 +534,33 @@ model Event {
   @@index([objectId])
   @@index([createdById])
   @@index([coverMediaId])
+}
+
+model EventLogisticsPost {
+  id                String               @id @default(cuid())
+  eventId           String
+  authorId          String
+  type              EventLogisticsType
+  status            EventLogisticsStatus @default(ACTIVE)
+  fromLocation      String?
+  departureTimeText String?
+  seatsAvailable    Int?
+  baggageNote       String?
+  body              String
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+  closedAt          DateTime?
+  hiddenAt          DateTime?
+
+  event  Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  author User  @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([eventId])
+  @@index([authorId])
+  @@index([type])
+  @@index([status])
+  @@index([createdAt])
+  @@index([hiddenAt])
 }
 
 model EventApplication {
