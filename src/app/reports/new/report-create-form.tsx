@@ -127,13 +127,17 @@ const getTargetTypeLabel = (targetType: ReportTargetType) => {
   if (targetType === "OBJECT_IMPRESSION") return "впечатление об объекте";
   if (targetType === "EVENT_CHAT_MESSAGE")
     return "сообщение в чате мероприятия";
+  if (targetType === "EVENT_LOGISTICS_POST")
+    return "запись в логистике мероприятия";
   if (targetType === "TEAM_CHAT_MESSAGE") return "сообщение в чате команды";
 
   return "объект";
 };
 
 const getFallbackHref = (targetType: ReportTargetType) =>
-  targetType === "EVENT_CHAT_MESSAGE" || targetType === "TEAM_CHAT_MESSAGE"
+  targetType === "EVENT_CHAT_MESSAGE" ||
+  targetType === "EVENT_LOGISTICS_POST" ||
+  targetType === "TEAM_CHAT_MESSAGE"
     ? "/profile/chats"
     : targetType === "OBJECT" || targetType === "OBJECT_IMPRESSION"
       ? "/objects"
