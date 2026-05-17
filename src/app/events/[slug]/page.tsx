@@ -13,6 +13,7 @@ import {
 import { getCurrentUser } from "@/server/auth/session";
 import { db } from "@/server/db";
 import { canAccessEventChat } from "@/server/events/chat-permissions";
+import { isEventChatReadOnlyStatus } from "@/server/events/chat-lifecycle";
 import { applicationOpenEventStatuses } from "@/server/events/statuses";
 import { isModeratorUser } from "@/server/moderation/permissions";
 import { hasTeamOwnerAdminOrOrganizerRole } from "@/server/teams/permissions";
@@ -516,6 +517,7 @@ export default async function EventPage({ params }: EventPageProps) {
           canModerate={canModerateChat}
           currentUserId={user?.id ?? null}
           isAuthenticated={Boolean(user)}
+          isReadOnly={isEventChatReadOnlyStatus(event.status)}
         />
 
         {event.status === EventStatus.COMPLETED ||

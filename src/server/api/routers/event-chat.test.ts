@@ -1,5 +1,6 @@
 import { beforeAll, describe, expect, it, vi } from "vitest";
 
+import { EventStatus } from "@/generated/prisma/enums";
 import type { eventChatRouter as EventChatRouter } from "@/server/api/routers/event-chat";
 import type { createCallerFactory as CreateCallerFactory } from "@/server/api/trpc";
 
@@ -24,7 +25,11 @@ const replyToMessageId = "clx0a1b2c0004abcd1234efgh";
 const body = "Буду на месте к началу сбора.";
 const oldReadAt = new Date("2026-05-16T10:00:00.000Z");
 
-const createAccessEvent = (allowed = true) => ({
+const createAccessEvent = (
+  allowed = true,
+  status: EventStatus = EventStatus.PUBLISHED,
+) => ({
+  status,
   createdById: allowed ? userId : otherUserId,
   team: {
     members: [],
@@ -67,6 +72,7 @@ const createInboxEvent = ({
     },
   ],
   chatReadStates = [],
+  status = EventStatus.PUBLISHED,
 }: {
   chatMessages?: {
     id: string;
@@ -81,11 +87,12 @@ const createInboxEvent = ({
     };
   }[];
   chatReadStates?: { lastReadAt: Date }[];
+  status?: EventStatus;
 } = {}) => ({
   id: eventId,
   title: "Открытая тренировка",
   slug: "open-training",
-  status: "PUBLISHED",
+  status,
   createdAt: new Date("2026-05-15T12:00:00.000Z"),
   updatedAt: new Date("2026-05-15T13:00:00.000Z"),
   chatReadStates,
@@ -237,6 +244,7 @@ describe("eventChatRouter", () => {
         eventTitle: "Открытая тренировка",
         eventSlug: "open-training",
         eventStatus: "PUBLISHED",
+        isReadOnly: false,
         lastMessage: {
           id: messageId,
           body: "Проверим связь перед сбором.",
@@ -358,6 +366,18 @@ describe("eventChatRouter", () => {
     });
   });
 
+  it("lists completed event chat history as read-only with access", async () => {
+    const db = createDb({
+      accessEvent: createAccessEvent(true, EventStatus.COMPLETED),
+    });
+    const caller = createCaller(eventChatRouter)(createContext(db));
+
+    const result = await caller.list({ eventId });
+
+    expect(result.isReadOnly).toBe(true);
+    expect(result.messages).toHaveLength(1);
+  });
+
   it("returns parent message preview in list results", async () => {
     const db = createDb();
     const caller = createCaller(eventChatRouter)(createContext(db));
@@ -452,6 +472,18 @@ describe("eventChatRouter", () => {
     });
   });
 
+  it("marks completed event chat as read", async () => {
+    const db = createDb({
+      accessEvent: createAccessEvent(true, EventStatus.COMPLETED),
+    });
+    const caller = createCaller(eventChatRouter)(createContext(db));
+
+    await expect(caller.markRead({ eventId })).resolves.toEqual({
+      success: true,
+    });
+    expect(db.eventChatReadState.upsert).toHaveBeenCalled();
+  });
+
   it("marks event chat as read by updating existing read state", async () => {
     const db = createDb({ readState: { lastReadAt: oldReadAt } });
     const caller = createCaller(eventChatRouter)(createContext(db));
@@ -505,6 +537,59 @@ describe("eventChatRouter", () => {
       },
       select: expect.any(Object) as object,
     });
+  });
+
+  it("sends a message in writable applications-open event chat", async () => {
+    const db = createDb({
+      accessEvent: createAccessEvent(true, EventStatus.APPLICATIONS_OPEN),
+    });
+    const caller = createCaller(eventChatRouter)(createContext(db));
+
+    await caller.send({ eventId, body });
+
+    expect(db.eventChatMessage.create).toHaveBeenCalled();
+  });
+
+  it("rejects sending messages in completed event chat", async () => {
+    const db = createDb({
+      accessEvent: createAccessEvent(true, EventStatus.COMPLETED),
+    });
+    const caller = createCaller(eventChatRouter)(createContext(db));
+
+    await expect(caller.send({ eventId, body })).rejects.toMatchObject({
+      code: "FORBIDDEN",
+      message:
+        "Чат мероприятия переведён в архив. Новые сообщения недоступны.",
+    });
+    expect(db.eventChatMessage.create).not.toHaveBeenCalled();
+  });
+
+  it("rejects sending messages in archived event chat", async () => {
+    const db = createDb({
+      accessEvent: createAccessEvent(true, EventStatus.ARCHIVED),
+    });
+    const caller = createCaller(eventChatRouter)(createContext(db));
+
+    await expect(caller.send({ eventId, body })).rejects.toMatchObject({
+      code: "FORBIDDEN",
+      message:
+        "Чат мероприятия переведён в архив. Новые сообщения недоступны.",
+    });
+    expect(db.eventChatMessage.create).not.toHaveBeenCalled();
+  });
+
+  it("rejects sending messages in cancelled event chat", async () => {
+    const db = createDb({
+      accessEvent: createAccessEvent(true, EventStatus.CANCELLED),
+    });
+    const caller = createCaller(eventChatRouter)(createContext(db));
+
+    await expect(caller.send({ eventId, body })).rejects.toMatchObject({
+      code: "FORBIDDEN",
+      message:
+        "Чат мероприятия переведён в архив. Новые сообщения недоступны.",
+    });
+    expect(db.eventChatMessage.create).not.toHaveBeenCalled();
   });
 
   it("sends a reply to a visible message in the same event", async () => {
@@ -628,6 +713,22 @@ describe("eventChatRouter", () => {
     });
   });
 
+  it("rejects editing own messages in completed event chat", async () => {
+    const db = createDb({
+      accessEvent: createAccessEvent(true, EventStatus.COMPLETED),
+    });
+    const caller = createCaller(eventChatRouter)(createContext(db));
+
+    await expect(
+      caller.updateMine({ messageId, body: "Обновление." }),
+    ).rejects.toMatchObject({
+      code: "FORBIDDEN",
+      message:
+        "Чат мероприятия переведён в архив. Редактирование сообщений недоступно.",
+    });
+    expect(db.eventChatMessage.update).not.toHaveBeenCalled();
+  });
+
   it("denies editing another user's message", async () => {
     const db = createDb({ message: createChatMessage(otherUserId) });
     const caller = createCaller(eventChatRouter)(createContext(db));
@@ -646,6 +747,25 @@ describe("eventChatRouter", () => {
 
     await caller.deleteMine({ messageId });
 
+    expect(db.eventChatMessage.update).toHaveBeenCalledWith({
+      where: {
+        id: messageId,
+      },
+      data: {
+        deletedAt: expect.any(Date) as Date,
+      },
+    });
+  });
+
+  it("keeps own message deletion available in completed event chat", async () => {
+    const db = createDb({
+      accessEvent: createAccessEvent(true, EventStatus.COMPLETED),
+    });
+    const caller = createCaller(eventChatRouter)(createContext(db));
+
+    await expect(caller.deleteMine({ messageId })).resolves.toEqual({
+      success: true,
+    });
     expect(db.eventChatMessage.update).toHaveBeenCalledWith({
       where: {
         id: messageId,
@@ -675,6 +795,27 @@ describe("eventChatRouter", () => {
 
   it("allows event managers to hide messages", async () => {
     const db = createDb({
+      message: createChatMessage(otherUserId),
+      hideManager: true,
+    });
+    const caller = createCaller(eventChatRouter)(createContext(db));
+
+    await expect(caller.hideMessage({ messageId })).resolves.toEqual({
+      success: true,
+    });
+    expect(db.eventChatMessage.update).toHaveBeenCalledWith({
+      where: {
+        id: messageId,
+      },
+      data: {
+        hiddenAt: expect.any(Date) as Date,
+      },
+    });
+  });
+
+  it("keeps manager hide available in completed event chat", async () => {
+    const db = createDb({
+      accessEvent: createAccessEvent(true, EventStatus.COMPLETED),
       message: createChatMessage(otherUserId),
       hideManager: true,
     });

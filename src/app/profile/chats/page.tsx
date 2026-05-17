@@ -44,6 +44,11 @@ export default async function ProfileChatsPage() {
                         Новых: {chat.unreadCount}
                       </span>
                     ) : null}
+                    {chat.isReadOnly ? (
+                      <span className="border border-zinc-200 bg-zinc-50 px-2 py-1 text-xs font-medium text-zinc-600">
+                        Архив
+                      </span>
+                    ) : null}
                   </div>
 
                   <ChatPreview lastMessage={chat.lastMessage} />
