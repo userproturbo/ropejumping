@@ -2,6 +2,7 @@ import { auditRouter } from "@/server/api/routers/audit";
 import { applicationRouter } from "@/server/api/routers/application";
 import { badgeRouter } from "@/server/api/routers/badge";
 import { eventChatRouter } from "@/server/api/routers/event-chat";
+import { eventLogisticsRouter } from "@/server/api/routers/event-logistics";
 import { eventRouter } from "@/server/api/routers/event";
 import { followRouter } from "@/server/api/routers/follow";
 import { galleryRouter } from "@/server/api/routers/gallery";
@@ -30,6 +31,7 @@ export const appRouter = createTRPCRouter({
   application: applicationRouter,
   badge: badgeRouter,
   eventChat: eventChatRouter,
+  eventLogistics: eventLogisticsRouter,
   event: eventRouter,
   follow: followRouter,
   gallery: galleryRouter,

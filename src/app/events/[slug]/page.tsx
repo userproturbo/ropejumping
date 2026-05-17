@@ -21,6 +21,7 @@ import { api } from "@/trpc/server";
 
 import { EventChat } from "../_components/event-chat";
 import { formatEventDateRange } from "../_components/date-format";
+import { EventLogistics } from "../_components/event-logistics";
 import { EventApplicationPanel } from "./event-application-panel";
 
 type EventPageProps = {
@@ -508,6 +509,14 @@ export default async function EventPage({ params }: EventPageProps) {
             />
           )}
         </section>
+
+        <EventLogistics
+          eventId={event.id}
+          eventTitle={event.title}
+          canAccess={canAccessChat}
+          canManage={canModerateChat}
+          currentUserId={user?.id ?? null}
+        />
 
         <EventChat
           eventId={event.id}
