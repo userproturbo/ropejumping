@@ -61,10 +61,10 @@ const eventStatusLabels = {
 } satisfies Record<EventStatus, string>;
 
 const applicationStatusLabels = {
-  PENDING: "Ожидает решения",
+  PENDING: "На рассмотрении",
   ACCEPTED: "Принята",
   REJECTED: "Отклонена",
-  CANCELLED_BY_USER: "Отменена пользователем",
+  CANCELLED_BY_USER: "Отменена участником",
   CONFIRMED_PARTICIPATION: "Участие подтверждено",
   NO_SHOW: "Не явился",
 } satisfies Record<ApplicationStatus, string>;
@@ -98,9 +98,8 @@ export const getTeamStatusLabel = (status: TeamStatus) =>
 
 export const getTeamRoleLabel = (role: TeamRole) => teamRoleLabels[role];
 
-export const getTeamJoinRequestStatusLabel = (
-  status: TeamJoinRequestStatus,
-) => teamJoinRequestStatusLabels[status];
+export const getTeamJoinRequestStatusLabel = (status: TeamJoinRequestStatus) =>
+  teamJoinRequestStatusLabels[status];
 
 export const getTeamInvitationStatusLabel = (status: TeamInvitationStatus) =>
   teamInvitationStatusLabels[status];
@@ -114,8 +113,7 @@ export const getEventStatusLabel = (status: EventStatus) =>
 export const getApplicationStatusLabel = (status: ApplicationStatus) =>
   applicationStatusLabels[status];
 
-export const getObjectTypeLabel = (type: ObjectType) =>
-  objectTypeLabels[type];
+export const getObjectTypeLabel = (type: ObjectType) => objectTypeLabels[type];
 
 export const getObjectVisibilityLabel = (visibility: ObjectVisibility) =>
   objectVisibilityLabels[visibility];

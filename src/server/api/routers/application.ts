@@ -11,6 +11,8 @@ import {
   applicationCreateInputSchema,
   applicationDecisionInputSchema,
   applicationEventSlugInputSchema,
+  applicationOrganizerNoteInputSchema,
+  applicationStatusActionInputSchema,
 } from "@/lib/validation/application";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import type { db as database } from "@/server/db";
@@ -35,10 +37,12 @@ type ApplicationRouterDb = typeof database;
 
 const ensureCanManageApplicationEvent = async ({
   applicationId,
+  allowedStatuses,
   db,
   userId,
 }: {
   applicationId: string;
+  allowedStatuses?: ApplicationStatus[];
   db: ApplicationRouterDb;
   userId: string;
 }) => {
@@ -78,10 +82,10 @@ const ensureCanManageApplicationEvent = async ({
     });
   }
 
-  if (application.status !== ApplicationStatus.PENDING) {
+  if (allowedStatuses && !allowedStatuses.includes(application.status)) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Эту заявку уже нельзя изменить.",
+      message: "Эту заявку нельзя изменить.",
     });
   }
 
@@ -260,7 +264,7 @@ export const applicationRouter = createTRPCRouter({
       if (!cancellableApplicationStatuses.includes(application.status)) {
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: "Эту заявку уже нельзя отменить.",
+          message: "Эту заявку нельзя отменить.",
         });
       }
 
@@ -315,7 +319,6 @@ export const applicationRouter = createTRPCRouter({
             select: {
               id: true,
               name: true,
-              email: true,
               image: true,
               profile: {
                 select: {
@@ -324,6 +327,9 @@ export const applicationRouter = createTRPCRouter({
                   city: true,
                   avatarUrl: true,
                   externalExperience: true,
+                  selfReportedJumpCount: true,
+                  selfReportedMaxHeightMeters: true,
+                  selfReportedExperience: true,
                 },
               },
             },
@@ -341,6 +347,7 @@ export const applicationRouter = createTRPCRouter({
     .input(applicationDecisionInputSchema)
     .mutation(async ({ ctx, input }) => {
       await ensureCanManageApplicationEvent({
+        allowedStatuses: [ApplicationStatus.PENDING],
         applicationId: input.applicationId,
         db: ctx.db,
         userId: ctx.session.user.id,
@@ -383,6 +390,10 @@ export const applicationRouter = createTRPCRouter({
     .input(applicationDecisionInputSchema)
     .mutation(async ({ ctx, input }) => {
       await ensureCanManageApplicationEvent({
+        allowedStatuses: [
+          ApplicationStatus.PENDING,
+          ApplicationStatus.ACCEPTED,
+        ],
         applicationId: input.applicationId,
         db: ctx.db,
         userId: ctx.session.user.id,
@@ -418,6 +429,66 @@ export const applicationRouter = createTRPCRouter({
         });
 
         return application;
+      });
+    }),
+
+  confirmParticipation: protectedProcedure
+    .input(applicationStatusActionInputSchema)
+    .mutation(async ({ ctx, input }) => {
+      await ensureCanManageApplicationEvent({
+        allowedStatuses: [ApplicationStatus.ACCEPTED],
+        applicationId: input.applicationId,
+        db: ctx.db,
+        userId: ctx.session.user.id,
+      });
+
+      return ctx.db.eventApplication.update({
+        where: { id: input.applicationId },
+        data: {
+          status: ApplicationStatus.CONFIRMED_PARTICIPATION,
+          decidedById: ctx.session.user.id,
+          decidedAt: new Date(),
+        },
+      });
+    }),
+
+  markNoShow: protectedProcedure
+    .input(applicationStatusActionInputSchema)
+    .mutation(async ({ ctx, input }) => {
+      await ensureCanManageApplicationEvent({
+        allowedStatuses: [
+          ApplicationStatus.ACCEPTED,
+          ApplicationStatus.CONFIRMED_PARTICIPATION,
+        ],
+        applicationId: input.applicationId,
+        db: ctx.db,
+        userId: ctx.session.user.id,
+      });
+
+      return ctx.db.eventApplication.update({
+        where: { id: input.applicationId },
+        data: {
+          status: ApplicationStatus.NO_SHOW,
+          decidedById: ctx.session.user.id,
+          decidedAt: new Date(),
+        },
+      });
+    }),
+
+  updateOrganizerNote: protectedProcedure
+    .input(applicationOrganizerNoteInputSchema)
+    .mutation(async ({ ctx, input }) => {
+      await ensureCanManageApplicationEvent({
+        applicationId: input.applicationId,
+        db: ctx.db,
+        userId: ctx.session.user.id,
+      });
+
+      return ctx.db.eventApplication.update({
+        where: { id: input.applicationId },
+        data: {
+          organizerNote: input.organizerNote,
+        },
       });
     }),
 });

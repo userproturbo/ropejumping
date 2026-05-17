@@ -10,9 +10,9 @@ const emptyToNull = (value: unknown) => {
 };
 
 const nullableString = (schema: z.ZodString) =>
-  z.preprocess(emptyToNull, schema.nullable().optional()).transform(
-    (value) => value ?? null,
-  );
+  z
+    .preprocess(emptyToNull, schema.nullable().optional())
+    .transform((value) => value ?? null);
 
 export const applicationCreateInputSchema = z.object({
   eventSlug: eventSlugSchema,
@@ -20,6 +20,15 @@ export const applicationCreateInputSchema = z.object({
 });
 
 export const applicationDecisionInputSchema = z.object({
+  applicationId: z.string().cuid(),
+  organizerNote: nullableString(z.string().max(1000)),
+});
+
+export const applicationStatusActionInputSchema = z.object({
+  applicationId: z.string().cuid(),
+});
+
+export const applicationOrganizerNoteInputSchema = z.object({
   applicationId: z.string().cuid(),
   organizerNote: nullableString(z.string().max(1000)),
 });
