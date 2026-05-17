@@ -9,13 +9,7 @@ const targetId = "clx0a1b2c0000abcd1234efgh";
 
 describe("report list validation", () => {
   it("accepts supported moderation statuses", () => {
-    for (const status of [
-      "OPEN",
-      "REVIEWED",
-      "RESOLVED",
-      "DISMISSED",
-      "ALL",
-    ]) {
+    for (const status of ["OPEN", "REVIEWED", "RESOLVED", "DISMISSED", "ALL"]) {
       expect(reportListInputSchema.parse({ status }).status).toBe(status);
     }
   });
@@ -33,6 +27,7 @@ describe("report list validation", () => {
       "OBJECT",
       "OBJECT_IMPRESSION",
       "EVENT_CHAT_MESSAGE",
+      "EVENT_LOGISTICS_POST",
       "TEAM_CHAT_MESSAGE",
     ]) {
       expect(reportListInputSchema.parse({ targetType }).targetType).toBe(
@@ -83,6 +78,17 @@ describe("report list validation", () => {
         details: null,
       }).targetType,
     ).toBe("TEAM_CHAT_MESSAGE");
+  });
+
+  it("accepts event logistics post reports", () => {
+    expect(
+      reportCreateInputSchema.parse({
+        targetType: "EVENT_LOGISTICS_POST",
+        targetId,
+        reason: "Нарушение правил безопасности или сообщества",
+        details: null,
+      }).targetType,
+    ).toBe("EVENT_LOGISTICS_POST");
   });
 
   it("rejects invalid create target types", () => {

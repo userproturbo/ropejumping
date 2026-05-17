@@ -8,6 +8,7 @@ import {
 } from "@/generated/prisma/enums";
 import {
   hideChatMessageInputSchema,
+  hideEventLogisticsPostInputSchema,
   hideObjectImpressionInputSchema,
   hideTargetInputSchema,
   reportActionInputSchema,
@@ -180,6 +181,45 @@ const ensureReportableTarget = async (
     return;
   }
 
+  if (targetType === REPORT_TARGET_TYPES.EVENT_LOGISTICS_POST) {
+    const post = await db.eventLogisticsPost.findFirst({
+      where: {
+        id: targetId,
+        hiddenAt: null,
+      },
+      select: {
+        id: true,
+        eventId: true,
+      },
+    });
+
+    if (!post) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "Объект жалобы не найден.",
+      });
+    }
+
+    try {
+      await assertCanAccessEventChat({
+        db,
+        eventId: post.eventId,
+        userId: reporterId,
+      });
+    } catch (error) {
+      if (!(error instanceof TRPCError)) {
+        throw error;
+      }
+
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "Объект жалобы не найден.",
+      });
+    }
+
+    return;
+  }
+
   if (targetType === REPORT_TARGET_TYPES.TEAM_CHAT_MESSAGE) {
     const message = await db.teamChatMessage.findFirst({
       where: {
@@ -259,6 +299,12 @@ const addReportTargetPreviews = async <
       (report) => report.targetType === REPORT_TARGET_TYPES.EVENT_CHAT_MESSAGE,
     )
     .map((report) => report.targetId);
+  const eventLogisticsPostIds = reports
+    .filter(
+      (report) =>
+        report.targetType === REPORT_TARGET_TYPES.EVENT_LOGISTICS_POST,
+    )
+    .map((report) => report.targetId);
   const teamChatMessageIds = reports
     .filter(
       (report) => report.targetType === REPORT_TARGET_TYPES.TEAM_CHAT_MESSAGE,
@@ -269,6 +315,7 @@ const addReportTargetPreviews = async <
     objectIds.length === 0 &&
     impressionIds.length === 0 &&
     eventChatMessageIds.length === 0 &&
+    eventLogisticsPostIds.length === 0 &&
     teamChatMessageIds.length === 0
   ) {
     return reports.map((report) => ({
@@ -276,12 +323,18 @@ const addReportTargetPreviews = async <
       targetObject: null,
       targetObjectImpression: null,
       targetEventChatMessage: null,
+      targetEventLogisticsPost: null,
       targetTeamChatMessage: null,
     }));
   }
 
-  const [objects, impressions, eventChatMessages, teamChatMessages] =
-    await Promise.all([
+  const [
+    objects,
+    impressions,
+    eventChatMessages,
+    eventLogisticsPosts,
+    teamChatMessages,
+  ] = await Promise.all([
     objectIds.length > 0
       ? db.jumpObject.findMany({
           where: {
@@ -368,6 +421,41 @@ const addReportTargetPreviews = async <
           },
         })
       : Promise.resolve([]),
+    eventLogisticsPostIds.length > 0
+      ? db.eventLogisticsPost.findMany({
+          where: {
+            id: {
+              in: eventLogisticsPostIds,
+            },
+          },
+          select: {
+            id: true,
+            type: true,
+            body: true,
+            hiddenAt: true,
+            author: {
+              select: {
+                id: true,
+                name: true,
+                profile: {
+                  select: {
+                    username: true,
+                    displayName: true,
+                    avatarUrl: true,
+                  },
+                },
+              },
+            },
+            event: {
+              select: {
+                id: true,
+                title: true,
+                slug: true,
+              },
+            },
+          },
+        })
+      : Promise.resolve([]),
     teamChatMessageIds.length > 0
       ? db.teamChatMessage.findMany({
           where: {
@@ -411,6 +499,9 @@ const addReportTargetPreviews = async <
   const eventChatMessageById = new Map(
     eventChatMessages.map((message) => [message.id, message]),
   );
+  const eventLogisticsPostById = new Map(
+    eventLogisticsPosts.map((post) => [post.id, post]),
+  );
   const teamChatMessageById = new Map(
     teamChatMessages.map((message) => [message.id, message]),
   );
@@ -428,6 +519,10 @@ const addReportTargetPreviews = async <
     targetEventChatMessage:
       report.targetType === REPORT_TARGET_TYPES.EVENT_CHAT_MESSAGE
         ? (eventChatMessageById.get(report.targetId) ?? null)
+        : null,
+    targetEventLogisticsPost:
+      report.targetType === REPORT_TARGET_TYPES.EVENT_LOGISTICS_POST
+        ? (eventLogisticsPostById.get(report.targetId) ?? null)
         : null,
     targetTeamChatMessage:
       report.targetType === REPORT_TARGET_TYPES.TEAM_CHAT_MESSAGE
@@ -594,6 +689,49 @@ const hideTeamChatMessage = async (
   return { success: true };
 };
 
+const hideEventLogisticsPost = async (
+  db: ReportRouterDb,
+  input: {
+    postId: string;
+    reportId?: string;
+    reviewerId: string;
+  },
+) => {
+  const post = await db.eventLogisticsPost.findUnique({
+    where: { id: input.postId },
+    select: { id: true },
+  });
+
+  if (!post) {
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: "Запись не найдена.",
+    });
+  }
+
+  await db.$transaction(async (tx) => {
+    await tx.eventLogisticsPost.update({
+      where: {
+        id: input.postId,
+      },
+      data: {
+        hiddenAt: new Date(),
+      },
+    });
+
+    if (input.reportId) {
+      await reviewReportRecord(
+        tx,
+        input.reportId,
+        input.reviewerId,
+        ReportStatus.RESOLVED,
+      );
+    }
+  });
+
+  return { success: true };
+};
+
 const reviewReport = async (
   db: ReportRouterDb,
   reportId: string,
@@ -613,7 +751,11 @@ const getReportStatusWhere = (
   if (status === "DISMISSED") return ReportStatus.DISMISSED;
   if (status === "REVIEWED") {
     return {
-      in: [ReportStatus.REVIEWED, ReportStatus.RESOLVED, ReportStatus.DISMISSED],
+      in: [
+        ReportStatus.REVIEWED,
+        ReportStatus.RESOLVED,
+        ReportStatus.DISMISSED,
+      ],
     };
   }
 
@@ -825,6 +967,13 @@ export const reportRouter = createTRPCRouter({
         });
       }
 
+      if (input.targetType === REPORT_TARGET_TYPES.EVENT_LOGISTICS_POST) {
+        return hideEventLogisticsPost(ctx.db, {
+          postId: input.targetId,
+          reviewerId: ctx.session.user.id,
+        });
+      }
+
       if (input.targetType === REPORT_TARGET_TYPES.TEAM_CHAT_MESSAGE) {
         return hideTeamChatMessage(ctx.db, {
           messageId: input.targetId,
@@ -859,6 +1008,18 @@ export const reportRouter = createTRPCRouter({
 
       return hideEventChatMessage(ctx.db, {
         messageId: input.messageId,
+        reportId: input.reportId,
+        reviewerId: ctx.session.user.id,
+      });
+    }),
+
+  hideEventLogisticsPost: protectedProcedure
+    .input(hideEventLogisticsPostInputSchema)
+    .mutation(async ({ ctx, input }) => {
+      requireModerator(ctx);
+
+      return hideEventLogisticsPost(ctx.db, {
+        postId: input.postId,
         reportId: input.reportId,
         reviewerId: ctx.session.user.id,
       });

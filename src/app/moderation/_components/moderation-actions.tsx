@@ -26,6 +26,9 @@ export function ModerationActions({
   const hideEventChatMessage = api.report.hideEventChatMessage.useMutation({
     onSuccess: () => router.refresh(),
   });
+  const hideEventLogisticsPost = api.report.hideEventLogisticsPost.useMutation({
+    onSuccess: () => router.refresh(),
+  });
   const hideTeamChatMessage = api.report.hideTeamChatMessage.useMutation({
     onSuccess: () => router.refresh(),
   });
@@ -40,6 +43,7 @@ export function ModerationActions({
     hideTarget.isPending ||
     hideObjectImpression.isPending ||
     hideEventChatMessage.isPending ||
+    hideEventLogisticsPost.isPending ||
     hideTeamChatMessage.isPending ||
     resolve.isPending ||
     dismiss.isPending;
@@ -47,6 +51,7 @@ export function ModerationActions({
     hideTarget.error ??
     hideObjectImpression.error ??
     hideEventChatMessage.error ??
+    hideEventLogisticsPost.error ??
     hideTeamChatMessage.error ??
     resolve.error ??
     dismiss.error;
@@ -59,6 +64,11 @@ export function ModerationActions({
 
     if (targetType === "EVENT_CHAT_MESSAGE") {
       hideEventChatMessage.mutate({ messageId: targetId, reportId });
+      return;
+    }
+
+    if (targetType === "EVENT_LOGISTICS_POST") {
+      hideEventLogisticsPost.mutate({ postId: targetId, reportId });
       return;
     }
 
@@ -105,6 +115,7 @@ const getHideButtonLabel = (targetType: ReportTargetType) => {
   if (targetType === "POST") return "Скрыть пост";
   if (targetType === "COMMENT") return "Скрыть комментарий";
   if (targetType === "OBJECT_IMPRESSION") return "Скрыть впечатление";
+  if (targetType === "EVENT_LOGISTICS_POST") return "Скрыть запись";
   if (
     targetType === "EVENT_CHAT_MESSAGE" ||
     targetType === "TEAM_CHAT_MESSAGE"

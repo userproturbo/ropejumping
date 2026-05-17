@@ -9,8 +9,7 @@ import {
 } from "@/generated/prisma/enums";
 import { api, type RouterOutputs } from "@/trpc/react";
 
-type LogisticsPost =
-  RouterOutputs["eventLogistics"]["list"]["posts"][number];
+type LogisticsPost = RouterOutputs["eventLogistics"]["list"]["posts"][number];
 
 type EventLogisticsProps = {
   eventId: string;
@@ -141,7 +140,10 @@ export function EventLogistics({
   };
 
   return (
-    <section className="mt-6 border border-zinc-200 bg-white p-6">
+    <section
+      id="event-logistics"
+      className="mt-6 border border-zinc-200 bg-white p-6"
+    >
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h2 className="text-xl font-semibold text-zinc-950">
@@ -181,7 +183,9 @@ export function EventLogistics({
         />
       )}
 
-      {error ? <p className="mt-4 text-sm text-red-700">{error.message}</p> : null}
+      {error ? (
+        <p className="mt-4 text-sm text-red-700">{error.message}</p>
+      ) : null}
 
       <div className="mt-5 grid gap-4">
         {logisticsQuery.isLoading ? (
@@ -217,7 +221,8 @@ export function EventLogistics({
                       </span>
                     </div>
                     <p className="mt-2 text-sm text-zinc-500">
-                      {getAuthorName(post)} · {formatLogisticsDate(post.createdAt)}
+                      {getAuthorName(post)} ·{" "}
+                      {formatLogisticsDate(post.createdAt)}
                     </p>
                   </div>
                   <div className="flex flex-wrap justify-end gap-3 text-xs">
@@ -260,6 +265,14 @@ export function EventLogistics({
                         Скрыть
                       </button>
                     ) : null}
+                    {currentUserId && !isOwnPost ? (
+                      <Link
+                        href={`/reports/new?targetType=EVENT_LOGISTICS_POST&targetId=${post.id}`}
+                        className="text-zinc-500 hover:text-zinc-950"
+                      >
+                        Пожаловаться
+                      </Link>
+                    ) : null}
                   </div>
                 </div>
 
@@ -272,7 +285,9 @@ export function EventLogistics({
                   ) : null}
                   {post.departureTimeText ? (
                     <div>
-                      <dt className="font-medium text-zinc-950">Время выезда</dt>
+                      <dt className="font-medium text-zinc-950">
+                        Время выезда
+                      </dt>
                       <dd className="mt-1">{post.departureTimeText}</dd>
                     </div>
                   ) : null}
@@ -291,7 +306,7 @@ export function EventLogistics({
                     </div>
                   ) : null}
                 </dl>
-                <p className="mt-4 whitespace-pre-wrap text-sm leading-6 text-zinc-600">
+                <p className="mt-4 text-sm leading-6 whitespace-pre-wrap text-zinc-600">
                   {post.body}
                 </p>
                 {post.type === EventLogisticsType.OFFER_SEAT ? (
@@ -331,7 +346,9 @@ export function EventLogistics({
                           <button
                             type="button"
                             disabled={isPending}
-                            onClick={() => leavePost.mutate({ postId: post.id })}
+                            onClick={() =>
+                              leavePost.mutate({ postId: post.id })
+                            }
                             className="border border-zinc-300 px-3 py-2 text-xs text-zinc-800 hover:border-zinc-950 disabled:cursor-not-allowed disabled:text-zinc-400"
                           >
                             Отменить участие
@@ -393,7 +410,10 @@ function LogisticsForm({
           <select
             value={form.type}
             onChange={(event) =>
-              onChange({ ...form, type: event.target.value as EventLogisticsType })
+              onChange({
+                ...form,
+                type: event.target.value as EventLogisticsType,
+              })
             }
             className="border border-zinc-300 px-3 py-2 text-sm font-normal text-zinc-950 outline-none focus:border-zinc-950"
           >
@@ -526,9 +546,7 @@ const getAuthorName = (post: LogisticsPost) =>
   "Участник";
 
 const getJoinUserName = (join: LogisticsPost["joins"][number]) =>
-  join.user.profile?.displayName ??
-  join.user.profile?.username ??
-  "Участник";
+  join.user.profile?.displayName ?? join.user.profile?.username ?? "Участник";
 
 const formatLogisticsDate = (date: Date) =>
   new Intl.DateTimeFormat("ru-RU", {

@@ -26,6 +26,7 @@ const targetTypeOptions = [
   { value: "OBJECT", label: "Объект" },
   { value: "OBJECT_IMPRESSION", label: "Впечатление об объекте" },
   { value: "EVENT_CHAT_MESSAGE", label: "Сообщение в чате мероприятия" },
+  { value: "EVENT_LOGISTICS_POST", label: "Запись в логистике мероприятия" },
   { value: "TEAM_CHAT_MESSAGE", label: "Сообщение в чате команды" },
 ];
 
@@ -63,8 +64,8 @@ export default async function ModerationPage({
               Модерация
             </h1>
             <p className="mt-2 text-sm text-zinc-600">
-              Жалобы на посты, комментарии, объекты, впечатления и сообщения в
-              чатах.
+              Жалобы на посты, комментарии, объекты, впечатления, логистику и
+              сообщения в чатах.
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
@@ -85,9 +86,9 @@ export default async function ModerationPage({
 
         <section className="mb-6 border border-amber-200 bg-amber-50 p-5">
           <p className="text-sm leading-6 text-amber-900">
-            Особое внимание: не допускайте публикации точных координат,
-            способов доступа, точек крепления, технических схем и инструкций
-            для самостоятельных прыжков.
+            Особое внимание: не допускайте публикации точных координат, способов
+            доступа, точек крепления, технических схем и инструкций для
+            самостоятельных прыжков.
           </p>
         </section>
 

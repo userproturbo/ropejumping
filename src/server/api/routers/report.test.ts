@@ -1,6 +1,7 @@
 import { beforeAll, describe, expect, it, vi } from "vitest";
 
 import {
+  EventLogisticsType,
   ObjectVisibility,
   ReportStatus,
 } from "@/generated/prisma/enums";
@@ -34,6 +35,7 @@ const eventChatMessageId = "clx0a1b2c0004abcd1234efgh";
 const teamChatMessageId = "clx0a1b2c0005abcd1234efgh";
 const eventId = "clx0a1b2c0006abcd1234efgh";
 const teamId = "clx0a1b2c0007abcd1234efgh";
+const eventLogisticsPostId = "clx0a1b2c0008abcd1234efgh";
 const reason = "Нарушение правил безопасности или сообщества";
 
 const createReport = () => ({
@@ -51,12 +53,14 @@ const createReport = () => ({
 const createDb = ({
   reportableImpression = { id: impressionId },
   reportableEventChatMessage = { id: eventChatMessageId, eventId },
+  reportableEventLogisticsPost = { id: eventLogisticsPostId, eventId },
   reportableTeamChatMessage = { id: teamChatMessageId, teamId },
   eventAccessAllowed = true,
   teamAccessAllowed = true,
 }: {
   reportableImpression?: { id: string } | null;
   reportableEventChatMessage?: { id: string; eventId: string } | null;
+  reportableEventLogisticsPost?: { id: string; eventId: string } | null;
   reportableTeamChatMessage?: { id: string; teamId: string } | null;
   eventAccessAllowed?: boolean;
   teamAccessAllowed?: boolean;
@@ -67,6 +71,9 @@ const createDb = ({
     },
     eventChatMessage: {
       update: vi.fn().mockResolvedValue({ id: eventChatMessageId }),
+    },
+    eventLogisticsPost: {
+      update: vi.fn().mockResolvedValue({ id: eventLogisticsPostId }),
     },
     teamChatMessage: {
       update: vi.fn().mockResolvedValue({ id: teamChatMessageId }),
@@ -125,6 +132,12 @@ const createDb = ({
       findUnique: vi.fn().mockResolvedValue({ id: eventChatMessageId }),
       findMany: vi.fn().mockResolvedValue([]),
       update: vi.fn().mockResolvedValue({ id: eventChatMessageId }),
+    },
+    eventLogisticsPost: {
+      findFirst: vi.fn().mockResolvedValue(reportableEventLogisticsPost),
+      findUnique: vi.fn().mockResolvedValue({ id: eventLogisticsPostId }),
+      findMany: vi.fn().mockResolvedValue([]),
+      update: vi.fn().mockResolvedValue({ id: eventLogisticsPostId }),
     },
     teamChatMessage: {
       findFirst: vi.fn().mockResolvedValue(reportableTeamChatMessage),
@@ -238,8 +251,7 @@ describe("reportRouter object impression support", () => {
       code: "NOT_FOUND",
       message: "Объект жалобы не найден.",
     });
-    const findFirstInput = db.objectImpression.findFirst.mock
-      .calls[0]?.[0] as {
+    const findFirstInput = db.objectImpression.findFirst.mock.calls[0]?.[0] as {
       where: {
         object: {
           visibility: ObjectVisibility;
@@ -247,7 +259,9 @@ describe("reportRouter object impression support", () => {
       };
     };
 
-    expect(findFirstInput.where.object.visibility).toBe(ObjectVisibility.PUBLIC);
+    expect(findFirstInput.where.object.visibility).toBe(
+      ObjectVisibility.PUBLIC,
+    );
   });
 
   it("allows moderators to hide an object impression", async () => {
@@ -413,6 +427,110 @@ describe("reportRouter object impression support", () => {
     });
   });
 
+  it("allows users with logistics access to report visible logistics posts", async () => {
+    const db = createDb();
+    const caller = createCaller(reportRouter)(createContext(db));
+
+    await caller.create({
+      targetType: "EVENT_LOGISTICS_POST",
+      targetId: eventLogisticsPostId,
+      reason,
+      details: null,
+    });
+
+    expect(db.eventLogisticsPost.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: eventLogisticsPostId,
+        hiddenAt: null,
+      },
+      select: {
+        id: true,
+        eventId: true,
+      },
+    });
+    expect(db.report.create).toHaveBeenCalledWith({
+      data: {
+        reporterId,
+        targetType: "EVENT_LOGISTICS_POST",
+        targetId: eventLogisticsPostId,
+        reason,
+        details: null,
+        status: ReportStatus.OPEN,
+      },
+    });
+  });
+
+  it("rejects logistics post reports without logistics access", async () => {
+    const db = createDb({ eventAccessAllowed: false });
+    const caller = createCaller(reportRouter)(createContext(db));
+
+    await expect(
+      caller.create({
+        targetType: "EVENT_LOGISTICS_POST",
+        targetId: eventLogisticsPostId,
+        reason,
+        details: null,
+      }),
+    ).rejects.toMatchObject({
+      code: "NOT_FOUND",
+      message: "Объект жалобы не найден.",
+    });
+    expect(db.report.create).not.toHaveBeenCalled();
+  });
+
+  it("rejects pending applicants reporting logistics posts", async () => {
+    const db = createDb({ eventAccessAllowed: false });
+    const caller = createCaller(reportRouter)(createContext(db));
+
+    await expect(
+      caller.create({
+        targetType: "EVENT_LOGISTICS_POST",
+        targetId: eventLogisticsPostId,
+        reason,
+        details: null,
+      }),
+    ).rejects.toMatchObject({
+      code: "NOT_FOUND",
+      message: "Объект жалобы не найден.",
+    });
+    const eventFindInput = db.event.findUnique.mock.calls[0]?.[0] as {
+      select: {
+        applications: {
+          where: {
+            status: {
+              in: string[];
+            };
+          };
+        };
+      };
+    };
+
+    expect(eventFindInput.select.applications.where.status.in).toEqual([
+      "ACCEPTED",
+      "CONFIRMED_PARTICIPATION",
+    ]);
+    expect(db.report.create).not.toHaveBeenCalled();
+  });
+
+  it("rejects hidden logistics posts", async () => {
+    const db = createDb({ reportableEventLogisticsPost: null });
+    const caller = createCaller(reportRouter)(createContext(db));
+
+    await expect(
+      caller.create({
+        targetType: "EVENT_LOGISTICS_POST",
+        targetId: eventLogisticsPostId,
+        reason,
+        details: null,
+      }),
+    ).rejects.toMatchObject({
+      code: "NOT_FOUND",
+      message: "Объект жалобы не найден.",
+    });
+    expect(db.event.findUnique).not.toHaveBeenCalled();
+    expect(db.report.create).not.toHaveBeenCalled();
+  });
+
   it("rejects team chat message reports without chat access", async () => {
     const db = createDb({ teamAccessAllowed: false });
     const caller = createCaller(reportRouter)(createContext(db));
@@ -493,7 +611,10 @@ describe("reportRouter object impression support", () => {
       }),
     );
 
-    await caller.hideEventChatMessage({ messageId: eventChatMessageId, reportId });
+    await caller.hideEventChatMessage({
+      messageId: eventChatMessageId,
+      reportId,
+    });
 
     expect(db.tx.report.update).toHaveBeenCalledWith({
       where: { id: reportId },
@@ -528,6 +649,166 @@ describe("reportRouter object impression support", () => {
     });
   });
 
+  it("allows moderators to hide logistics posts", async () => {
+    const db = createDb();
+    const caller = createCaller(reportRouter)(
+      createContext(db, {
+        id: moderatorId,
+        email: "moderator@example.com",
+      }),
+    );
+
+    await expect(
+      caller.hideEventLogisticsPost({ postId: eventLogisticsPostId }),
+    ).resolves.toEqual({ success: true });
+    expect(db.tx.eventLogisticsPost.update).toHaveBeenCalledWith({
+      where: {
+        id: eventLogisticsPostId,
+      },
+      data: {
+        hiddenAt: expect.any(Date) as Date,
+      },
+    });
+  });
+
+  it("rejects non-moderators hiding logistics posts", async () => {
+    const db = createDb();
+    const caller = createCaller(reportRouter)(createContext(db));
+
+    await expect(
+      caller.hideEventLogisticsPost({ postId: eventLogisticsPostId }),
+    ).rejects.toMatchObject({
+      code: "FORBIDDEN",
+      message: "У вас нет прав модератора.",
+    });
+    expect(db.$transaction).not.toHaveBeenCalled();
+  });
+
+  it("resolves the report when hiding a logistics post with reportId", async () => {
+    const db = createDb();
+    const caller = createCaller(reportRouter)(
+      createContext(db, {
+        id: moderatorId,
+        email: "moderator@example.com",
+      }),
+    );
+
+    await caller.hideEventLogisticsPost({
+      postId: eventLogisticsPostId,
+      reportId,
+    });
+
+    expect(db.tx.report.update).toHaveBeenCalledWith({
+      where: { id: reportId },
+      data: {
+        status: ReportStatus.RESOLVED,
+        reviewedById: moderatorId,
+        reviewedAt: expect.any(Date) as Date,
+      },
+      include: expect.any(Object) as object,
+    });
+  });
+
+  it("includes logistics post previews in moderation reports without emails", async () => {
+    const db = createDb();
+    db.report.findMany.mockResolvedValue([
+      {
+        id: reportId,
+        reporterId,
+        targetType: "EVENT_LOGISTICS_POST",
+        targetId: eventLogisticsPostId,
+        reason,
+        details: null,
+        status: ReportStatus.OPEN,
+        createdAt: new Date("2026-05-17T10:00:00.000Z"),
+        reviewedAt: null,
+        reporter: {
+          id: reporterId,
+          name: "Reporter",
+          email: "reporter@example.com",
+          image: null,
+          profile: null,
+        },
+        reviewedBy: null,
+      },
+    ]);
+    db.eventLogisticsPost.findMany.mockResolvedValue([
+      {
+        id: eventLogisticsPostId,
+        type: EventLogisticsType.OFFER_SEAT,
+        body: "Есть два места от метро.",
+        hiddenAt: null,
+        author: {
+          id: "author-id",
+          name: "Автор",
+          profile: {
+            username: "author",
+            displayName: "Автор логистики",
+            avatarUrl: null,
+          },
+        },
+        event: {
+          id: eventId,
+          title: "Прыжки",
+          slug: "jumps",
+        },
+      },
+    ]);
+    const caller = createCaller(reportRouter)(
+      createContext(db, {
+        id: moderatorId,
+        email: "moderator@example.com",
+      }),
+    );
+
+    const result = await caller.listForModeration({ status: "OPEN" });
+
+    expect(db.eventLogisticsPost.findMany).toHaveBeenCalledWith({
+      where: {
+        id: {
+          in: [eventLogisticsPostId],
+        },
+      },
+      select: {
+        id: true,
+        type: true,
+        body: true,
+        hiddenAt: true,
+        author: {
+          select: {
+            id: true,
+            name: true,
+            profile: {
+              select: {
+                username: true,
+                displayName: true,
+                avatarUrl: true,
+              },
+            },
+          },
+        },
+        event: {
+          select: {
+            id: true,
+            title: true,
+            slug: true,
+          },
+        },
+      },
+    });
+    expect(result.reports[0]?.targetEventLogisticsPost).toMatchObject({
+      id: eventLogisticsPostId,
+      body: "Есть два места от метро.",
+      event: {
+        title: "Прыжки",
+        slug: "jumps",
+      },
+    });
+    expect(
+      result.reports[0]?.targetEventLogisticsPost?.author,
+    ).not.toHaveProperty("email");
+  });
+
   it("rejects non-moderators hiding team chat messages", async () => {
     const db = createDb();
     const caller = createCaller(reportRouter)(createContext(db));
@@ -550,7 +831,10 @@ describe("reportRouter object impression support", () => {
       }),
     );
 
-    await caller.hideTeamChatMessage({ messageId: teamChatMessageId, reportId });
+    await caller.hideTeamChatMessage({
+      messageId: teamChatMessageId,
+      reportId,
+    });
 
     expect(db.tx.report.update).toHaveBeenCalledWith({
       where: { id: reportId },

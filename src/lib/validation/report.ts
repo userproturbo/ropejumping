@@ -49,6 +49,7 @@ const reportTargetTypeValues = [
   REPORT_TARGET_TYPES.OBJECT,
   REPORT_TARGET_TYPES.OBJECT_IMPRESSION,
   REPORT_TARGET_TYPES.EVENT_CHAT_MESSAGE,
+  REPORT_TARGET_TYPES.EVENT_LOGISTICS_POST,
   REPORT_TARGET_TYPES.TEAM_CHAT_MESSAGE,
 ] as const;
 
@@ -90,6 +91,11 @@ export const hideObjectImpressionInputSchema = z.object({
 
 export const hideChatMessageInputSchema = z.object({
   messageId: z.string().cuid(),
+  reportId: z.string().cuid().optional(),
+});
+
+export const hideEventLogisticsPostInputSchema = z.object({
+  postId: z.string().cuid(),
   reportId: z.string().cuid().optional(),
 });
 

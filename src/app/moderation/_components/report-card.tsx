@@ -148,6 +148,29 @@ export function ReportCard({ report, showActions = false }: ReportCardProps) {
           ) : null}
         </div>
       ) : null}
+      {report.targetType === "EVENT_LOGISTICS_POST" &&
+      report.targetEventLogisticsPost ? (
+        <div className="mt-4 grid gap-2 text-sm">
+          <p className="text-zinc-600">
+            Автор: {getUserName(report.targetEventLogisticsPost.author)}
+          </p>
+          <p className="text-zinc-600">
+            Тип: {getLogisticsTypeLabel(report.targetEventLogisticsPost.type)}
+          </p>
+          <p className="line-clamp-3 whitespace-pre-wrap text-zinc-600">
+            {report.targetEventLogisticsPost.body}
+          </p>
+          <Link
+            href={`/events/${report.targetEventLogisticsPost.event.slug}#event-logistics`}
+            className="inline-flex text-zinc-600 hover:text-zinc-950"
+          >
+            Открыть мероприятие: {report.targetEventLogisticsPost.event.title}
+          </Link>
+          {report.targetEventLogisticsPost.hiddenAt ? (
+            <p className="text-zinc-500">Запись уже скрыта.</p>
+          ) : null}
+        </div>
+      ) : null}
       {report.targetType === "TEAM_CHAT_MESSAGE" &&
       report.targetTeamChatMessage ? (
         <div className="mt-4 grid gap-2 text-sm">
@@ -190,6 +213,7 @@ const getReportTargetType = (value: string): ReportTargetType | null => {
     value === "OBJECT" ||
     value === "OBJECT_IMPRESSION" ||
     value === "EVENT_CHAT_MESSAGE" ||
+    value === "EVENT_LOGISTICS_POST" ||
     value === "TEAM_CHAT_MESSAGE"
   ) {
     return value;
@@ -205,6 +229,8 @@ const getTargetTypeLabel = (targetType: string) => {
   if (targetType === "OBJECT_IMPRESSION") return "Впечатление об объекте";
   if (targetType === "EVENT_CHAT_MESSAGE")
     return "Сообщение в чате мероприятия";
+  if (targetType === "EVENT_LOGISTICS_POST")
+    return "Запись в логистике мероприятия";
   if (targetType === "TEAM_CHAT_MESSAGE") return "Сообщение в чате команды";
 
   return targetType;
@@ -227,6 +253,13 @@ const getTargetTitle = (report: ModerationReport) => {
     report.targetEventChatMessage
   ) {
     return report.targetEventChatMessage.event.title;
+  }
+
+  if (
+    report.targetType === "EVENT_LOGISTICS_POST" &&
+    report.targetEventLogisticsPost
+  ) {
+    return report.targetEventLogisticsPost.event.title;
   }
 
   if (
@@ -254,6 +287,13 @@ const getUserName = (user: ModerationUserPreview) =>
   user.name ??
   user.email ??
   "Участник";
+
+const getLogisticsTypeLabel = (type: string) => {
+  if (type === "OFFER_SEAT") return "Предлагает место";
+  if (type === "NEED_SEAT") return "Ищет место";
+
+  return "Едет своим ходом / ищет компанию";
+};
 
 const formatModerationDate = (date: Date) =>
   new Intl.DateTimeFormat("ru-RU", {
