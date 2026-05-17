@@ -1,6 +1,6 @@
 import { TRPCError } from "@trpc/server";
 
-import { TeamRole } from "@/generated/prisma/enums";
+import { ApplicationStatus, TeamRole } from "@/generated/prisma/enums";
 import {
   eventChatDeleteInputSchema,
   eventChatListInputSchema,
@@ -59,8 +59,154 @@ const messageSelect = {
 };
 
 const managerRoles = [TeamRole.OWNER, TeamRole.ADMIN, TeamRole.ORGANIZER];
+const chatApplicationStatuses = [
+  ApplicationStatus.ACCEPTED,
+  ApplicationStatus.CONFIRMED_PARTICIPATION,
+];
+
+const getPreviewAuthorName = (message: {
+  author: {
+    name: string | null;
+    profile: {
+      username: string | null;
+      displayName: string | null;
+    } | null;
+  };
+}) =>
+  message.author.profile?.displayName ??
+  message.author.profile?.username ??
+  message.author.name ??
+  "Участник";
 
 export const eventChatRouter = createTRPCRouter({
+  getMyChats: protectedProcedure.query(async ({ ctx }) => {
+    const userId = ctx.session.user.id;
+    const events = await ctx.db.event.findMany({
+      where: {
+        OR: [
+          {
+            createdById: userId,
+          },
+          {
+            team: {
+              members: {
+                some: {
+                  userId,
+                  role: {
+                    in: managerRoles,
+                  },
+                },
+              },
+            },
+          },
+          {
+            applications: {
+              some: {
+                userId,
+                status: {
+                  in: chatApplicationStatuses,
+                },
+              },
+            },
+          },
+          {
+            participations: {
+              some: {
+                userId,
+              },
+            },
+          },
+        ],
+      },
+      select: {
+        id: true,
+        title: true,
+        slug: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
+        chatReadStates: {
+          where: {
+            userId,
+          },
+          select: {
+            lastReadAt: true,
+          },
+          take: 1,
+        },
+        chatMessages: {
+          where: {
+            deletedAt: null,
+            hiddenAt: null,
+          },
+          orderBy: {
+            createdAt: "desc",
+          },
+          take: 1,
+          select: {
+            id: true,
+            body: true,
+            createdAt: true,
+            author: {
+              select: {
+                name: true,
+                profile: {
+                  select: {
+                    username: true,
+                    displayName: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const chats = await Promise.all(
+      events.map(async (event) => {
+        const lastReadAt =
+          event.chatReadStates[0]?.lastReadAt ?? new Date(0);
+        const unreadCount = await ctx.db.eventChatMessage.count({
+          where: {
+            eventId: event.id,
+            authorId: {
+              not: userId,
+            },
+            createdAt: {
+              gt: lastReadAt,
+            },
+            deletedAt: null,
+            hiddenAt: null,
+          },
+        });
+        const lastMessage = event.chatMessages[0] ?? null;
+
+        return {
+          eventId: event.id,
+          eventTitle: event.title,
+          eventSlug: event.slug,
+          eventStatus: event.status,
+          sortDate: lastMessage?.createdAt ?? event.updatedAt,
+          lastMessage: lastMessage
+            ? {
+                id: lastMessage.id,
+                body: lastMessage.body,
+                createdAt: lastMessage.createdAt,
+                authorName: getPreviewAuthorName(lastMessage),
+              }
+            : null,
+          unreadCount,
+        };
+      }),
+    );
+
+    return chats
+      .sort((left, right) => right.sortDate.getTime() - left.sortDate.getTime())
+      .slice(0, 50)
+      .map(({ sortDate: _sortDate, ...chat }) => chat);
+  }),
+
   list: protectedProcedure
     .input(eventChatListInputSchema)
     .query(async ({ ctx, input }) => {

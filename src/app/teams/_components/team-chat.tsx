@@ -122,7 +122,7 @@ export function TeamChat({
   };
 
   return (
-    <section className="mt-6 border border-zinc-200 bg-white p-6">
+    <section id="team-chat" className="mt-6 border border-zinc-200 bg-white p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h2 className="text-xl font-semibold text-zinc-950">Чат команды</h2>
