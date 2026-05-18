@@ -28,6 +28,7 @@ import {
   publicProcedure,
 } from "@/server/api/trpc";
 import { publicPostWhere } from "@/server/api/routers/post";
+import { recalculateAutomaticBadgesForUser } from "@/server/badges/service";
 import type { db as database } from "@/server/db";
 import {
   canCreateEventForTeam,
@@ -1283,6 +1284,7 @@ export const eventRouter = createTRPCRouter({
         new Set(input.confirmedApplicationIds),
       );
       const completedAt = new Date();
+      let confirmedUserIds: string[] = [];
 
       await ctx.db.$transaction(async (tx) => {
         const eligibleApplications = await tx.eventApplication.findMany({
@@ -1341,6 +1343,9 @@ export const eventRouter = createTRPCRouter({
         const confirmedApplications = eligibleApplications.filter(
           (application) => confirmedApplicationIds.includes(application.id),
         );
+        confirmedUserIds = confirmedApplications.map(
+          (application) => application.userId,
+        );
 
         await Promise.all(
           confirmedApplications.map((application) =>
@@ -1382,6 +1387,16 @@ export const eventRouter = createTRPCRouter({
           });
         }
       });
+
+      await Promise.all(
+        confirmedUserIds.map((userId) =>
+          recalculateAutomaticBadgesForUser({
+            db: ctx.db,
+            userId,
+            awardedById: ctx.session.user.id,
+          }),
+        ),
+      );
 
       return {
         success: true,

@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it, vi } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   ApplicationStatus,
@@ -10,6 +10,12 @@ import type { createCallerFactory as CreateCallerFactory } from "@/server/api/tr
 
 process.env.DATABASE_URL ??= "postgresql://user:password@localhost:5432/test";
 
+const badgeServiceMocks = vi.hoisted(() => ({
+  recalculateAutomaticBadgesForUser: vi.fn().mockResolvedValue({
+    awardedBadgeCodes: ["participation_1"],
+  }),
+}));
+
 vi.mock("@/server/auth", () => ({
   auth: vi.fn(),
 }));
@@ -19,6 +25,8 @@ vi.mock("@/server/db", () => ({
 }));
 
 vi.mock("server-only", () => ({}));
+
+vi.mock("@/server/badges/service", () => badgeServiceMocks);
 
 const creatorId = "clx0a1b2c0000abcd1234efgh";
 const managerId = "clx0a1b2c0001abcd1234efgh";
@@ -132,6 +140,10 @@ describe("eventRouter completion", () => {
   beforeAll(async () => {
     ({ createCallerFactory: createCaller } = await import("@/server/api/trpc"));
     ({ eventRouter } = await import("@/server/api/routers/event"));
+  });
+
+  beforeEach(() => {
+    badgeServiceMocks.recalculateAutomaticBadgesForUser.mockClear();
   });
 
   it("lets an event manager complete an event", async () => {
@@ -264,6 +276,25 @@ describe("eventRouter completion", () => {
         confirmedById: managerId,
         confirmedAt: expect.any(Date) as Date,
       },
+    });
+  });
+
+  it("recalculates automatic badges for selected applications", async () => {
+    const db = createDb();
+    const caller = createCaller(eventRouter)(createContext(db, managerId));
+
+    await caller.complete({
+      eventId,
+      confirmedApplicationIds: [acceptedApplicationId],
+      markUnselectedAcceptedAsNoShow: false,
+    });
+
+    expect(
+      badgeServiceMocks.recalculateAutomaticBadgesForUser,
+    ).toHaveBeenCalledWith({
+      db,
+      userId: acceptedApplicationUserId,
+      awardedById: managerId,
     });
   });
 
