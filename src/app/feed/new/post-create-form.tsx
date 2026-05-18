@@ -8,6 +8,7 @@ import {
   ImageUploadField,
   type ImageUploadValue,
 } from "@/app/_components/image-upload-field";
+import { SafetyContentNotice } from "@/app/_components/safety-content-notice";
 import { api, type RouterOutputs } from "@/trpc/react";
 
 type TeamOption = RouterOutputs["team"]["getMine"][number];
@@ -60,15 +61,11 @@ export function PostCreateForm({
       onSubmit={handleSubmit}
       className="space-y-6 border border-zinc-200 bg-white p-6"
     >
-      <p className="border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">
-        Не публикуйте точные координаты, способы доступа, точки крепления,
-        технические схемы и инструкции для самостоятельных прыжков.
-      </p>
-
       <div className="grid gap-2">
         <label htmlFor="content" className="text-sm font-medium text-zinc-950">
           Текст поста
         </label>
+        <SafetyContentNotice variant="post" />
         <textarea
           id="content"
           name="content"

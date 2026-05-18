@@ -68,6 +68,10 @@ export function ReportCreateForm({
     >
       <div className="grid gap-2">
         <p className="text-sm text-zinc-600">Цель жалобы: {targetTypeLabel}</p>
+        <p className="text-xs leading-5 text-zinc-500">
+          Если публикация раскрывает опасные технические детали или координаты
+          объекта, отправьте жалобу на модерацию.
+        </p>
         <label htmlFor="reason" className="text-sm font-medium text-zinc-950">
           Причина
         </label>

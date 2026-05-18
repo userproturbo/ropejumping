@@ -8,6 +8,7 @@ import {
   ImageUploadField,
   type ImageUploadValue,
 } from "@/app/_components/image-upload-field";
+import { SafetyContentNotice } from "@/app/_components/safety-content-notice";
 import { api, type RouterOutputs } from "@/trpc/react";
 
 import { datetimeLocalToIso } from "../_components/date-format";
@@ -217,6 +218,8 @@ export function EventCreateForm({ objects, teams }: EventCreateFormProps) {
           className="border border-zinc-300 px-3 py-2 text-zinc-950 outline-none focus:border-zinc-950"
         />
       </div>
+
+      <SafetyContentNotice variant="event" />
 
       <div className="grid gap-2">
         <label
