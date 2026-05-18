@@ -1,9 +1,16 @@
 import { Prisma } from "@/generated/prisma/client";
+import { EventStatus, ObjectVisibility } from "@/generated/prisma/enums";
 import type { db as database } from "@/server/db";
 
 import { automaticBadgeDefinitions } from "./definitions";
 
-type BadgeServiceDb = typeof database;
+type BadgeServiceDb = Pick<
+  typeof database,
+  "badge" | "eventParticipation" | "userBadge"
+>;
+
+const automaticBadgeReason =
+  "Автоматически выдано за подтверждённую историю участия.";
 
 const isUniqueConstraintError = (error: unknown) =>
   error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -34,16 +41,25 @@ export const ensureBadgeCatalog = async (db: BadgeServiceDb) => {
   );
 };
 
-export const recalculateUserBadges = async (
-  db: BadgeServiceDb,
-  userId: string,
-  awardedById?: string,
-) => {
+export const recalculateAutomaticBadgesForUser = async ({
+  db,
+  userId,
+  awardedById = null,
+}: {
+  db: BadgeServiceDb;
+  userId: string;
+  awardedById?: string | null;
+}): Promise<{
+  awardedBadgeCodes: string[];
+}> => {
   await ensureBadgeCatalog(db);
 
   const participations = await db.eventParticipation.findMany({
     where: {
       userId,
+      event: {
+        status: EventStatus.COMPLETED,
+      },
     },
     select: {
       event: {
@@ -51,6 +67,8 @@ export const recalculateUserBadges = async (
           objectId: true,
           object: {
             select: {
+              id: true,
+              visibility: true,
               heightMeters: true,
             },
           },
@@ -60,14 +78,23 @@ export const recalculateUserBadges = async (
   });
 
   const participationCount = participations.length;
-  const uniqueObjectIds = new Set(
-    participations
-      .map((participation) => participation.event.objectId)
-      .filter((objectId): objectId is string => Boolean(objectId)),
-  );
-  const maxHeightMeters = participations.reduce((maxHeight, participation) => {
-    return Math.max(maxHeight, participation.event.object?.heightMeters ?? 0);
-  }, 0);
+  const publicObjectIds = new Set<string>();
+  let maxPublicHeightMeters = 0;
+
+  participations.forEach((participation) => {
+    const object = participation.event.object;
+
+    if (object?.visibility !== ObjectVisibility.PUBLIC) return;
+
+    publicObjectIds.add(object.id);
+
+    if (object.heightMeters !== null) {
+      maxPublicHeightMeters = Math.max(
+        maxPublicHeightMeters,
+        object.heightMeters,
+      );
+    }
+  });
 
   const eligibleDefinitions = automaticBadgeDefinitions.filter((badge) => {
     if (badge.type === "participation") {
@@ -75,14 +102,16 @@ export const recalculateUserBadges = async (
     }
 
     if (badge.type === "objects") {
-      return uniqueObjectIds.size >= badge.threshold;
+      return publicObjectIds.size >= badge.threshold;
     }
 
-    return maxHeightMeters >= badge.threshold;
+    return maxPublicHeightMeters >= badge.threshold;
   });
 
   if (eligibleDefinitions.length === 0) {
-    return [];
+    return {
+      awardedBadgeCodes: [],
+    };
   }
 
   const eligibleCodes = eligibleDefinitions.map((badge) => badge.code);
@@ -91,6 +120,10 @@ export const recalculateUserBadges = async (
       code: {
         in: eligibleCodes,
       },
+    },
+    select: {
+      id: true,
+      code: true,
     },
   });
   const existingUserBadges = await db.userBadge.findMany({
@@ -107,32 +140,41 @@ export const recalculateUserBadges = async (
   const existingBadgeIds = new Set(
     existingUserBadges.map((userBadge) => userBadge.badgeId),
   );
-
-  const missingBadges = badges.filter((badge) => !existingBadgeIds.has(badge.id));
-
-  const createdBadges = await Promise.all(
-    missingBadges.map(async (badge) => {
-      try {
-        return await db.userBadge.create({
-          data: {
-            userId,
-            badgeId: badge.id,
-            awardedById,
-            reason: "Автоматически по подтверждённой истории участия.",
-          },
-          include: {
-            badge: true,
-          },
-        });
-      } catch (error) {
-        if (isUniqueConstraintError(error)) {
-          return null;
-        }
-
-        throw error;
-      }
-    }),
+  const missingBadges = badges.filter(
+    (badge) => !existingBadgeIds.has(badge.id),
   );
+  const awardedBadgeCodes: string[] = [];
 
-  return createdBadges.filter((badge) => badge !== null);
+  for (const badge of missingBadges) {
+    try {
+      await db.userBadge.create({
+        data: {
+          userId,
+          badgeId: badge.id,
+          awardedById,
+          reason: automaticBadgeReason,
+        },
+      });
+      awardedBadgeCodes.push(badge.code);
+    } catch (error) {
+      if (isUniqueConstraintError(error)) continue;
+
+      throw error;
+    }
+  }
+
+  return {
+    awardedBadgeCodes,
+  };
 };
+
+export const recalculateUserBadges = (
+  db: BadgeServiceDb,
+  userId: string,
+  awardedById?: string | null,
+) =>
+  recalculateAutomaticBadgesForUser({
+    db,
+    userId,
+    awardedById,
+  });

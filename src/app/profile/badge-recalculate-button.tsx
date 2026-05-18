@@ -9,10 +9,11 @@ export function BadgeRecalculateButton() {
   const router = useRouter();
   const [message, setMessage] = useState<string | null>(null);
   const recalculate = api.badge.recalculateMine.useMutation({
-    onSuccess: (badges) => {
+    onSuccess: (result) => {
+      const awardedCount = result.awardedBadgeCodes.length;
       setMessage(
-        badges.length > 0
-          ? `Новых бейджей: ${badges.length}.`
+        awardedCount > 0
+          ? `Новых бейджей: ${awardedCount}.`
           : "Новых бейджей нет.",
       );
       router.refresh();
