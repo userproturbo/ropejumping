@@ -4,21 +4,13 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, type FormEvent } from "react";
 
+import { ApplicationStatus } from "@/generated/prisma/enums";
+import { getApplicationStatusLabel } from "@/lib/display";
 import { api, type RouterOutputs } from "@/trpc/react";
 
 type EventForCompletion = NonNullable<
   RouterOutputs["event"]["getForCompletion"]
 >;
-type AwardedBadges = RouterOutputs["event"]["complete"]["awardedBadges"];
-
-type CompletionCandidate = {
-  applicationMessage: string | null;
-  city: string | null;
-  displayName: string;
-  externalExperience: string | null;
-  userId: string;
-  username: string | null;
-};
 
 type EventCompletionFormProps = {
   event: EventForCompletion;
@@ -26,40 +18,46 @@ type EventCompletionFormProps = {
 
 export function EventCompletionForm({ event }: EventCompletionFormProps) {
   const router = useRouter();
-  const candidates = useMemo(() => buildCandidates(event), [event]);
-  const existingParticipantIds = useMemo(
-    () => event.participations.map((participation) => participation.userId),
-    [event.participations],
+  const initialConfirmedApplicationIds = useMemo(
+    () =>
+      event.applications
+        .filter(
+          (application) =>
+            application.status === ApplicationStatus.CONFIRMED_PARTICIPATION,
+        )
+        .map((application) => application.id),
+    [event.applications],
   );
-  const [confirmedUserIds, setConfirmedUserIds] = useState<string[]>(
-    existingParticipantIds,
-  );
-  const [awardedBadges, setAwardedBadges] = useState<AwardedBadges | null>(
-    null,
-  );
+  const [confirmedApplicationIds, setConfirmedApplicationIds] = useState<
+    string[]
+  >(initialConfirmedApplicationIds);
+  const [markUnselectedAcceptedAsNoShow, setMarkUnselectedAcceptedAsNoShow] =
+    useState(false);
 
   const completeEvent = api.event.complete.useMutation({
-    onSuccess: (result) => {
-      setAwardedBadges(result.awardedBadges);
+    onSuccess: () => {
+      router.push(`/events/${event.slug}`);
       router.refresh();
     },
   });
 
-  const toggleConfirmedUser = (userId: string) => {
-    setConfirmedUserIds((currentUserIds) =>
-      currentUserIds.includes(userId)
-        ? currentUserIds.filter((currentUserId) => currentUserId !== userId)
-        : [...currentUserIds, userId],
+  const toggleConfirmedApplication = (applicationId: string) => {
+    setConfirmedApplicationIds((currentApplicationIds) =>
+      currentApplicationIds.includes(applicationId)
+        ? currentApplicationIds.filter(
+            (currentApplicationId) => currentApplicationId !== applicationId,
+          )
+        : [...currentApplicationIds, applicationId],
     );
   };
 
   const handleSubmit = (submitEvent: FormEvent<HTMLFormElement>) => {
     submitEvent.preventDefault();
-    setAwardedBadges(null);
 
     completeEvent.mutate({
-      eventSlug: event.slug,
-      confirmedUserIds,
+      eventId: event.id,
+      confirmedApplicationIds,
+      markUnselectedAcceptedAsNoShow,
     });
   };
 
@@ -68,101 +66,143 @@ export function EventCompletionForm({ event }: EventCompletionFormProps) {
       onSubmit={handleSubmit}
       className="space-y-6 border border-zinc-200 bg-white p-6"
     >
-      {candidates.length > 0 ? (
-        <div className="grid gap-4">
-          {candidates.map((candidate) => (
-            <label
-              key={candidate.userId}
-              className="block border border-zinc-200 p-4"
-            >
-              <div className="flex items-start gap-3">
-                <input
-                  type="checkbox"
-                  checked={confirmedUserIds.includes(candidate.userId)}
-                  onChange={() => toggleConfirmedUser(candidate.userId)}
-                  className="mt-1"
-                />
-                <div className="min-w-0">
-                  <p className="font-medium text-zinc-950">
-                    {candidate.displayName}
-                  </p>
-                  {candidate.username ? (
-                    <p className="mt-1 text-sm text-zinc-500">
-                      @{candidate.username}
-                    </p>
-                  ) : null}
-                  {candidate.city ? (
-                    <p className="mt-1 text-sm text-zinc-500">
-                      {candidate.city}
-                    </p>
-                  ) : null}
-                  {candidate.externalExperience ? (
-                    <div className="mt-4">
-                      <h3 className="text-sm font-medium text-zinc-950">
-                        Опыт вне платформы
-                      </h3>
-                      <p className="mt-1 text-sm leading-6 whitespace-pre-wrap text-zinc-600">
-                        {candidate.externalExperience}
-                      </p>
-                    </div>
-                  ) : null}
-                  {candidate.applicationMessage ? (
-                    <div className="mt-4">
-                      <h3 className="text-sm font-medium text-zinc-950">
-                        Сообщение в заявке
-                      </h3>
-                      <p className="mt-1 text-sm leading-6 whitespace-pre-wrap text-zinc-600">
-                        {candidate.applicationMessage}
-                      </p>
-                    </div>
-                  ) : null}
-                </div>
-              </div>
-              <span className="mt-3 inline-flex text-sm text-zinc-600">
-                Участвовал
-              </span>
-            </label>
-          ))}
-        </div>
-      ) : (
-        <section className="border border-zinc-200 p-5">
+      <section>
+        <div>
           <h2 className="text-xl font-semibold text-zinc-950">
-            Нет принятых заявок для подтверждения участия.
+            Участники для подтверждения
           </h2>
           <p className="mt-2 text-sm leading-6 text-zinc-600">
-            Мероприятие можно завершить с нулём подтверждённых участников.
+            Отметьте тех, кто действительно был на мероприятии.
           </p>
-        </section>
-      )}
+        </div>
+
+        {event.applications.length > 0 ? (
+          <div className="mt-5 grid gap-4">
+            {event.applications.map((application) => {
+              const profile = application.user.profile;
+              const displayName =
+                profile?.displayName ??
+                profile?.username ??
+                application.user.name ??
+                "Участник без имени";
+              const isConfirmed = confirmedApplicationIds.includes(
+                application.id,
+              );
+
+              return (
+                <label
+                  key={application.id}
+                  className="block border border-zinc-200 p-4"
+                >
+                  <div className="flex items-start gap-3">
+                    <input
+                      type="checkbox"
+                      checked={isConfirmed}
+                      onChange={() =>
+                        toggleConfirmedApplication(application.id)
+                      }
+                      className="mt-1"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="font-medium text-zinc-950">
+                          {displayName}
+                        </p>
+                        <span className="border border-zinc-200 px-2 py-0.5 text-xs text-zinc-600">
+                          {isConfirmed
+                            ? "Участвовал"
+                            : application.status === ApplicationStatus.NO_SHOW
+                              ? "Не явился"
+                              : getApplicationStatusLabel(application.status)}
+                        </span>
+                      </div>
+                      {profile?.username ? (
+                        <p className="mt-1 text-sm text-zinc-500">
+                          @{profile.username}
+                        </p>
+                      ) : null}
+                      {profile?.city ? (
+                        <p className="mt-1 text-sm text-zinc-500">
+                          {profile.city}
+                        </p>
+                      ) : null}
+
+                      <dl className="mt-4 grid gap-3 text-sm text-zinc-600 sm:grid-cols-2">
+                        {profile?.selfReportedJumpCount !== null &&
+                        profile?.selfReportedJumpCount !== undefined ? (
+                          <div>
+                            <dt className="font-medium text-zinc-950">
+                              Прыжков
+                            </dt>
+                            <dd className="mt-1">
+                              {profile.selfReportedJumpCount}
+                            </dd>
+                          </div>
+                        ) : null}
+                        {profile?.selfReportedMaxHeightMeters !== null &&
+                        profile?.selfReportedMaxHeightMeters !== undefined ? (
+                          <div>
+                            <dt className="font-medium text-zinc-950">
+                              Макс. высота
+                            </dt>
+                            <dd className="mt-1">
+                              {profile.selfReportedMaxHeightMeters} м
+                            </dd>
+                          </div>
+                        ) : null}
+                      </dl>
+
+                      {profile?.selfReportedExperience ? (
+                        <TextBlock
+                          title="Опыт участника"
+                          body={profile.selfReportedExperience}
+                        />
+                      ) : null}
+                      {application.message ? (
+                        <TextBlock
+                          title="Сообщение в заявке"
+                          body={application.message}
+                        />
+                      ) : null}
+                    </div>
+                  </div>
+                </label>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="mt-5 border border-zinc-200 p-5">
+            <h3 className="text-lg font-semibold text-zinc-950">
+              Нет принятых заявок для подтверждения участия.
+            </h3>
+            <p className="mt-2 text-sm leading-6 text-zinc-600">
+              Мероприятие можно завершить с нулём подтверждённых участников.
+            </p>
+          </div>
+        )}
+      </section>
+
+      <label className="flex items-start gap-3 border border-zinc-200 p-4 text-sm text-zinc-700">
+        <input
+          type="checkbox"
+          checked={markUnselectedAcceptedAsNoShow}
+          onChange={(event) =>
+            setMarkUnselectedAcceptedAsNoShow(event.target.checked)
+          }
+          className="mt-1"
+        />
+        <span>
+          Отметить неприсутствовавших принятых участников как “Не явился”
+        </span>
+      </label>
+
+      <section className="border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">
+        После завершения мероприятия чат и логистика перейдут в режим архива.
+        Участники с подтверждённым участием останутся в истории мероприятия.
+      </section>
 
       {completeEvent.error ? (
         <p className="text-sm text-red-700">{completeEvent.error.message}</p>
-      ) : null}
-
-      {awardedBadges ? (
-        <section className="border border-zinc-200 p-4">
-          <h2 className="text-sm font-medium text-zinc-950">
-            Результат пересчёта бейджей
-          </h2>
-          {awardedBadges.some((award) => award.badges.length > 0) ? (
-            <div className="mt-3 grid gap-2 text-sm text-zinc-600">
-              {awardedBadges.map((award) =>
-                award.badges.length > 0 ? (
-                  <p key={award.userId}>
-                    Пользователь получил бейджи:{" "}
-                    {award.badges
-                      .map((userBadge) => userBadge.badge.name)
-                      .join(", ")}
-                  </p>
-                ) : null,
-              )}
-            </div>
-          ) : (
-            <p className="mt-2 text-sm text-zinc-600">
-              Новых бейджей нет.
-            </p>
-          )}
-        </section>
       ) : null}
 
       <div className="flex flex-wrap items-center gap-3">
@@ -184,44 +224,13 @@ export function EventCompletionForm({ event }: EventCompletionFormProps) {
   );
 }
 
-const buildCandidates = (event: EventForCompletion) => {
-  const candidates = new Map<string, CompletionCandidate>();
-
-  event.applications.forEach((application) => {
-    const profile = application.user.profile;
-    candidates.set(application.userId, {
-      applicationMessage: application.message,
-      city: profile?.city ?? null,
-      displayName:
-        profile?.displayName ??
-        profile?.username ??
-        application.user.name ??
-        application.user.email ??
-        "Участник без имени",
-      externalExperience: profile?.externalExperience ?? null,
-      userId: application.userId,
-      username: profile?.username ?? null,
-    });
-  });
-
-  event.participations.forEach((participation) => {
-    const profile = participation.user.profile;
-    if (!candidates.has(participation.userId)) {
-      candidates.set(participation.userId, {
-        applicationMessage: null,
-        city: profile?.city ?? null,
-        displayName:
-          profile?.displayName ??
-          profile?.username ??
-          participation.user.name ??
-          participation.user.email ??
-          "Участник без имени",
-        externalExperience: profile?.externalExperience ?? null,
-        userId: participation.userId,
-        username: profile?.username ?? null,
-      });
-    }
-  });
-
-  return Array.from(candidates.values());
-};
+function TextBlock({ title, body }: { title: string; body: string }) {
+  return (
+    <div className="mt-4">
+      <h3 className="text-sm font-medium text-zinc-950">{title}</h3>
+      <p className="mt-1 text-sm leading-6 whitespace-pre-wrap text-zinc-600">
+        {body}
+      </p>
+    </div>
+  );
+}

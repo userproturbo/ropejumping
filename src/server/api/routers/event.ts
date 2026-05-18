@@ -13,7 +13,7 @@ import {
 import type { Prisma } from "@/generated/prisma/client";
 import { getEventStatusLabel } from "@/lib/display";
 import {
-  eventCompletionInputSchema,
+  eventCompleteInputSchema,
   eventCreateInputSchema,
   eventCrewMemberInputSchema,
   eventCrewMemberRemoveInputSchema,
@@ -29,7 +29,6 @@ import {
 } from "@/server/api/trpc";
 import { publicPostWhere } from "@/server/api/routers/post";
 import type { db as database } from "@/server/db";
-import { recalculateUserBadges } from "@/server/badges/service";
 import {
   canCreateEventForTeam,
   canManageEvent,
@@ -86,6 +85,12 @@ const publicEventStatusFilterValues = new Set<string>([
 ]);
 
 const directPublicEventStatuses = new Set<EventStatus>(publicEventStatuses);
+
+const eventCompletionApplicationStatuses = [
+  ApplicationStatus.ACCEPTED,
+  ApplicationStatus.CONFIRMED_PARTICIPATION,
+  ApplicationStatus.NO_SHOW,
+];
 
 const eventStatusOrderGroups = {
   [EventStatus.APPLICATIONS_OPEN]: 1,
@@ -1181,9 +1186,26 @@ export const eventRouter = createTRPCRouter({
           endsAt: true,
           status: true,
           completedAt: true,
+          team: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+            },
+          },
+          object: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              heightMeters: true,
+            },
+          },
           applications: {
             where: {
-              status: ApplicationStatus.ACCEPTED,
+              status: {
+                in: eventCompletionApplicationStatuses,
+              },
             },
             orderBy: {
               createdAt: "asc",
@@ -1191,42 +1213,21 @@ export const eventRouter = createTRPCRouter({
             select: {
               id: true,
               message: true,
+              status: true,
               userId: true,
               user: {
                 select: {
                   id: true,
                   name: true,
-                  email: true,
                   profile: {
                     select: {
                       username: true,
                       displayName: true,
                       city: true,
                       externalExperience: true,
-                    },
-                  },
-                },
-              },
-            },
-          },
-          participations: {
-            orderBy: {
-              createdAt: "asc",
-            },
-            select: {
-              id: true,
-              userId: true,
-              user: {
-                select: {
-                  id: true,
-                  name: true,
-                  email: true,
-                  profile: {
-                    select: {
-                      username: true,
-                      displayName: true,
-                      city: true,
-                      externalExperience: true,
+                      selfReportedJumpCount: true,
+                      selfReportedMaxHeightMeters: true,
+                      selfReportedExperience: true,
                     },
                   },
                 },
@@ -1238,17 +1239,39 @@ export const eventRouter = createTRPCRouter({
     }),
 
   complete: protectedProcedure
-    .input(eventCompletionInputSchema)
+    .input(eventCompleteInputSchema)
     .mutation(async ({ ctx, input }) => {
-      const event = await ensureCanManageEventBySlug({
+      const event = await ctx.db.event.findUnique({
+        where: { id: input.eventId },
+        select: {
+          id: true,
+          status: true,
+        },
+      });
+
+      if (!event) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Мероприятие не найдено.",
+        });
+      }
+
+      const canManage = await canManageEvent({
         db: ctx.db,
-        slug: input.eventSlug,
+        eventId: event.id,
         userId: ctx.session.user.id,
       });
 
+      if (!canManage) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "У вас нет прав завершать это мероприятие.",
+        });
+      }
+
       if (
-        event.status === EventStatus.DRAFT ||
-        event.status === EventStatus.CANCELLED
+        event.status === EventStatus.CANCELLED ||
+        event.status === EventStatus.ARCHIVED
       ) {
         throw new TRPCError({
           code: "BAD_REQUEST",
@@ -1256,45 +1279,37 @@ export const eventRouter = createTRPCRouter({
         });
       }
 
-      const confirmedUserIds = Array.from(new Set(input.confirmedUserIds));
+      const confirmedApplicationIds = Array.from(
+        new Set(input.confirmedApplicationIds),
+      );
       const completedAt = new Date();
 
-      const completedEvent = await ctx.db.$transaction(async (tx) => {
-        const acceptedApplications = await tx.eventApplication.findMany({
+      await ctx.db.$transaction(async (tx) => {
+        const eligibleApplications = await tx.eventApplication.findMany({
           where: {
             eventId: event.id,
-            status: ApplicationStatus.ACCEPTED,
+            status: {
+              in: eventCompletionApplicationStatuses,
+            },
           },
           select: {
-            userId: true,
-          },
-        });
-        const existingParticipations = await tx.eventParticipation.findMany({
-          where: {
-            eventId: event.id,
-          },
-          select: {
+            id: true,
             userId: true,
           },
         });
 
-        const acceptedUserIds = new Set(
-          acceptedApplications.map((application) => application.userId),
+        const eligibleApplicationIds = new Set(
+          eligibleApplications.map((application) => application.id),
         );
-        const validConfirmedUserIds = new Set([
-          ...acceptedUserIds,
-          ...existingParticipations.map(
-            (participation) => participation.userId,
-          ),
-        ]);
-        const invalidUserIds = confirmedUserIds.filter(
-          (userId) => !validConfirmedUserIds.has(userId),
+        const invalidApplicationIds = confirmedApplicationIds.filter(
+          (applicationId) => !eligibleApplicationIds.has(applicationId),
         );
 
-        if (invalidUserIds.length > 0) {
+        if (invalidApplicationIds.length > 0) {
           throw new TRPCError({
             code: "BAD_REQUEST",
-            message: "Можно подтверждать только принятые заявки.",
+            message:
+              "Некоторые заявки не найдены или не относятся к этому мероприятию.",
           });
         }
 
@@ -1306,18 +1321,39 @@ export const eventRouter = createTRPCRouter({
           },
         });
 
+        await tx.eventApplication.updateMany({
+          where: {
+            eventId: event.id,
+            id: {
+              in: confirmedApplicationIds,
+            },
+            status: {
+              in: eventCompletionApplicationStatuses,
+            },
+          },
+          data: {
+            status: ApplicationStatus.CONFIRMED_PARTICIPATION,
+            decidedById: ctx.session.user.id,
+            decidedAt: completedAt,
+          },
+        });
+
+        const confirmedApplications = eligibleApplications.filter(
+          (application) => confirmedApplicationIds.includes(application.id),
+        );
+
         await Promise.all(
-          confirmedUserIds.map((userId) =>
+          confirmedApplications.map((application) =>
             tx.eventParticipation.upsert({
               where: {
                 eventId_userId: {
                   eventId: event.id,
-                  userId,
+                  userId: application.userId,
                 },
               },
               create: {
                 eventId: event.id,
-                userId,
+                userId: application.userId,
                 confirmedById: ctx.session.user.id,
                 confirmedAt: completedAt,
               },
@@ -1329,55 +1365,26 @@ export const eventRouter = createTRPCRouter({
           ),
         );
 
-        await tx.eventApplication.updateMany({
-          where: {
-            eventId: event.id,
-            userId: {
-              in: confirmedUserIds,
+        if (input.markUnselectedAcceptedAsNoShow) {
+          await tx.eventApplication.updateMany({
+            where: {
+              eventId: event.id,
+              id: {
+                notIn: confirmedApplicationIds,
+              },
+              status: ApplicationStatus.ACCEPTED,
             },
-            status: ApplicationStatus.ACCEPTED,
-          },
-          data: {
-            status: ApplicationStatus.CONFIRMED_PARTICIPATION,
-          },
-        });
-
-        await tx.eventApplication.updateMany({
-          where: {
-            eventId: event.id,
-            userId: {
-              notIn: confirmedUserIds,
+            data: {
+              status: ApplicationStatus.NO_SHOW,
+              decidedById: ctx.session.user.id,
+              decidedAt: completedAt,
             },
-            status: ApplicationStatus.ACCEPTED,
-          },
-          data: {
-            status: ApplicationStatus.NO_SHOW,
-          },
-        });
-
-        return tx.event.findUnique({
-          where: { id: event.id },
-        });
+          });
+        }
       });
 
-      const awardedBadges = await Promise.all(
-        confirmedUserIds.map(async (userId) => {
-          const badges = await recalculateUserBadges(
-            ctx.db,
-            userId,
-            ctx.session.user.id,
-          );
-
-          return {
-            userId,
-            badges,
-          };
-        }),
-      );
-
       return {
-        event: completedEvent,
-        awardedBadges,
+        success: true,
       };
     }),
 });

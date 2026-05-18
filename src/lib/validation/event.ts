@@ -150,9 +150,10 @@ export const eventStatusUpdateInputSchema = z.object({
   status: manuallySettableEventStatusSchema,
 });
 
-export const eventCompletionInputSchema = z.object({
-  eventSlug: eventSlugSchema,
-  confirmedUserIds: z.array(z.string().cuid()),
+export const eventCompleteInputSchema = z.object({
+  eventId: z.string().cuid(),
+  confirmedApplicationIds: z.array(z.string().cuid()).default([]),
+  markUnselectedAcceptedAsNoShow: z.boolean().default(false),
 });
 
 export const eventCrewMemberInputSchema = z.object({
