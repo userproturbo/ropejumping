@@ -13,6 +13,7 @@ const mainLinks = [
   { href: "/teams", label: "Команды" },
   { href: "/users", label: "Участники" },
   { href: "/events", label: "Мероприятия" },
+  { href: "/first-jump", label: "Первый прыжок" },
   { href: "/objects", label: "Объекты" },
   { href: "/feed", label: "Лента" },
 ];
