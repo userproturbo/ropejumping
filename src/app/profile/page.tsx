@@ -4,6 +4,7 @@ import Link from "next/link";
 import { getBadgeCategoryLabel } from "@/lib/display";
 import { requireCurrentUser } from "@/server/auth/session";
 import { db } from "@/server/db";
+import { summarizeParticipationHistory } from "@/server/events/participation-history";
 import { isModeratorUser } from "@/server/moderation/permissions";
 import { api } from "@/trpc/server";
 
@@ -64,6 +65,7 @@ export default async function ProfilePage() {
     0,
   );
   const followsCount = teamFollowsCount + objectFollowsCount;
+  const participationSummary = summarizeParticipationHistory(participations);
   const canModerate = isModeratorUser(user);
   const hasSelfReportedStats =
     profile !== null &&
@@ -137,9 +139,7 @@ export default async function ProfilePage() {
                     </p>
                   )}
                   {profile.city ? (
-                    <p className="mt-2 text-sm text-zinc-600">
-                      {profile.city}
-                    </p>
+                    <p className="mt-2 text-sm text-zinc-600">{profile.city}</p>
                   ) : null}
                 </div>
               </div>
@@ -336,6 +336,32 @@ export default async function ProfilePage() {
           <h2 className="text-xl font-semibold text-zinc-950">
             Подтверждённые участия
           </h2>
+          <dl className="mt-5 grid gap-3 text-sm sm:grid-cols-3">
+            <div className="border border-zinc-200 p-3">
+              <dt className="font-medium text-zinc-950">
+                Подтверждённых мероприятий
+              </dt>
+              <dd className="mt-1 text-zinc-600">
+                {participationSummary.confirmedEventsCount}
+              </dd>
+            </div>
+            <div className="border border-zinc-200 p-3">
+              <dt className="font-medium text-zinc-950">Объектов в истории</dt>
+              <dd className="mt-1 text-zinc-600">
+                {participationSummary.uniqueObjectsCount}
+              </dd>
+            </div>
+            <div className="border border-zinc-200 p-3">
+              <dt className="font-medium text-zinc-950">
+                Максимальная подтверждённая высота
+              </dt>
+              <dd className="mt-1 text-zinc-600">
+                {participationSummary.maxHeightMeters !== null
+                  ? `${participationSummary.maxHeightMeters} м`
+                  : "пока нет данных"}
+              </dd>
+            </div>
+          </dl>
           {participations.length > 0 ? (
             <div className="mt-5 grid gap-4">
               {participations.map((participation) => (

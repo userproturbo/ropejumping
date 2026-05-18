@@ -1,7 +1,11 @@
 import { TRPCError } from "@trpc/server";
 
 import type { Prisma } from "@/generated/prisma/client";
-import { TeamStatus } from "@/generated/prisma/enums";
+import {
+  EventStatus,
+  ObjectVisibility,
+  TeamStatus,
+} from "@/generated/prisma/enums";
 import {
   profileInputSchema,
   profilePublicListInputSchema,
@@ -12,7 +16,6 @@ import {
   protectedProcedure,
   publicProcedure,
 } from "@/server/api/trpc";
-import { publicEventStatuses } from "@/server/events/statuses";
 import { deleteMediaIfUnreferenced } from "@/server/media/cleanup";
 import { resolveImageMediaForUpdate } from "@/server/media/usage";
 
@@ -131,18 +134,35 @@ export const profileRouter = createTRPCRouter({
     return ctx.db.eventParticipation.findMany({
       where: {
         userId: ctx.session.user.id,
+        event: {
+          status: EventStatus.COMPLETED,
+        },
       },
       orderBy: {
-        confirmedAt: "desc",
+        event: {
+          startsAt: "desc",
+        },
       },
       include: {
         event: {
           select: {
             id: true,
+            objectId: true,
             title: true,
             slug: true,
             startsAt: true,
             endsAt: true,
+            object: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+                type: true,
+                visibility: true,
+                heightMeters: true,
+                region: true,
+              },
+            },
             team: {
               select: {
                 id: true,
@@ -221,8 +241,8 @@ export const profileRouter = createTRPCRouter({
 
   getByUsername: publicProcedure
     .input(profileUsernameLookupSchema)
-    .query(({ ctx, input }) => {
-      return ctx.db.profile.findUnique({
+    .query(async ({ ctx, input }) => {
+      const profile = await ctx.db.profile.findUnique({
         where: { username: input },
         include: {
           avatarMedia: {
@@ -244,9 +264,7 @@ export const profileRouter = createTRPCRouter({
               eventParticipations: {
                 where: {
                   event: {
-                    status: {
-                      in: publicEventStatuses,
-                    },
+                    status: EventStatus.COMPLETED,
                     team: {
                       status: {
                         in: publicTeamStatuses,
@@ -255,16 +273,30 @@ export const profileRouter = createTRPCRouter({
                   },
                 },
                 orderBy: {
-                  confirmedAt: "desc",
+                  event: {
+                    startsAt: "desc",
+                  },
                 },
                 include: {
                   event: {
                     select: {
                       id: true,
+                      objectId: true,
                       title: true,
                       slug: true,
                       startsAt: true,
                       endsAt: true,
+                      object: {
+                        select: {
+                          id: true,
+                          name: true,
+                          slug: true,
+                          type: true,
+                          visibility: true,
+                          heightMeters: true,
+                          region: true,
+                        },
+                      },
                       team: {
                         select: {
                           id: true,
@@ -280,5 +312,27 @@ export const profileRouter = createTRPCRouter({
           },
         },
       });
+
+      if (!profile) return null;
+
+      return {
+        ...profile,
+        user: {
+          ...profile.user,
+          eventParticipations: profile.user.eventParticipations.map(
+            (participation) => ({
+              ...participation,
+              event: {
+                ...participation.event,
+                object:
+                  participation.event.object?.visibility ===
+                  ObjectVisibility.PUBLIC
+                    ? participation.event.object
+                    : null,
+              },
+            }),
+          ),
+        },
+      };
     }),
 });

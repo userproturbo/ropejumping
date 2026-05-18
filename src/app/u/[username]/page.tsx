@@ -2,7 +2,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { getBadgeCategoryLabel } from "@/lib/display";
+import { ObjectVisibility } from "@/generated/prisma/enums";
+import { getBadgeCategoryLabel, getObjectTypeLabel } from "@/lib/display";
+import { summarizeParticipationHistory } from "@/server/events/participation-history";
 import { api } from "@/trpc/server";
 
 import { formatEventDateRange } from "../../events/_components/date-format";
@@ -27,6 +29,9 @@ export default async function PublicProfilePage({
     profile.selfReportedJumpCount !== null ||
     profile.selfReportedMaxHeightMeters !== null ||
     Boolean(profile.selfReportedExperience);
+  const participationHistory = profile.user.eventParticipations;
+  const participationSummary =
+    summarizeParticipationHistory(participationHistory);
 
   return (
     <main className="min-h-[calc(100vh-4rem)] bg-zinc-50">
@@ -138,42 +143,133 @@ export default async function PublicProfilePage({
               ))}
             </div>
           ) : (
-            <p className="mt-2 text-sm text-zinc-600">
-              Пока нет бейджей.
-            </p>
+            <p className="mt-2 text-sm text-zinc-600">Пока нет бейджей.</p>
           )}
         </section>
 
         <section className="mt-6 border border-zinc-200 bg-white p-6">
           <h2 className="text-xl font-semibold text-zinc-950">
-            Подтверждённые участия
+            История участия
           </h2>
-          {profile.user.eventParticipations.length > 0 ? (
+          <p className="mt-1 text-sm leading-6 text-zinc-500">
+            Подтверждённые мероприятия, в которых участник был отмечен
+            организатором.
+          </p>
+
+          <dl className="mt-5 grid gap-3 text-sm sm:grid-cols-3">
+            <div className="border border-zinc-200 p-3">
+              <dt className="font-medium text-zinc-950">
+                Подтверждённых мероприятий
+              </dt>
+              <dd className="mt-1 text-zinc-600">
+                {participationSummary.confirmedEventsCount}
+              </dd>
+            </div>
+            <div className="border border-zinc-200 p-3">
+              <dt className="font-medium text-zinc-950">Объектов</dt>
+              <dd className="mt-1 text-zinc-600">
+                {participationSummary.uniqueObjectsCount}
+              </dd>
+            </div>
+            <div className="border border-zinc-200 p-3">
+              <dt className="font-medium text-zinc-950">Максимальная высота</dt>
+              <dd className="mt-1 text-zinc-600">
+                {participationSummary.maxHeightMeters !== null
+                  ? `${participationSummary.maxHeightMeters} м`
+                  : "пока нет данных"}
+              </dd>
+            </div>
+          </dl>
+
+          {participationHistory.length > 0 ? (
             <div className="mt-5 grid gap-4">
-              {profile.user.eventParticipations.map((participation) => (
-                <Link
-                  key={participation.id}
-                  href={`/events/${participation.event.slug}`}
-                  className="block border border-zinc-200 p-4 hover:border-zinc-950"
-                >
-                  <h3 className="text-base font-semibold text-zinc-950">
-                    {participation.event.title}
-                  </h3>
-                  <p className="mt-1 text-sm text-zinc-500">
-                    {formatEventDateRange(
-                      participation.event.startsAt,
-                      participation.event.endsAt,
-                    )}
-                  </p>
-                  <p className="mt-1 text-sm text-zinc-600">
-                    Команда: {participation.event.team.name}
-                  </p>
-                </Link>
-              ))}
+              {participationHistory.map((participation) => {
+                const { event } = participation;
+                const publicObject =
+                  event.object?.visibility === ObjectVisibility.PUBLIC
+                    ? event.object
+                    : null;
+                const hasHiddenObject = event.objectId && !publicObject;
+
+                return (
+                  <article
+                    key={participation.id}
+                    className="border border-zinc-200 p-4"
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <p className="text-xs font-medium tracking-wide text-zinc-500 uppercase">
+                          Мероприятие
+                        </p>
+                        <Link
+                          href={`/events/${event.slug}`}
+                          className="mt-1 inline-flex text-base font-semibold text-zinc-950 hover:underline"
+                        >
+                          {event.title}
+                        </Link>
+                        <p className="mt-1 text-sm text-zinc-500">
+                          {formatEventDateRange(event.startsAt, event.endsAt)}
+                        </p>
+                      </div>
+                    </div>
+
+                    <dl className="mt-4 grid gap-3 text-sm text-zinc-600 sm:grid-cols-2">
+                      <div>
+                        <dt className="font-medium text-zinc-950">Команда</dt>
+                        <dd className="mt-1">
+                          <Link
+                            href={`/teams/${event.team.slug}`}
+                            className="hover:text-zinc-950 hover:underline"
+                          >
+                            {event.team.name}
+                          </Link>
+                        </dd>
+                      </div>
+                      {publicObject ? (
+                        <div>
+                          <dt className="font-medium text-zinc-950">Объект</dt>
+                          <dd className="mt-1">
+                            <Link
+                              href={`/objects/${publicObject.slug}`}
+                              className="hover:text-zinc-950 hover:underline"
+                            >
+                              {publicObject.name}
+                            </Link>
+                            <span className="text-zinc-500">
+                              {" "}
+                              · {getObjectTypeLabel(publicObject.type)}
+                            </span>
+                          </dd>
+                        </div>
+                      ) : hasHiddenObject ? (
+                        <div>
+                          <dt className="font-medium text-zinc-950">Объект</dt>
+                          <dd className="mt-1">Объект скрыт</dd>
+                        </div>
+                      ) : null}
+                      {publicObject?.heightMeters !== null &&
+                      publicObject?.heightMeters !== undefined ? (
+                        <div>
+                          <dt className="font-medium text-zinc-950">Высота</dt>
+                          <dd className="mt-1">
+                            {publicObject.heightMeters} м
+                          </dd>
+                        </div>
+                      ) : null}
+                      {publicObject?.region ? (
+                        <div>
+                          <dt className="font-medium text-zinc-950">Регион</dt>
+                          <dd className="mt-1">{publicObject.region}</dd>
+                        </div>
+                      ) : null}
+                    </dl>
+                  </article>
+                );
+              })}
             </div>
           ) : (
             <p className="mt-2 text-sm text-zinc-600">
-              Пока нет подтверждённых участий.
+              Подтверждённых мероприятий пока нет.
             </p>
           )}
         </section>
