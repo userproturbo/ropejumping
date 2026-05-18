@@ -87,11 +87,21 @@ const badgeCategoryLabels = {
   PARTICIPATION: "Участие",
   OBJECTS: "Объекты",
   HEIGHT: "Высота",
-  EVENT: "События",
+  EVENT: "Мероприятия",
   ROLE: "Роли",
   CONTENT: "Контент",
   SPECIAL: "Особые",
 } satisfies Record<BadgeCategory, string>;
+
+const badgeCategorySortOrder = {
+  PARTICIPATION: 1,
+  OBJECTS: 2,
+  HEIGHT: 3,
+  EVENT: 4,
+  ROLE: 5,
+  CONTENT: 6,
+  SPECIAL: 7,
+} satisfies Record<BadgeCategory, number>;
 
 export const getTeamStatusLabel = (status: TeamStatus) =>
   teamStatusLabels[status];
@@ -120,3 +130,6 @@ export const getObjectVisibilityLabel = (visibility: ObjectVisibility) =>
 
 export const getBadgeCategoryLabel = (category: BadgeCategory) =>
   badgeCategoryLabels[category];
+
+export const getBadgeCategorySortOrder = (category: BadgeCategory) =>
+  badgeCategorySortOrder[category];

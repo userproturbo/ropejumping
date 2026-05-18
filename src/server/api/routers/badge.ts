@@ -10,8 +10,20 @@ export const badgeRouter = createTRPCRouter({
       orderBy: {
         awardedAt: "desc",
       },
-      include: {
-        badge: true,
+      select: {
+        id: true,
+        awardedAt: true,
+        reason: true,
+        badge: {
+          select: {
+            code: true,
+            name: true,
+            description: true,
+            category: true,
+            iconUrl: true,
+            isManual: true,
+          },
+        },
       },
     });
   }),
