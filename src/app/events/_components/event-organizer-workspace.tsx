@@ -1,6 +1,10 @@
 import Link from "next/link";
 
-import { ApplicationStatus, type EventStatus } from "@/generated/prisma/enums";
+import {
+  ApplicationStatus,
+  EventStatus,
+  type EventStatus as EventStatusType,
+} from "@/generated/prisma/enums";
 import { getEventStatusLabel } from "@/lib/display";
 
 type ApplicationCounts = Record<ApplicationStatus, number>;
@@ -9,7 +13,7 @@ type EventOrganizerWorkspaceProps = {
   applicationCounts: ApplicationCounts;
   dateText: string;
   eventSlug: string;
-  eventStatus: EventStatus;
+  eventStatus: EventStatusType;
   objectName: string | null;
   teamName: string;
   totalApplications: number;
@@ -44,6 +48,14 @@ export function EventOrganizerWorkspace({
   totalApplications,
   isReadOnly,
 }: EventOrganizerWorkspaceProps) {
+  const canShowCompletionLink =
+    eventStatus !== EventStatus.ARCHIVED &&
+    eventStatus !== EventStatus.CANCELLED;
+  const completionLinkLabel =
+    eventStatus === EventStatus.COMPLETED
+      ? "Итоги мероприятия"
+      : "Завершить мероприятие";
+
   return (
     <section className="mt-6 border border-zinc-200 bg-white p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -132,6 +144,14 @@ export function EventOrganizerWorkspace({
         >
           Заявки участников
         </Link>
+        {canShowCompletionLink ? (
+          <Link
+            href={`/events/${eventSlug}/complete`}
+            className="inline-flex border border-zinc-300 px-4 py-2 text-sm text-zinc-800 hover:border-zinc-950"
+          >
+            {completionLinkLabel}
+          </Link>
+        ) : null}
       </div>
 
       <p className="mt-5 border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900">
