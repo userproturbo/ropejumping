@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
 
+import { SafetyContentNotice } from "@/app/_components/safety-content-notice";
 import {
   EventLogisticsStatus,
   EventLogisticsType,
@@ -162,11 +163,9 @@ export function EventLogistics({
         </Link>
       </div>
 
-      <p className="mt-4 border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900">
-        Не публикуйте точные координаты объекта, точки крепления, маршруты
-        доступа и технические детали. Для договорённостей используйте общие
-        ориентиры и чат мероприятия.
-      </p>
+      <div className="mt-4">
+        <SafetyContentNotice variant="logistics" />
+      </div>
 
       {isReadOnly ? (
         <p className="mt-4 border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-600">

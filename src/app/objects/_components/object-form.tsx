@@ -8,6 +8,7 @@ import {
   ImageUploadField,
   type ImageUploadValue,
 } from "@/app/_components/image-upload-field";
+import { SafetyContentNotice } from "@/app/_components/safety-content-notice";
 import { ObjectType } from "@/generated/prisma/enums";
 import { getObjectTypeLabel } from "@/lib/display";
 import { api, type RouterOutputs } from "@/trpc/react";
@@ -90,14 +91,6 @@ export function ObjectForm({ object, teams = [] }: ObjectFormProps) {
       onSubmit={handleSubmit}
       className="space-y-6 border border-zinc-200 bg-white p-6"
     >
-      <p className="border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">
-        Не публикуйте точные координаты, способы доступа, точки крепления, схемы
-        крепления, технические инструкции и детали, которые могут помочь
-        неподготовленным людям повторить прыжок самостоятельно. Объект должен
-        описываться безопасно и в общих чертах: тип, примерный регион, высота и
-        публичное описание.
-      </p>
-
       <div className="grid gap-2">
         <label htmlFor="teamId" className="text-sm font-medium text-zinc-950">
           Команда
@@ -238,6 +231,7 @@ export function ObjectForm({ object, teams = [] }: ObjectFormProps) {
           rows={6}
           className="resize-y border border-zinc-300 px-3 py-2 text-zinc-950 outline-none focus:border-zinc-950"
         />
+        <SafetyContentNotice variant="object" />
         <p className="text-xs leading-5 text-zinc-500">
           Опишите объект в общих чертах. Не добавляйте маршруты доступа, точки
           крепления, координаты, схемы и инструкции.
