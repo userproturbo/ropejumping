@@ -55,6 +55,24 @@ const optionalPositiveHeightFilter = z.preprocess((value) => {
     : undefined;
 }, z.number().int().positive().optional());
 
+const objectPublicSortValues = [
+  "createdAtDesc",
+  "heightDesc",
+  "heightAsc",
+  "nameAsc",
+] as const;
+
+const optionalObjectPublicSort = z.preprocess((value) => {
+  const rawValue = getFirstString(value);
+
+  if (typeof rawValue !== "string") return undefined;
+
+  const trimmed = rawValue.trim();
+  return objectPublicSortValues.some((sort) => sort === trimmed)
+    ? trimmed
+    : undefined;
+}, z.enum(objectPublicSortValues).optional());
+
 const objectEditableFieldsSchema = z.object({
   name: z.string().trim().min(2).max(120),
   type: z.nativeEnum(ObjectType),
@@ -85,6 +103,7 @@ export const objectPublicListInputSchema = z.object({
   team: optionalFilterString,
   minHeight: optionalPositiveHeightFilter,
   maxHeight: optionalPositiveHeightFilter,
+  sort: optionalObjectPublicSort,
 });
 
 export type ObjectCreateInput = z.infer<typeof objectCreateInputSchema>;

@@ -1,6 +1,7 @@
 import Link from "next/link";
 
-import { EventStatus } from "@/generated/prisma/enums";
+import { FilterSummary, type FilterChip } from "@/app/_components/filter-summary";
+import { EventStatus, ObjectVisibility } from "@/generated/prisma/enums";
 import { getEventStatusLabel } from "@/lib/display";
 import { api } from "@/trpc/server";
 
@@ -35,6 +36,12 @@ const statusFilterOptions = [
   { value: "archived", label: getEventStatusLabel(EventStatus.ARCHIVED) },
 ];
 
+const sortOptions = [
+  { value: "startsAtAsc", label: "Сначала ближайшие" },
+  { value: "startsAtDesc", label: "Сначала поздние" },
+  { value: "createdAtDesc", label: "Сначала новые" },
+];
+
 const getSearchParamValue = (
   searchParams: Record<string, string | string[] | undefined>,
   key: string,
@@ -54,7 +61,31 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
       resolvedSearchParams,
       "applicationsOpen",
     ),
+    sort: getSearchParamValue(resolvedSearchParams, "sort"),
   });
+  const activeChips: FilterChip[] = [
+    filters.q ? { label: "Поиск", value: `"${filters.q}"` } : null,
+    filters.status !== "all"
+      ? {
+          label: "Статус",
+          value:
+            statusFilterOptions.find((option) => option.value === filters.status)
+              ?.label ?? filters.status,
+        }
+      : null,
+    filters.region ? { label: "Регион", value: filters.region } : null,
+    filters.applicationsOpen
+      ? { label: "Набор", value: "только открытый" }
+      : null,
+    filters.sort !== "startsAtAsc"
+      ? {
+          label: "Сортировка",
+          value:
+            sortOptions.find((option) => option.value === filters.sort)?.label ??
+            filters.sort,
+        }
+      : null,
+  ].filter((chip): chip is FilterChip => Boolean(chip));
 
   return (
     <main className="min-h-[calc(100vh-4rem)] bg-zinc-50">
@@ -139,6 +170,27 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
               </select>
             </div>
 
+            <div className="grid gap-2">
+              <label
+                htmlFor="sort"
+                className="text-sm font-medium text-zinc-950"
+              >
+                Сортировка
+              </label>
+              <select
+                id="sort"
+                name="sort"
+                defaultValue={filters.sort}
+                className="border border-zinc-300 px-3 py-2 text-sm text-zinc-950 outline-none focus:border-zinc-950"
+              >
+                {sortOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             <div className="flex items-end">
               <label className="flex items-center gap-2 text-sm text-zinc-700">
                 <input
@@ -166,6 +218,12 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
           </div>
         </form>
 
+        <FilterSummary
+          chips={activeChips}
+          resetHref="/events"
+          resultCount={events.length}
+        />
+
         {events.length > 0 ? (
           <div className="grid gap-4">
             {events.map((event) => (
@@ -191,12 +249,16 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
                   <span>{event.team.name}</span>
                   {event.region ? <span>{event.region}</span> : null}
                   {event.object ? (
-                    <span>
-                      Объект: {event.object.name}
-                      {event.object.heightMeters
-                        ? `, ${event.object.heightMeters} м`
-                        : ""}
-                    </span>
+                    event.object.visibility === ObjectVisibility.PUBLIC ? (
+                      <span>
+                        Объект: {event.object.name}
+                        {event.object.heightMeters
+                          ? `, ${event.object.heightMeters} м`
+                          : ""}
+                      </span>
+                    ) : (
+                      <span>Объект скрыт</span>
+                    )
                   ) : null}
                   {event.capacity ? (
                     <span>Количество мест: {event.capacity}</span>
@@ -212,7 +274,7 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
               Мероприятий по выбранным фильтрам не найдено
             </h2>
             <p className="mt-2 text-sm leading-6 text-zinc-600">
-              Попробуйте изменить параметры поиска или сбросить фильтры.
+              Попробуйте убрать часть фильтров или изменить поисковый запрос.
             </p>
           </section>
         )}

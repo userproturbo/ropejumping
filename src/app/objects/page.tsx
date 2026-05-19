@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/prefer-nullish-coalescing */
 import Link from "next/link";
 
+import { FilterSummary, type FilterChip } from "@/app/_components/filter-summary";
 import { ObjectType } from "@/generated/prisma/enums";
 import { getObjectTypeLabel } from "@/lib/display";
 import { api } from "@/trpc/server";
@@ -18,6 +19,18 @@ const getSearchParamValue = (
   return Array.isArray(value) ? value[0] : value;
 };
 
+const sortOptions = [
+  { value: "createdAtDesc", label: "Сначала новые" },
+  { value: "heightDesc", label: "Сначала выше" },
+  { value: "heightAsc", label: "Сначала ниже" },
+  { value: "nameAsc", label: "По названию" },
+];
+
+const getObjectTypeFilterLabel = (type: string) =>
+  Object.values(ObjectType).includes(type as ObjectType)
+    ? getObjectTypeLabel(type as ObjectType)
+    : type;
+
 export default async function ObjectsPage({ searchParams }: ObjectsPageProps) {
   const resolvedSearchParams = searchParams ? await searchParams : {};
   const { objects, availableRegions, availableTeams, filters } =
@@ -28,7 +41,33 @@ export default async function ObjectsPage({ searchParams }: ObjectsPageProps) {
       team: getSearchParamValue(resolvedSearchParams, "team"),
       minHeight: getSearchParamValue(resolvedSearchParams, "minHeight"),
       maxHeight: getSearchParamValue(resolvedSearchParams, "maxHeight"),
+      sort: getSearchParamValue(resolvedSearchParams, "sort"),
     });
+  const activeChips: FilterChip[] = [
+    filters.q ? { label: "Поиск", value: `"${filters.q}"` } : null,
+    filters.type
+      ? { label: "Тип", value: getObjectTypeFilterLabel(filters.type) }
+      : null,
+    filters.region ? { label: "Регион", value: filters.region } : null,
+    filters.team
+      ? {
+          label: "Команда",
+          value:
+            availableTeams.find((team) => team.slug === filters.team)?.name ??
+            filters.team,
+        }
+      : null,
+    filters.minHeight ? { label: "Высота", value: `от ${filters.minHeight} м` } : null,
+    filters.maxHeight ? { label: "Высота", value: `до ${filters.maxHeight} м` } : null,
+    filters.sort !== "createdAtDesc"
+      ? {
+          label: "Сортировка",
+          value:
+            sortOptions.find((option) => option.value === filters.sort)?.label ??
+            filters.sort,
+        }
+      : null,
+  ].filter((chip): chip is FilterChip => Boolean(chip));
 
   return (
     <main className="min-h-[calc(100vh-4rem)] bg-zinc-50">
@@ -173,6 +212,27 @@ export default async function ObjectsPage({ searchParams }: ObjectsPageProps) {
                 className="border border-zinc-300 px-3 py-2 text-sm text-zinc-950 outline-none focus:border-zinc-950"
               />
             </div>
+
+            <div className="grid gap-2">
+              <label
+                htmlFor="sort"
+                className="text-sm font-medium text-zinc-950"
+              >
+                Сортировка
+              </label>
+              <select
+                id="sort"
+                name="sort"
+                defaultValue={filters.sort}
+                className="border border-zinc-300 px-3 py-2 text-sm text-zinc-950 outline-none focus:border-zinc-950"
+              >
+                {sortOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           <div className="mt-5 flex flex-wrap items-center gap-3">
@@ -190,6 +250,12 @@ export default async function ObjectsPage({ searchParams }: ObjectsPageProps) {
             </Link>
           </div>
         </form>
+
+        <FilterSummary
+          chips={activeChips}
+          resetHref="/objects"
+          resultCount={objects.length}
+        />
 
         {objects.length > 0 ? (
           <div className="grid gap-4">
@@ -253,7 +319,7 @@ export default async function ObjectsPage({ searchParams }: ObjectsPageProps) {
               Объектов по выбранным фильтрам не найдено
             </h2>
             <p className="mt-2 text-sm leading-6 text-zinc-600">
-              Попробуйте изменить параметры поиска или сбросить фильтры.
+              Попробуйте убрать часть фильтров или изменить поисковый запрос.
             </p>
           </section>
         )}

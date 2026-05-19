@@ -299,6 +299,7 @@ export const eventRouter = createTRPCRouter({
       const applicationsOpen = input?.applicationsOpen === "1";
       const region = input?.region ?? "";
       const q = input?.q ?? "";
+      const sort = input?.sort ?? "startsAtAsc";
       const statuses = getPublicEventStatusesForFilter({
         status: normalizedStatus,
         applicationsOpen,
@@ -368,6 +369,12 @@ export const eventRouter = createTRPCRouter({
       const [events, regionRows] = await Promise.all([
         ctx.db.event.findMany({
           where: filteredEventsWhere,
+          orderBy:
+            sort === "startsAtDesc"
+              ? { startsAt: "desc" }
+              : sort === "createdAtDesc"
+                ? { createdAt: "desc" }
+                : { startsAt: "asc" },
           include: {
             _count: {
               select: {
@@ -388,6 +395,7 @@ export const eventRouter = createTRPCRouter({
                 slug: true,
                 heightMeters: true,
                 region: true,
+                visibility: true,
               },
             },
           },
@@ -417,13 +425,14 @@ export const eventRouter = createTRPCRouter({
       ).sort((left, right) => left.localeCompare(right, "ru"));
 
       return {
-        events: orderEventsByLifecycle(events),
+        events,
         availableRegions,
         filters: {
           status: normalizedStatus,
           region,
           q,
           applicationsOpen,
+          sort,
         },
       };
     }),

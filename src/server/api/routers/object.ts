@@ -164,6 +164,7 @@ export const objectRouter = createTRPCRouter({
       const region = input?.region ?? "";
       const team = input?.team ?? "";
       const type = normalizePublicObjectTypeFilter(input?.type);
+      const sort = input?.sort ?? "createdAtDesc";
       const { minHeight, maxHeight } = normalizeHeightRange({
         minHeight: input?.minHeight,
         maxHeight: input?.maxHeight,
@@ -303,9 +304,26 @@ export const objectRouter = createTRPCRouter({
       ).sort((left, right) => left.localeCompare(right, "ru"));
 
       const orderedObjects = objects.sort((left, right) => {
-        const linkedEventDifference = right.events.length - left.events.length;
+        if (sort === "heightDesc") {
+          const heightDifference =
+            (right.heightMeters ?? 0) - (left.heightMeters ?? 0);
 
-        if (linkedEventDifference !== 0) return linkedEventDifference;
+          if (heightDifference !== 0) return heightDifference;
+        }
+
+        if (sort === "heightAsc") {
+          const heightDifference =
+            (left.heightMeters ?? Number.MAX_SAFE_INTEGER) -
+            (right.heightMeters ?? Number.MAX_SAFE_INTEGER);
+
+          if (heightDifference !== 0) return heightDifference;
+        }
+
+        if (sort === "nameAsc") {
+          const nameDifference = left.name.localeCompare(right.name, "ru");
+
+          if (nameDifference !== 0) return nameDifference;
+        }
 
         const createdAtDifference =
           right.createdAt.getTime() - left.createdAt.getTime();
@@ -338,6 +356,7 @@ export const objectRouter = createTRPCRouter({
           team,
           minHeight: minHeight ?? "",
           maxHeight: maxHeight ?? "",
+          sort,
         },
       };
     }),

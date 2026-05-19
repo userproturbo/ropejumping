@@ -48,6 +48,24 @@ const optionalPublicTeamStatusFilter = z.preprocess((value) => {
   return publicTeamStatusFilterValues.has(trimmed) ? trimmed : undefined;
 }, z.nativeEnum(TeamStatus).optional());
 
+const teamPublicSortValues = [
+  "nameAsc",
+  "createdAtDesc",
+  "membersDesc",
+  "followersDesc",
+] as const;
+
+const optionalTeamPublicSort = z.preprocess((value) => {
+  const rawValue = getFirstString(value);
+
+  if (typeof rawValue !== "string") return undefined;
+
+  const trimmed = rawValue.trim();
+  return teamPublicSortValues.some((sort) => sort === trimmed)
+    ? trimmed
+    : undefined;
+}, z.enum(teamPublicSortValues).optional());
+
 export const teamSlugSchema = z.preprocess(
   (value) => (typeof value === "string" ? value.trim().toLowerCase() : value),
   z
@@ -86,6 +104,7 @@ export const teamPublicListInputSchema = z.object({
   q: optionalFilterString,
   region: optionalFilterString,
   status: optionalPublicTeamStatusFilter,
+  sort: optionalTeamPublicSort,
 });
 
 export type TeamCreateInput = z.infer<typeof teamCreateInputSchema>;
