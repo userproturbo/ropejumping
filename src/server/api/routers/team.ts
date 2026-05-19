@@ -392,6 +392,7 @@ export const teamRouter = createTRPCRouter({
                   slug: true,
                   heightMeters: true,
                   region: true,
+                  visibility: true,
                 },
               },
             },
