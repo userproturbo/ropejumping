@@ -2,6 +2,7 @@ import { TRPCError } from "@trpc/server";
 
 import {
   MediaStatus,
+  MediaType,
   ObjectType,
   ObjectVisibility,
   PostPinTargetType,
@@ -427,6 +428,7 @@ export const objectRouter = createTRPCRouter({
               media: {
                 deletedAt: null,
                 status: MediaStatus.UPLOADED,
+                type: MediaType.IMAGE,
                 url: { not: null },
               },
             },
@@ -649,6 +651,7 @@ export const objectRouter = createTRPCRouter({
               media: {
                 deletedAt: null,
                 status: MediaStatus.UPLOADED,
+                type: MediaType.IMAGE,
                 url: { not: null },
               },
             },

@@ -20,6 +20,7 @@ type GalleryImage = {
     url: string | null;
     alt: string | null;
   };
+  sortOrder: number;
 };
 
 type ImageGalleryManagerProps = {
@@ -203,8 +204,11 @@ export function ImageGalleryManager({
   return (
     <section className="mt-6 border border-zinc-200 bg-white p-6">
       <h2 className="text-xl font-semibold text-zinc-950">
-        {mode === "event" ? "Галерея мероприятия" : "Галерея объекта"}
+        {mode === "event" ? "Фотографии мероприятия" : "Фотографии объекта"}
       </h2>
+      <p className="mt-2 text-sm text-zinc-600">
+        Изображения показываются на публичной странице в указанном порядке.
+      </p>
 
       {images.length > 0 ? (
         <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -214,6 +218,17 @@ export function ImageGalleryManager({
                 images={[toViewerImage(image)]}
                 imageClassName="h-36 w-full object-cover"
               />
+              <div className="mt-3 space-y-1 text-xs text-zinc-500">
+                <p>Порядок: {image.sortOrder + 1}</p>
+                <p>
+                  Подпись:{" "}
+                  {image.media.alt ? (
+                    <span className="text-zinc-700">{image.media.alt}</span>
+                  ) : (
+                    "не указана"
+                  )}
+                </p>
+              </div>
               <button
                 type="button"
                 onClick={() => handleRemove(image.id)}
@@ -227,7 +242,7 @@ export function ImageGalleryManager({
         </div>
       ) : (
         <p className="mt-3 text-sm text-zinc-600">
-          В галерее пока нет изображений.
+          Фотографии пока не добавлены.
         </p>
       )}
 
@@ -278,4 +293,5 @@ const toViewerImage = (
   id: image.id,
   url: image.media.url,
   alt: image.media.alt ?? "Изображение галереи",
+  caption: image.media.alt,
 });

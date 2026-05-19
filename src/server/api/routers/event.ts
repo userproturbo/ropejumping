@@ -4,6 +4,7 @@ import {
   ApplicationStatus,
   EventStatus,
   MediaStatus,
+  MediaType,
   NotificationType,
   ObjectVisibility,
   PostPinTargetType,
@@ -464,6 +465,7 @@ export const eventRouter = createTRPCRouter({
               media: {
                 deletedAt: null,
                 status: MediaStatus.UPLOADED,
+                type: MediaType.IMAGE,
                 url: { not: null },
               },
             },
@@ -750,6 +752,7 @@ export const eventRouter = createTRPCRouter({
               media: {
                 deletedAt: null,
                 status: MediaStatus.UPLOADED,
+                type: MediaType.IMAGE,
                 url: { not: null },
               },
             },
