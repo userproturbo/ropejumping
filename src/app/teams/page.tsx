@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/prefer-nullish-coalescing */
 import Link from "next/link";
 
+import { FilterSummary, type FilterChip } from "@/app/_components/filter-summary";
 import { TeamStatus } from "@/generated/prisma/enums";
 import { getTeamStatusLabel } from "@/lib/display";
 import { api } from "@/trpc/server";
@@ -29,13 +30,41 @@ const statusFilterOptions = [
   },
 ];
 
+const sortOptions = [
+  { value: "nameAsc", label: "По названию" },
+  { value: "createdAtDesc", label: "Сначала новые" },
+  { value: "membersDesc", label: "Больше участников" },
+  { value: "followersDesc", label: "Больше подписчиков" },
+];
+
 export default async function TeamsPage({ searchParams }: TeamsPageProps) {
   const resolvedSearchParams = searchParams ? await searchParams : {};
   const { teams, availableRegions, filters } = await api.team.listPublic({
     q: getSearchParamValue(resolvedSearchParams, "q"),
     region: getSearchParamValue(resolvedSearchParams, "region"),
     status: getSearchParamValue(resolvedSearchParams, "status"),
+    sort: getSearchParamValue(resolvedSearchParams, "sort"),
   });
+  const activeChips: FilterChip[] = [
+    filters.q ? { label: "Поиск", value: `"${filters.q}"` } : null,
+    filters.region ? { label: "Регион", value: filters.region } : null,
+    filters.status
+      ? {
+          label: "Статус",
+          value:
+            statusFilterOptions.find((option) => option.value === filters.status)
+              ?.label ?? filters.status,
+        }
+      : null,
+    filters.sort !== "nameAsc"
+      ? {
+          label: "Сортировка",
+          value:
+            sortOptions.find((option) => option.value === filters.sort)?.label ??
+            filters.sort,
+        }
+      : null,
+  ].filter((chip): chip is FilterChip => Boolean(chip));
 
   return (
     <main className="min-h-[calc(100vh-4rem)] bg-zinc-50">
@@ -120,6 +149,27 @@ export default async function TeamsPage({ searchParams }: TeamsPageProps) {
                 ))}
               </select>
             </div>
+
+            <div className="grid gap-2">
+              <label
+                htmlFor="sort"
+                className="text-sm font-medium text-zinc-950"
+              >
+                Сортировка
+              </label>
+              <select
+                id="sort"
+                name="sort"
+                defaultValue={filters.sort}
+                className="border border-zinc-300 px-3 py-2 text-sm text-zinc-950 outline-none focus:border-zinc-950"
+              >
+                {sortOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           <div className="mt-5 flex flex-wrap items-center gap-3">
@@ -137,6 +187,12 @@ export default async function TeamsPage({ searchParams }: TeamsPageProps) {
             </Link>
           </div>
         </form>
+
+        <FilterSummary
+          chips={activeChips}
+          resetHref="/teams"
+          resultCount={teams.length}
+        />
 
         {teams.length > 0 ? (
           <div className="grid gap-4">
@@ -180,6 +236,7 @@ export default async function TeamsPage({ searchParams }: TeamsPageProps) {
                         {team._count.members}{" "}
                         {team._count.members === 1 ? "участник" : "участников"}
                       </span>
+                      <span>Подписчиков: {team._count.followers}</span>
                     </div>
                     {team.description ? (
                       <p className="mt-4 line-clamp-3 text-sm leading-6 text-zinc-600">
@@ -197,7 +254,7 @@ export default async function TeamsPage({ searchParams }: TeamsPageProps) {
               Команд по выбранным фильтрам не найдено
             </h2>
             <p className="mt-2 text-sm leading-6 text-zinc-600">
-              Попробуйте изменить параметры поиска или сбросить фильтры.
+              Попробуйте убрать часть фильтров или изменить поисковый запрос.
             </p>
           </section>
         )}

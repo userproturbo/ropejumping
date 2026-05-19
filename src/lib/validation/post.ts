@@ -44,6 +44,23 @@ const optionalSlugFilter = z.preprocess((value) => {
   return /^[a-z0-9-]+$/.test(trimmed) ? trimmed : undefined;
 }, z.string().optional());
 
+const postPublicSortValues = [
+  "createdAtDesc",
+  "createdAtAsc",
+  "popular",
+] as const;
+
+const optionalPostPublicSort = z.preprocess((value) => {
+  const rawValue = getFirstString(value);
+
+  if (typeof rawValue !== "string") return undefined;
+
+  const trimmed = rawValue.trim();
+  return postPublicSortValues.some((sort) => sort === trimmed)
+    ? trimmed
+    : undefined;
+}, z.enum(postPublicSortValues).optional());
+
 export const postCreateInputSchema = z.object({
   content: z.string().trim().min(1).max(2000),
   imageUrl: optionalUrl,
@@ -89,6 +106,7 @@ export const postPublicListInputSchema = z.object({
   team: optionalSlugFilter,
   event: optionalSlugFilter,
   object: optionalSlugFilter,
+  sort: optionalPostPublicSort,
 });
 
 export const commentCreateInputSchema = z.object({

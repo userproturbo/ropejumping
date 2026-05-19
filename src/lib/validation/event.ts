@@ -65,6 +65,23 @@ const applicationsOpenFilter = z.preprocess((value) => {
     : undefined;
 }, z.literal("1").optional());
 
+const eventPublicSortValues = [
+  "startsAtAsc",
+  "startsAtDesc",
+  "createdAtDesc",
+] as const;
+
+const optionalEventPublicSort = z.preprocess((value) => {
+  const rawValue = getFirstString(value);
+
+  if (typeof rawValue !== "string") return undefined;
+
+  const trimmed = rawValue.trim();
+  return eventPublicSortValues.some((sort) => sort === trimmed)
+    ? trimmed
+    : undefined;
+}, z.enum(eventPublicSortValues).optional());
+
 export const eventSlugSchema = z.preprocess(
   (value) => (typeof value === "string" ? value.trim().toLowerCase() : value),
   z
@@ -143,6 +160,7 @@ export const eventPublicListInputSchema = z.object({
   region: optionalFilterString,
   q: optionalFilterString,
   applicationsOpen: applicationsOpenFilter,
+  sort: optionalEventPublicSort,
 });
 
 export const eventStatusUpdateInputSchema = z.object({

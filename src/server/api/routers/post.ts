@@ -552,6 +552,7 @@ export const postRouter = createTRPCRouter({
       const team = input?.team ?? "";
       const event = input?.event ?? "";
       const object = input?.object ?? "";
+      const sort = input?.sort ?? "createdAtDesc";
       const filterClauses: Prisma.PostWhereInput[] = [];
       const internalPinTarget = await resolvePinTargetFromFilters({
         db: ctx.db,
@@ -780,16 +781,38 @@ export const postRouter = createTRPCRouter({
             },
           }),
         ]);
-      const orderedPosts = currentPinTarget
-        ? posts.sort((left, right) => {
-            const leftPinned = left.pins.length > 0;
-            const rightPinned = right.pins.length > 0;
+      const comparePosts = (left: (typeof posts)[number], right: (typeof posts)[number]) => {
+        if (sort === "createdAtAsc") {
+          return left.createdAt.getTime() - right.createdAt.getTime();
+        }
 
-            if (leftPinned !== rightPinned) return leftPinned ? -1 : 1;
+        if (sort === "popular") {
+          const viewsDifference = right.viewsCount - left.viewsCount;
 
-            return right.createdAt.getTime() - left.createdAt.getTime();
-          })
-        : posts;
+          if (viewsDifference !== 0) return viewsDifference;
+
+          const likesDifference = right._count.likes - left._count.likes;
+
+          if (likesDifference !== 0) return likesDifference;
+
+          const commentsDifference =
+            right._count.comments - left._count.comments;
+
+          if (commentsDifference !== 0) return commentsDifference;
+        }
+
+        return right.createdAt.getTime() - left.createdAt.getTime();
+      };
+      const orderedPosts = posts.sort((left, right) => {
+        if (currentPinTarget) {
+          const leftPinned = left.pins.length > 0;
+          const rightPinned = right.pins.length > 0;
+
+          if (leftPinned !== rightPinned) return leftPinned ? -1 : 1;
+        }
+
+        return comparePosts(left, right);
+      });
 
       return {
         posts: orderedPosts.map((post) => ({
@@ -806,6 +829,7 @@ export const postRouter = createTRPCRouter({
           team,
           event,
           object,
+          sort,
         },
       };
     }),

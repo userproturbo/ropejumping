@@ -45,9 +45,6 @@ const isUniqueConstraintError = (error: unknown) =>
 
 type TeamRouterDb = typeof database;
 
-const getPublicTeamSortRank = (status: TeamStatus) =>
-  status === TeamStatus.VERIFIED ? 0 : 1;
-
 const getManageableTeam = async ({
   db,
   slug,
@@ -186,6 +183,7 @@ export const teamRouter = createTRPCRouter({
       const q = input?.q ?? "";
       const region = input?.region ?? "";
       const status = input?.status;
+      const sort = input?.sort ?? "nameAsc";
       const publicTeamsWhere: Prisma.TeamWhereInput = {
         status: {
           in: publicTeamStatuses,
@@ -253,6 +251,7 @@ export const teamRouter = createTRPCRouter({
             _count: {
               select: {
                 members: true,
+                followers: true,
               },
             },
           },
@@ -280,16 +279,25 @@ export const teamRouter = createTRPCRouter({
       ).sort((left, right) => left.localeCompare(right, "ru"));
 
       const orderedTeams = teams.sort((left, right) => {
-        const statusDifference =
-          getPublicTeamSortRank(left.status) -
-          getPublicTeamSortRank(right.status);
+        if (sort === "createdAtDesc") {
+          const createdAtDifference =
+            right.createdAt.getTime() - left.createdAt.getTime();
 
-        if (statusDifference !== 0) return statusDifference;
+          if (createdAtDifference !== 0) return createdAtDifference;
+        }
 
-        const createdAtDifference =
-          right.createdAt.getTime() - left.createdAt.getTime();
+        if (sort === "membersDesc") {
+          const memberDifference = right._count.members - left._count.members;
 
-        if (createdAtDifference !== 0) return createdAtDifference;
+          if (memberDifference !== 0) return memberDifference;
+        }
+
+        if (sort === "followersDesc") {
+          const followerDifference =
+            right._count.followers - left._count.followers;
+
+          if (followerDifference !== 0) return followerDifference;
+        }
 
         return left.name.localeCompare(right.name, "ru");
       });
@@ -301,6 +309,7 @@ export const teamRouter = createTRPCRouter({
           q,
           region,
           status: status ?? "",
+          sort,
         },
       };
     }),
