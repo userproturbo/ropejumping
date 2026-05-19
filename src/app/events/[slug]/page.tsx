@@ -130,6 +130,7 @@ export default async function EventPage({ params }: EventPageProps) {
       id: image.id,
       url: image.media.url!,
       alt: image.media.alt || `Фото мероприятия «${event.title}»`,
+      caption: image.media.alt,
     }));
 
   return (
@@ -235,8 +236,11 @@ export default async function EventPage({ params }: EventPageProps) {
         {galleryImages.length > 0 ? (
           <section className="mt-6 border border-zinc-200 bg-white p-6">
             <h2 className="text-xl font-semibold text-zinc-950">
-              Галерея мероприятия
+              Фотографии мероприятия
             </h2>
+            <p className="mt-2 text-sm text-zinc-600">
+              Моменты с мероприятия, добавленные командой.
+            </p>
             <ImageGalleryViewer
               images={galleryImages}
               className="mt-5 grid grid-cols-2 gap-4 lg:grid-cols-3"

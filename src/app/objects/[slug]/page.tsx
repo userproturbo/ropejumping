@@ -40,6 +40,7 @@ export default async function ObjectPage({ params }: ObjectPageProps) {
       id: image.id,
       url: image.media.url!,
       alt: image.media.alt || `Фото объекта «${object.name}»`,
+      caption: image.media.alt,
     }));
 
   return (
@@ -150,8 +151,11 @@ export default async function ObjectPage({ params }: ObjectPageProps) {
         {galleryImages.length > 0 ? (
           <section className="mt-6 border border-zinc-200 bg-white p-6">
             <h2 className="text-xl font-semibold text-zinc-950">
-              Галерея объекта
+              Фотографии объекта
             </h2>
+            <p className="mt-2 text-sm text-zinc-600">
+              Общие фотографии объекта без координат и технических деталей.
+            </p>
             <ImageGalleryViewer
               images={galleryImages}
               className="mt-5 grid grid-cols-2 gap-4 lg:grid-cols-3"

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 
 export type GalleryViewerImage = {
   alt: string;
+  caption?: string | null;
   id: string;
   url: string;
 };
@@ -74,6 +75,11 @@ export function ImageGalleryViewer({
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={image.url} alt={image.alt} className={imageClassName} />
+            {image.caption ? (
+              <span className="mt-2 block text-sm leading-5 text-zinc-600">
+                {image.caption}
+              </span>
+            ) : null}
           </button>
         ))}
       </div>
@@ -96,6 +102,11 @@ export function ImageGalleryViewer({
               className="max-h-[calc(100vh-8rem)] max-w-[calc(100vw-2rem)] object-contain"
             />
             <div className="flex flex-wrap justify-center gap-3">
+              {selectedImage.caption ? (
+                <p className="w-full text-center text-sm leading-6 text-white">
+                  {selectedImage.caption}
+                </p>
+              ) : null}
               {hasMultipleImages ? (
                 <button
                   type="button"
@@ -114,6 +125,14 @@ export function ImageGalleryViewer({
                   Следующее
                 </button>
               ) : null}
+              <a
+                href={selectedImage.url}
+                target="_blank"
+                rel="noreferrer"
+                className="bg-white px-4 py-2 text-sm text-zinc-950 hover:bg-zinc-200"
+              >
+                Открыть оригинал
+              </a>
               <button
                 type="button"
                 onClick={close}
