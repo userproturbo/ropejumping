@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { hasModerationSafetyKeyword } from "@/lib/moderation/safety-keywords";
 import type { ReportTargetType } from "@/lib/validation/report";
 import type { RouterOutputs } from "@/trpc/react";
 
@@ -15,7 +16,6 @@ type ReportCardProps = {
 
 type ModerationUserPreview = {
   name?: string | null;
-  email?: string | null;
   profile?: {
     displayName?: string | null;
     username?: string | null;
@@ -25,6 +25,10 @@ type ModerationUserPreview = {
 export function ReportCard({ report, showActions = false }: ReportCardProps) {
   const targetType = getReportTargetType(report.targetType);
   const targetTitle = getTargetTitle(report);
+  const hasSafetyWarning = hasModerationSafetyKeyword(
+    report.reason,
+    report.details,
+  );
 
   return (
     <article className="border border-zinc-200 bg-white p-5">
@@ -37,12 +41,31 @@ export function ReportCard({ report, showActions = false }: ReportCardProps) {
             {formatModerationDate(report.createdAt)}
           </p>
         </div>
-        <span className="text-xs font-medium text-zinc-500">
-          {getReportStatusLabel(report.status)}
-        </span>
+        <div className="flex flex-wrap justify-end gap-2">
+          {hasSafetyWarning ? (
+            <span className="border border-amber-200 bg-amber-50 px-2 py-1 text-xs font-medium text-amber-800">
+              Возможная опасная информация
+            </span>
+          ) : null}
+          <span className="border border-zinc-200 px-2 py-1 text-xs font-medium text-zinc-500">
+            {getReportStatusLabel(report.status)}
+          </span>
+        </div>
       </div>
 
-      <dl className="mt-4 grid gap-3 text-sm">
+      <dl className="mt-4 grid gap-3 text-sm md:grid-cols-2">
+        <div>
+          <dt className="font-medium text-zinc-950">Тип</dt>
+          <dd className="mt-1 text-zinc-600">
+            {getTargetTypeLabel(report.targetType)}
+          </dd>
+        </div>
+        <div>
+          <dt className="font-medium text-zinc-950">Статус</dt>
+          <dd className="mt-1 text-zinc-600">
+            {getReportStatusLabel(report.status)}
+          </dd>
+        </div>
         <div>
           <dt className="font-medium text-zinc-950">Причина</dt>
           <dd className="mt-1 text-zinc-600">{report.reason}</dd>
@@ -57,10 +80,7 @@ export function ReportCard({ report, showActions = false }: ReportCardProps) {
         ) : null}
         <div>
           <dt className="font-medium text-zinc-950">Отправил</dt>
-          <dd className="mt-1 text-zinc-600">
-            {getUserName(report.reporter)}
-            {report.reporter.email ? ` (${report.reporter.email})` : ""}
-          </dd>
+          <dd className="mt-1 text-zinc-600">{getUserName(report.reporter)}</dd>
         </div>
         {report.reviewedAt ? (
           <div>
@@ -75,7 +95,6 @@ export function ReportCard({ report, showActions = false }: ReportCardProps) {
             <dt className="font-medium text-zinc-950">Проверил</dt>
             <dd className="mt-1 text-zinc-600">
               {getUserName(report.reviewedBy)}
-              {report.reviewedBy.email ? ` (${report.reviewedBy.email})` : ""}
             </dd>
           </div>
         ) : null}
@@ -98,7 +117,7 @@ export function ReportCard({ report, showActions = false }: ReportCardProps) {
             Открыть объект
           </Link>
         ) : (
-          <p className="mt-4 text-sm text-zinc-500">Объект уже скрыт.</p>
+          <p className="mt-4 text-sm text-zinc-500">Уже скрыто.</p>
         )
       ) : null}
       {report.targetType === "OBJECT_IMPRESSION" &&
@@ -108,7 +127,7 @@ export function ReportCard({ report, showActions = false }: ReportCardProps) {
             Автор: {getUserName(report.targetObjectImpression.author)}
           </p>
           <p className="line-clamp-3 whitespace-pre-wrap text-zinc-600">
-            {report.targetObjectImpression.body}
+            Содержимое: {report.targetObjectImpression.body}
           </p>
           {report.targetObjectImpression.object.visibility === "PUBLIC" ? (
             <Link
@@ -118,10 +137,10 @@ export function ReportCard({ report, showActions = false }: ReportCardProps) {
               Открыть объект: {report.targetObjectImpression.object.name}
             </Link>
           ) : (
-            <p className="text-zinc-500">Объект уже скрыт.</p>
+            <p className="text-zinc-500">Уже скрыто.</p>
           )}
           {report.targetObjectImpression.hiddenAt ? (
-            <p className="text-zinc-500">Впечатление уже скрыто.</p>
+            <p className="text-zinc-500">Уже скрыто.</p>
           ) : null}
         </div>
       ) : null}
@@ -132,7 +151,7 @@ export function ReportCard({ report, showActions = false }: ReportCardProps) {
             Автор: {getUserName(report.targetEventChatMessage.author)}
           </p>
           <p className="line-clamp-3 whitespace-pre-wrap text-zinc-600">
-            {report.targetEventChatMessage.body}
+            Содержимое: {report.targetEventChatMessage.body}
           </p>
           <Link
             href={`/events/${report.targetEventChatMessage.event.slug}#event-chat`}
@@ -141,10 +160,10 @@ export function ReportCard({ report, showActions = false }: ReportCardProps) {
             Открыть чат: {report.targetEventChatMessage.event.title}
           </Link>
           {report.targetEventChatMessage.hiddenAt ? (
-            <p className="text-zinc-500">Сообщение уже скрыто.</p>
+            <p className="text-zinc-500">Уже скрыто.</p>
           ) : null}
           {report.targetEventChatMessage.deletedAt ? (
-            <p className="text-zinc-500">Сообщение удалено автором.</p>
+            <p className="text-zinc-500">Удалено автором.</p>
           ) : null}
         </div>
       ) : null}
@@ -158,7 +177,7 @@ export function ReportCard({ report, showActions = false }: ReportCardProps) {
             Тип: {getLogisticsTypeLabel(report.targetEventLogisticsPost.type)}
           </p>
           <p className="line-clamp-3 whitespace-pre-wrap text-zinc-600">
-            {report.targetEventLogisticsPost.body}
+            Содержимое: {report.targetEventLogisticsPost.body}
           </p>
           <Link
             href={`/events/${report.targetEventLogisticsPost.event.slug}#event-logistics`}
@@ -167,7 +186,7 @@ export function ReportCard({ report, showActions = false }: ReportCardProps) {
             Открыть мероприятие: {report.targetEventLogisticsPost.event.title}
           </Link>
           {report.targetEventLogisticsPost.hiddenAt ? (
-            <p className="text-zinc-500">Запись уже скрыта.</p>
+            <p className="text-zinc-500">Уже скрыто.</p>
           ) : null}
         </div>
       ) : null}
@@ -178,7 +197,7 @@ export function ReportCard({ report, showActions = false }: ReportCardProps) {
             Автор: {getUserName(report.targetTeamChatMessage.author)}
           </p>
           <p className="line-clamp-3 whitespace-pre-wrap text-zinc-600">
-            {report.targetTeamChatMessage.body}
+            Содержимое: {report.targetTeamChatMessage.body}
           </p>
           <Link
             href={`/teams/${report.targetTeamChatMessage.team.slug}#team-chat`}
@@ -187,10 +206,10 @@ export function ReportCard({ report, showActions = false }: ReportCardProps) {
             Открыть чат: {report.targetTeamChatMessage.team.name}
           </Link>
           {report.targetTeamChatMessage.hiddenAt ? (
-            <p className="text-zinc-500">Сообщение уже скрыто.</p>
+            <p className="text-zinc-500">Уже скрыто.</p>
           ) : null}
           {report.targetTeamChatMessage.deletedAt ? (
-            <p className="text-zinc-500">Сообщение удалено автором.</p>
+            <p className="text-zinc-500">Удалено автором.</p>
           ) : null}
         </div>
       ) : null}
@@ -281,12 +300,19 @@ const getReportStatusLabel = (status: string) => {
   return status;
 };
 
+const getDisplayValue = (value?: string | null) => {
+  const trimmed = value?.trim();
+
+  return trimmed === "" ? undefined : trimmed;
+};
+
 const getUserName = (user: ModerationUserPreview) =>
-  user.profile?.displayName ??
-  user.profile?.username ??
-  user.name ??
-  user.email ??
-  "Участник";
+  getDisplayValue(user.profile?.displayName) ??
+  (getDisplayValue(user.profile?.username)
+    ? `@${getDisplayValue(user.profile?.username)}`
+    : undefined) ??
+  getDisplayValue(user.name) ??
+  "Пользователь";
 
 const getLogisticsTypeLabel = (type: string) => {
   if (type === "OFFER_SEAT") return "Предлагает место";

@@ -57,6 +57,12 @@ export function ModerationActions({
     dismiss.error;
   const hideButtonLabel = getHideButtonLabel(targetType);
   const handleHide = () => {
+    const confirmed = window.confirm(
+      "Скрыть этот материал? Это действие изменит публичную видимость.",
+    );
+
+    if (!confirmed) return;
+
     if (targetType === "OBJECT_IMPRESSION") {
       hideObjectImpression.mutate({ impressionId: targetId, reportId });
       return;
@@ -86,25 +92,31 @@ export function ModerationActions({
         type="button"
         disabled={isPending}
         onClick={handleHide}
+        title={hideButtonLabel}
+        aria-label={hideButtonLabel}
         className="border border-zinc-300 px-3 py-2 text-sm text-zinc-800 hover:border-zinc-950 disabled:cursor-not-allowed disabled:text-zinc-400"
       >
-        {hideButtonLabel}
+        {isPending ? "Выполняется..." : hideButtonLabel}
       </button>
       <button
         type="button"
         disabled={isPending}
         onClick={() => resolve.mutate({ reportId })}
+        title="Закрыть жалобу как решённую"
+        aria-label="Закрыть жалобу как решённую"
         className="border border-zinc-300 px-3 py-2 text-sm text-zinc-800 hover:border-zinc-950 disabled:cursor-not-allowed disabled:text-zinc-400"
       >
-        Закрыть как решённую
+        {isPending ? "Выполняется..." : "Закрыть как решённую"}
       </button>
       <button
         type="button"
         disabled={isPending}
         onClick={() => dismiss.mutate({ reportId })}
+        title="Отклонить жалобу"
+        aria-label="Отклонить жалобу"
         className="border border-zinc-300 px-3 py-2 text-sm text-zinc-800 hover:border-zinc-950 disabled:cursor-not-allowed disabled:text-zinc-400"
       >
-        Отклонить жалобу
+        {isPending ? "Выполняется..." : "Отклонить жалобу"}
       </button>
       {error ? <p className="text-sm text-red-700">{error.message}</p> : null}
     </div>
