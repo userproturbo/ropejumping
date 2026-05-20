@@ -3,6 +3,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   ApplicationStatus,
   EventStatus,
+  ObjectVisibility,
   TeamRole,
 } from "@/generated/prisma/enums";
 import type { eventRouter as EventRouter } from "@/server/api/routers/event";
@@ -485,6 +486,66 @@ describe("eventRouter completion", () => {
           }) as object,
         }) as object,
       }) as object,
+    });
+  });
+
+  it("does not expose hidden object details on the public event page", async () => {
+    const db = {
+      event: {
+        findFirst: vi.fn().mockResolvedValue({
+          id: eventId,
+          title: "Тестовое мероприятие",
+          slug: "test-event",
+          status: EventStatus.PUBLISHED,
+          startsAt: new Date("2026-06-01T10:00:00.000Z"),
+          endsAt: null,
+          region: "Москва",
+          capacity: 10,
+          priceText: null,
+          levelText: null,
+          description: null,
+          requirementsText: null,
+          coverImageUrl: null,
+          coverMedia: null,
+          galleryImages: [],
+          _count: {
+            applications: 0,
+          },
+          team: {
+            id: teamId,
+            name: "Команда",
+            slug: "team",
+          },
+          object: {
+            id: "hidden-object-id",
+            name: "Секретный объект",
+            slug: "secret-object",
+            type: "BRIDGE",
+            visibility: ObjectVisibility.HIDDEN,
+            heightMeters: 50,
+            region: "Секретный регион",
+          },
+          applications: [],
+          participations: [],
+          crewMembers: [],
+        }),
+      },
+      post: {
+        findMany: vi.fn().mockResolvedValue([]),
+      },
+    };
+    const caller = createCaller(eventRouter)(createContext(db as never));
+
+    const result = await caller.getBySlug("test-event");
+
+    expect(result?.object).toEqual({
+      id: "hidden-object-id",
+      name: null,
+      slug: null,
+      type: null,
+      visibility: ObjectVisibility.HIDDEN,
+      heightMeters: null,
+      region: null,
     });
   });
 });
