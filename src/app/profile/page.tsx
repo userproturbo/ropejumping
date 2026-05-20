@@ -72,6 +72,16 @@ export default async function ProfilePage() {
     (profile.selfReportedJumpCount !== null ||
       profile.selfReportedMaxHeightMeters !== null ||
       Boolean(profile.selfReportedExperience));
+  const missingProfileFields = profile
+    ? [
+        profile.username ? null : "username",
+        profile.displayName ? null : "отображаемое имя",
+        profile.city ? null : "город",
+        profile.avatarUrl ? null : "аватар",
+        profile.bio ? null : "описание",
+        hasSelfReportedStats || profile.externalExperience ? null : "опыт",
+      ].filter((item): item is string => item !== null)
+    : [];
 
   return (
     <main className="min-h-[calc(100vh-4rem)] bg-zinc-50">
@@ -141,45 +151,67 @@ export default async function ProfilePage() {
                   {profile.city ? (
                     <p className="mt-2 text-sm text-zinc-600">{profile.city}</p>
                   ) : null}
+                  <div className="mt-4 flex flex-wrap gap-3">
+                    <Link
+                      href="/profile/edit"
+                      className="border border-zinc-300 px-4 py-2 text-sm text-zinc-800 hover:border-zinc-950"
+                    >
+                      Редактировать профиль
+                    </Link>
+                    {profile.username ? (
+                      <Link
+                        href={`/u/${profile.username}`}
+                        className="border border-zinc-300 px-4 py-2 text-sm text-zinc-800 hover:border-zinc-950"
+                      >
+                        Открыть публичный профиль
+                      </Link>
+                    ) : null}
+                  </div>
                 </div>
               </div>
 
-              <div className="flex flex-wrap gap-2 text-sm">
-                {profile.selfReportedJumpCount !== null ? (
-                  <span className="border border-zinc-200 px-3 py-2 text-zinc-700">
-                    Прыжков: {profile.selfReportedJumpCount}
-                  </span>
-                ) : null}
-                {profile.selfReportedMaxHeightMeters !== null ? (
-                  <span className="border border-zinc-200 px-3 py-2 text-zinc-700">
-                    Макс. высота: {profile.selfReportedMaxHeightMeters} м
-                  </span>
-                ) : null}
-              </div>
+              <dl className="grid gap-3 text-sm sm:grid-cols-3">
+                <DashboardStat
+                  label="Подтверждённых мероприятий"
+                  value={participationSummary.confirmedEventsCount}
+                />
+                <DashboardStat
+                  label="Объектов в истории"
+                  value={participationSummary.uniqueObjectsCount}
+                />
+                <DashboardStat
+                  label="Макс. подтверждённая высота"
+                  value={
+                    participationSummary.maxHeightMeters !== null
+                      ? `${participationSummary.maxHeightMeters} м`
+                      : "нет данных"
+                  }
+                />
+              </dl>
             </div>
 
-            <dl className="grid gap-5 text-sm">
-              <div>
-                <dt className="font-medium text-zinc-950">Город</dt>
-                <dd className="mt-1 whitespace-pre-wrap text-zinc-600">
-                  {profile.city ?? "Не указано"}
-                </dd>
-              </div>
-              <div>
-                <dt className="font-medium text-zinc-950">О себе</dt>
-                <dd className="mt-1 whitespace-pre-wrap text-zinc-600">
-                  {profile.bio ?? "Не указано"}
-                </dd>
-              </div>
-              <div>
-                <dt className="font-medium text-zinc-950">
-                  Опыт вне платформы
-                </dt>
-                <dd className="mt-1 whitespace-pre-wrap text-zinc-600">
-                  {profile.externalExperience ?? "Не указано"}
-                </dd>
-              </div>
-            </dl>
+            <div className="border border-zinc-200 bg-zinc-50 p-4">
+              <h3 className="text-base font-semibold text-zinc-950">
+                Заполните профиль
+              </h3>
+              {missingProfileFields.length > 0 ? (
+                <>
+                  <p className="mt-2 text-sm text-zinc-600">
+                    Осталось добавить: {missingProfileFields.join(", ")}.
+                  </p>
+                  <Link
+                    href="/profile/edit"
+                    className="mt-3 inline-flex text-sm text-zinc-700 hover:text-zinc-950"
+                  >
+                    Перейти к редактированию
+                  </Link>
+                </>
+              ) : (
+                <p className="mt-2 text-sm text-zinc-600">
+                  Профиль выглядит заполненным.
+                </p>
+              )}
+            </div>
           </section>
         ) : (
           <section className="border border-zinc-200 bg-white p-6">
@@ -205,7 +237,8 @@ export default async function ProfilePage() {
               Заявленный опыт
             </h2>
             <p className="mt-1 text-sm text-zinc-500">
-              Данные указаны пользователем и не подтверждаются автоматически.
+              Эти данные вы указываете самостоятельно. Они не считаются
+              подтверждённой историей платформы.
             </p>
             {hasSelfReportedStats ? (
               <div className="mt-5 grid gap-3 text-sm text-zinc-600">
@@ -410,5 +443,20 @@ function DashboardCard({
       <p className="mt-2 text-sm leading-6 text-zinc-600">{description}</p>
       {meta ? <p className="mt-3 text-xs text-zinc-500">{meta}</p> : null}
     </Link>
+  );
+}
+
+function DashboardStat({
+  label,
+  value,
+}: {
+  label: string;
+  value: number | string;
+}) {
+  return (
+    <div className="border border-zinc-200 p-3">
+      <dt className="font-medium text-zinc-950">{label}</dt>
+      <dd className="mt-1 text-zinc-600">{value}</dd>
+    </div>
   );
 }

@@ -16,6 +16,7 @@ import {
   protectedProcedure,
   publicProcedure,
 } from "@/server/api/trpc";
+import { publicPostWhere } from "@/server/api/routers/post";
 import { deleteMediaIfUnreferenced } from "@/server/media/cleanup";
 import { resolveImageMediaForUpdate } from "@/server/media/usage";
 
@@ -273,6 +274,87 @@ export const profileRouter = createTRPCRouter({
                   },
                 },
               },
+              posts: {
+                where: publicPostWhere,
+                orderBy: {
+                  createdAt: "desc",
+                },
+                take: 5,
+                select: {
+                  id: true,
+                  content: true,
+                  imageUrl: true,
+                  viewsCount: true,
+                  imageMedia: {
+                    select: {
+                      alt: true,
+                    },
+                  },
+                  createdAt: true,
+                  author: {
+                    select: {
+                      name: true,
+                      image: true,
+                      profile: {
+                        select: {
+                          username: true,
+                          displayName: true,
+                          avatarUrl: true,
+                        },
+                      },
+                    },
+                  },
+                  team: {
+                    select: {
+                      name: true,
+                    },
+                  },
+                  event: {
+                    select: {
+                      title: true,
+                    },
+                  },
+                  object: {
+                    select: {
+                      name: true,
+                      visibility: true,
+                    },
+                  },
+                  _count: {
+                    select: {
+                      likes: true,
+                      comments: {
+                        where: {
+                          hiddenAt: null,
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+              teamMemberships: {
+                where: {
+                  team: {
+                    status: {
+                      in: publicTeamStatuses,
+                    },
+                  },
+                },
+                orderBy: {
+                  createdAt: "desc",
+                },
+                select: {
+                  id: true,
+                  role: true,
+                  team: {
+                    select: {
+                      id: true,
+                      name: true,
+                      slug: true,
+                    },
+                  },
+                },
+              },
               eventParticipations: {
                 where: {
                   event: {
@@ -331,6 +413,13 @@ export const profileRouter = createTRPCRouter({
         ...profile,
         user: {
           ...profile.user,
+          posts: profile.user.posts.map((post) => ({
+            ...post,
+            object:
+              post.object?.visibility === ObjectVisibility.PUBLIC
+                ? { name: post.object.name }
+                : null,
+          })),
           eventParticipations: profile.user.eventParticipations.map(
             (participation) => ({
               ...participation,

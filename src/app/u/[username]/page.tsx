@@ -3,8 +3,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { BadgeList } from "@/app/_components/badge-list";
+import { EntityPostPreviewCard } from "@/app/posts/_components/entity-post-preview-card";
 import { ObjectVisibility } from "@/generated/prisma/enums";
-import { getObjectTypeLabel } from "@/lib/display";
+import { getObjectTypeLabel, getTeamRoleLabel } from "@/lib/display";
 import { summarizeParticipationHistory } from "@/server/events/participation-history";
 import { api } from "@/trpc/server";
 
@@ -31,57 +32,75 @@ export default async function PublicProfilePage({
     profile.selfReportedMaxHeightMeters !== null ||
     Boolean(profile.selfReportedExperience);
   const participationHistory = profile.user.eventParticipations;
+  const visibleParticipationHistory = participationHistory.slice(0, 10);
   const participationSummary =
     summarizeParticipationHistory(participationHistory);
+  const displayName = profile.displayName ?? profile.username;
+  const avatarAlt =
+    profile.avatarMedia?.alt ||
+    profile.displayName ||
+    profile.username ||
+    "Аватар пользователя";
 
   return (
     <main className="min-h-[calc(100vh-4rem)] bg-zinc-50">
-      <div className="mx-auto w-full max-w-3xl px-6 py-10">
+      <div className="mx-auto w-full max-w-5xl px-6 py-10">
         <section className="space-y-6 border border-zinc-200 bg-white p-6">
-          <div className="flex items-start gap-4">
+          <div className="flex flex-wrap items-start gap-5">
             {profile.avatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={profile.avatarUrl}
-                alt={
-                  profile.avatarMedia?.alt ||
-                  profile.displayName ||
-                  profile.username ||
-                  "Аватар пользователя"
-                }
-                className="h-20 w-20 border border-zinc-200 object-cover"
+                alt={avatarAlt}
+                className="h-24 w-24 border border-zinc-200 object-cover"
               />
             ) : null}
-            <div>
+            <div className="min-w-0 flex-1">
               <h1 className="text-3xl font-semibold tracking-tight text-zinc-950">
-                {profile.displayName ?? profile.username}
+                {displayName}
               </h1>
               <p className="mt-1 text-sm text-zinc-500">@{profile.username}</p>
               {profile.city ? (
                 <p className="mt-3 text-sm text-zinc-600">{profile.city}</p>
               ) : null}
+              <p className="mt-4 max-w-2xl text-sm leading-6 whitespace-pre-wrap text-zinc-600">
+                {profile.bio ?? "Пользователь пока не добавил описание."}
+              </p>
             </div>
           </div>
 
-          {profile.bio ? (
-            <div>
-              <h2 className="text-sm font-medium text-zinc-950">О себе</h2>
-              <p className="mt-2 text-sm leading-6 whitespace-pre-wrap text-zinc-600">
-                {profile.bio}
-              </p>
-            </div>
-          ) : null}
+          <dl className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
+            <ProfileStatCard
+              label="Подтверждённых мероприятий"
+              value={participationSummary.confirmedEventsCount}
+            />
+            <ProfileStatCard
+              label="Объектов"
+              value={participationSummary.uniqueObjectsCount}
+            />
+            <ProfileStatCard
+              label="Макс. высота"
+              value={
+                participationSummary.maxHeightMeters !== null
+                  ? `${participationSummary.maxHeightMeters} м`
+                  : "нет данных"
+              }
+            />
+            <ProfileStatCard
+              label="Бейджей"
+              value={profile.user.badges.length}
+            />
+          </dl>
 
-          {profile.externalExperience ? (
-            <div>
-              <h2 className="text-sm font-medium text-zinc-950">
-                Опыт вне платформы
-              </h2>
-              <p className="mt-2 text-sm leading-6 whitespace-pre-wrap text-zinc-600">
-                {profile.externalExperience}
-              </p>
-            </div>
-          ) : null}
+          <div>
+            <h2 className="text-sm font-medium text-zinc-950">
+              Опыт вне платформы
+            </h2>
+            <p className="mt-2 text-sm leading-6 whitespace-pre-wrap text-zinc-600">
+              {profile.externalExperience ??
+                "Опыт вне платформы пока не указан."}
+            </p>
+          </div>
         </section>
 
         {hasSelfReportedStats ? (
@@ -90,7 +109,8 @@ export default async function PublicProfilePage({
               Заявленный опыт
             </h2>
             <p className="mt-1 text-sm text-zinc-500">
-              Данные указаны пользователем и не подтверждаются автоматически.
+              Эти данные указаны пользователем самостоятельно и не считаются
+              подтверждённой статистикой платформы.
             </p>
             <div className="mt-5 grid gap-3 text-sm text-zinc-600">
               {profile.selfReportedJumpCount !== null ? (
@@ -162,9 +182,15 @@ export default async function PublicProfilePage({
             </div>
           </dl>
 
-          {participationHistory.length > 0 ? (
+          {participationHistory.length > 10 ? (
+            <p className="mt-4 text-sm text-zinc-500">
+              Показаны последние 10 подтверждённых мероприятий.
+            </p>
+          ) : null}
+
+          {visibleParticipationHistory.length > 0 ? (
             <div className="mt-5 grid gap-4">
-              {participationHistory.map((participation) => {
+              {visibleParticipationHistory.map((participation) => {
                 const { event } = participation;
                 const publicObject =
                   event.object?.visibility === ObjectVisibility.PUBLIC
@@ -254,7 +280,61 @@ export default async function PublicProfilePage({
             </p>
           )}
         </section>
+
+        {profile.user.teamMemberships.length > 0 ? (
+          <section className="mt-6 border border-zinc-200 bg-white p-6">
+            <h2 className="text-xl font-semibold text-zinc-950">Команды</h2>
+            <div className="mt-5 grid gap-3 sm:grid-cols-2">
+              {profile.user.teamMemberships.map((membership) => (
+                <Link
+                  key={membership.id}
+                  href={`/teams/${membership.team.slug}`}
+                  className="block border border-zinc-200 p-4 hover:border-zinc-950"
+                >
+                  <h3 className="font-medium text-zinc-950">
+                    {membership.team.name}
+                  </h3>
+                  <p className="mt-1 text-sm text-zinc-500">
+                    {getTeamRoleLabel(membership.role)}
+                  </p>
+                </Link>
+              ))}
+            </div>
+          </section>
+        ) : null}
+
+        <section className="mt-6 border border-zinc-200 bg-white p-6">
+          <h2 className="text-xl font-semibold text-zinc-950">Публикации</h2>
+          {profile.user.posts.length > 0 ? (
+            <div className="mt-5 grid gap-4">
+              {profile.user.posts.map((post) => (
+                <EntityPostPreviewCard
+                  key={post.id}
+                  post={post}
+                  isPinned={false}
+                />
+              ))}
+            </div>
+          ) : (
+            <p className="mt-3 text-sm text-zinc-600">Публикаций пока нет.</p>
+          )}
+        </section>
       </div>
     </main>
+  );
+}
+
+function ProfileStatCard({
+  label,
+  value,
+}: {
+  label: string;
+  value: number | string;
+}) {
+  return (
+    <div className="border border-zinc-200 p-3">
+      <dt className="font-medium text-zinc-950">{label}</dt>
+      <dd className="mt-1 text-zinc-600">{value}</dd>
+    </div>
   );
 }
