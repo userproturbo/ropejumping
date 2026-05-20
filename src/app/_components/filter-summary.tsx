@@ -9,18 +9,20 @@ type FilterSummaryProps = {
   chips: FilterChip[];
   resetHref: string;
   resultCount: number;
+  resultLabel?: string;
 };
 
 export function FilterSummary({
   chips,
   resetHref,
   resultCount,
+  resultLabel = "Найдено",
 }: FilterSummaryProps) {
   return (
     <div className="mb-6 border border-zinc-200 bg-white p-4">
       <div className="flex flex-wrap items-center gap-3">
         <p className="text-sm font-medium text-zinc-950">
-          Найдено: {resultCount}
+          {resultLabel}: {resultCount}
         </p>
         {chips.length > 0 ? (
           <>

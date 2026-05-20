@@ -807,6 +807,122 @@ describe("reportRouter object impression support", () => {
     expect(
       result.reports[0]?.targetEventLogisticsPost?.author,
     ).not.toHaveProperty("email");
+    const findManyInput = db.report.findMany.mock.calls[0]?.[0] as {
+      include: {
+        reporter: {
+          select: Record<string, boolean>;
+        };
+      };
+    };
+
+    expect(findManyInput.include.reporter.select).not.toHaveProperty("email");
+  });
+
+  it("filters moderation reports by safety keywords", async () => {
+    const db = createDb();
+    const safetyReportId = "clx0a1b2c0009abcd1234efgh";
+    const regularReportId = "clx0a1b2c0010abcd1234efgh";
+    const moderationReports = [
+      {
+        id: safetyReportId,
+        reporterId,
+        targetType: "POST",
+        targetId: "clx0a1b2c0011abcd1234efgh",
+        reason: "Опубликованы координаты",
+        details: null,
+        status: ReportStatus.OPEN,
+        createdAt: new Date("2026-05-17T10:00:00.000Z"),
+        reviewedAt: null,
+        reporter: {
+          id: reporterId,
+          name: "Reporter",
+          image: null,
+          profile: null,
+        },
+        reviewedBy: null,
+      },
+      {
+        id: regularReportId,
+        reporterId,
+        targetType: "POST",
+        targetId: "clx0a1b2c0012abcd1234efgh",
+        reason: "Спам",
+        details: "Повторяется один и тот же текст.",
+        status: ReportStatus.OPEN,
+        createdAt: new Date("2026-05-18T10:00:00.000Z"),
+        reviewedAt: null,
+        reporter: {
+          id: reporterId,
+          name: "Reporter",
+          image: null,
+          profile: null,
+        },
+        reviewedBy: null,
+      },
+    ];
+    db.report.findMany.mockImplementation(
+      async (args: {
+        where?: {
+          OR?: Array<{
+            reason?: { contains: string };
+            details?: { contains: string };
+          }>;
+        };
+      }) => {
+        if (!args.where?.OR) return moderationReports;
+
+        return moderationReports.filter((report) =>
+          args.where?.OR?.some((condition) => {
+            const reasonKeyword = condition.reason?.contains.toLowerCase();
+            const detailsKeyword = condition.details?.contains.toLowerCase();
+
+            return (
+              (reasonKeyword !== undefined &&
+                report.reason.toLowerCase().includes(reasonKeyword)) ||
+              (detailsKeyword !== undefined &&
+                (report.details?.toLowerCase().includes(detailsKeyword) ??
+                  false))
+            );
+          }),
+        );
+      },
+    );
+    const caller = createCaller(reportRouter)(
+      createContext(db, {
+        id: moderatorId,
+        email: "moderator@example.com",
+      }),
+    );
+
+    const result = await caller.listForModeration({
+      status: "OPEN",
+      safety: true,
+      sort: "createdAtAsc",
+    });
+
+    expect(result.reports).toHaveLength(1);
+    expect(result.reports[0]?.id).toBe(safetyReportId);
+    expect(result.filters).toMatchObject({
+      safety: true,
+      sort: "createdAtAsc",
+    });
+    expect(db.report.findMany).toHaveBeenCalledWith({
+      where: {
+        status: ReportStatus.OPEN,
+        OR: expect.arrayContaining([
+          {
+            reason: {
+              contains: "координат",
+              mode: "insensitive",
+            },
+          },
+        ]) as unknown[],
+      },
+      orderBy: {
+        createdAt: "asc",
+      },
+      include: expect.any(Object) as object,
+    });
   });
 
   it("rejects non-moderators hiding team chat messages", async () => {

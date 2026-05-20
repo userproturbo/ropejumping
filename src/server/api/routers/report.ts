@@ -6,6 +6,8 @@ import {
   ReportStatus,
   TeamStatus,
 } from "@/generated/prisma/enums";
+import type { Prisma } from "@/generated/prisma/client";
+import { moderationSafetyKeywords } from "@/lib/moderation/safety-keywords";
 import {
   hideChatMessageInputSchema,
   hideEventLogisticsPostInputSchema,
@@ -14,6 +16,7 @@ import {
   reportActionInputSchema,
   reportCreateInputSchema,
   reportListInputSchema,
+  type ReportListSort,
   type ReportListStatus,
   type ReportTargetType,
 } from "@/lib/validation/report";
@@ -35,7 +38,6 @@ const reporterInclude = {
   select: {
     id: true,
     name: true,
-    email: true,
     image: true,
     profile: {
       select: {
@@ -365,7 +367,6 @@ const addReportTargetPreviews = async <
               select: {
                 id: true,
                 name: true,
-                email: true,
                 profile: {
                   select: {
                     username: true,
@@ -762,21 +763,26 @@ const getReportStatusWhere = (
   return undefined;
 };
 
-const getReportOrderBy = (status: ReportListStatus) => {
-  if (status === "OPEN") {
-    return {
-      createdAt: "asc" as const,
-    };
-  }
+const getReportOrderBy = (sort: ReportListSort) => ({
+  createdAt: sort === "createdAtAsc" ? ("asc" as const) : ("desc" as const),
+});
 
-  if (status === "ALL") {
-    return {
-      createdAt: "desc" as const,
-    };
-  }
-
-  return [{ reviewedAt: "desc" as const }, { createdAt: "desc" as const }];
-};
+const getReportSafetyWhere = (): Prisma.ReportWhereInput => ({
+  OR: moderationSafetyKeywords.flatMap((keyword) => [
+    {
+      reason: {
+        contains: keyword,
+        mode: "insensitive" as const,
+      },
+    },
+    {
+      details: {
+        contains: keyword,
+        mode: "insensitive" as const,
+      },
+    },
+  ]),
+});
 
 export const reportRouter = createTRPCRouter({
   create: protectedProcedure
@@ -846,17 +852,20 @@ export const reportRouter = createTRPCRouter({
 
       const status = input?.status ?? "OPEN";
       const targetType = input?.targetType;
+      const safety = input?.safety ?? false;
+      const sort = input?.sort ?? "createdAtDesc";
       const statusWhere = getReportStatusWhere(status);
-      const where = {
+      const where: Prisma.ReportWhereInput = {
         ...(statusWhere ? { status: statusWhere } : {}),
         ...(targetType ? { targetType } : {}),
+        ...(safety ? getReportSafetyWhere() : {}),
       };
 
       const [reports, open, reviewed, resolved, dismissed, all] =
         await Promise.all([
           ctx.db.report.findMany({
             where,
-            orderBy: getReportOrderBy(status),
+            orderBy: getReportOrderBy(sort),
             include: reportInclude,
           }),
           ctx.db.report.count({
@@ -893,6 +902,8 @@ export const reportRouter = createTRPCRouter({
         filters: {
           status,
           targetType: targetType ?? "",
+          safety,
+          sort,
         },
         counts: {
           open,

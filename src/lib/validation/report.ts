@@ -43,6 +43,31 @@ const reportListStatusSchema = z.preprocess((value) => {
     : "OPEN";
 }, z.enum(moderationStatusValues));
 
+const moderationSortValues = ["createdAtDesc", "createdAtAsc"] as const;
+
+const reportListSortSchema = z.preprocess((value) => {
+  const rawValue = getFirstString(value);
+
+  if (typeof rawValue !== "string") return "createdAtDesc";
+
+  const trimmed = rawValue.trim();
+  return moderationSortValues.includes(
+    trimmed as (typeof moderationSortValues)[number],
+  )
+    ? trimmed
+    : "createdAtDesc";
+}, z.enum(moderationSortValues));
+
+const reportListSafetySchema = z.preprocess((value) => {
+  const rawValue = getFirstString(value) ?? value;
+
+  if (typeof rawValue === "boolean") return rawValue;
+  if (typeof rawValue !== "string") return false;
+
+  const normalized = rawValue.trim().toLowerCase();
+  return normalized === "1" || normalized === "true" || normalized === "on";
+}, z.boolean());
+
 const reportTargetTypeValues = [
   REPORT_TARGET_TYPES.POST,
   REPORT_TARGET_TYPES.COMMENT,
@@ -102,7 +127,10 @@ export const hideEventLogisticsPostInputSchema = z.object({
 export const reportListInputSchema = z.object({
   status: reportListStatusSchema.optional().default("OPEN"),
   targetType: optionalReportTargetTypeSchema,
+  safety: reportListSafetySchema.optional().default(false),
+  sort: reportListSortSchema.optional().default("createdAtDesc"),
 });
 
 export type ReportTargetType = z.infer<typeof reportTargetTypeSchema>;
 export type ReportListStatus = z.infer<typeof reportListStatusSchema>;
+export type ReportListSort = z.infer<typeof reportListSortSchema>;

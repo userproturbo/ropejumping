@@ -42,6 +42,23 @@ describe("report list validation", () => {
     ).toBeUndefined();
   });
 
+  it("accepts moderation sort by oldest first", () => {
+    expect(reportListInputSchema.parse({ sort: "createdAtAsc" }).sort).toBe(
+      "createdAtAsc",
+    );
+  });
+
+  it("normalizes unknown moderation sort to newest first", () => {
+    expect(reportListInputSchema.parse({ sort: "reviewedAtDesc" }).sort).toBe(
+      "createdAtDesc",
+    );
+  });
+
+  it("accepts safety filter from query string values", () => {
+    expect(reportListInputSchema.parse({ safety: "1" }).safety).toBe(true);
+    expect(reportListInputSchema.parse({ safety: "false" }).safety).toBe(false);
+  });
+
   it("accepts object impression reports", () => {
     const result = reportCreateInputSchema.parse({
       targetType: "OBJECT_IMPRESSION",
