@@ -500,6 +500,7 @@ export const eventRouter = createTRPCRouter({
               name: true,
               slug: true,
               type: true,
+              visibility: true,
               heightMeters: true,
               region: true,
             },
@@ -685,8 +686,24 @@ export const eventRouter = createTRPCRouter({
         }),
       ]);
 
+      const safeObject =
+        event.object?.visibility === ObjectVisibility.PUBLIC
+          ? event.object
+          : event.object
+            ? {
+                id: event.object.id,
+                name: null,
+                slug: null,
+                type: null,
+                visibility: event.object.visibility,
+                heightMeters: null,
+                region: null,
+              }
+            : null;
+
       return {
         ...event,
+        object: safeObject,
         posts: [...pinnedPosts, ...latestPosts].slice(0, 5),
       };
     }),
