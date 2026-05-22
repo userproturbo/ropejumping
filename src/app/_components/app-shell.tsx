@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import type { CSSProperties, ReactNode } from "react";
 
@@ -74,7 +75,10 @@ export async function AppShell({ children }: AppShellProps) {
     <div className="min-h-screen bg-white text-zinc-950">
       <header className="sticky top-0 z-30 border-b border-zinc-200 bg-white lg:hidden">
         <div className="flex min-h-16 items-center justify-between gap-4 px-4 py-3">
-          <Link href="/" className="text-lg font-semibold text-zinc-950">
+          <Link
+            href="/"
+            className="font-brand inline-block text-2xl leading-none tracking-[0.06em] text-zinc-950"
+          >
             ropejumping
           </Link>
           <SiteMobileMenu
@@ -92,17 +96,19 @@ export async function AppShell({ children }: AppShellProps) {
       </header>
 
       <div className="hidden border-b border-zinc-100 bg-white lg:block">
-        <div className="mx-auto flex h-24 w-full max-w-[1500px] items-center justify-center px-6">
-          <Link
-            href="/"
-            className="text-4xl font-semibold tracking-tight text-zinc-950"
-          >
-            ropejumping
-          </Link>
+        <div className="mx-auto grid w-full max-w-[1500px] grid-cols-[220px_minmax(0,1fr)_280px] px-5 xl:grid-cols-[240px_minmax(0,1fr)_300px]">
+          <div className="col-span-2 px-3 py-7">
+            <Link
+              href="/"
+              className="font-brand inline-block w-fit text-7xl leading-none tracking-[0.08em] text-zinc-950 xl:text-8xl"
+            >
+              ropejumping
+            </Link>
+          </div>
         </div>
       </div>
 
-      <div className="mx-auto w-full lg:grid lg:min-h-[calc(100vh-6rem)] lg:max-w-[1500px] lg:grid-cols-[220px_minmax(0,1fr)_280px] xl:grid-cols-[240px_minmax(0,1fr)_300px]">
+      <div className="mx-auto w-full lg:grid lg:min-h-[calc(100vh-9rem)] lg:max-w-[1500px] lg:grid-cols-[220px_minmax(0,1fr)_280px] xl:grid-cols-[240px_minmax(0,1fr)_300px]">
         <aside className="hidden border-r border-zinc-200 bg-white lg:block">
           <div className="sticky top-0 flex max-h-screen flex-col overflow-y-auto px-5 py-6">
             <nav className="grid gap-1" aria-label="Основная навигация">
@@ -286,7 +292,13 @@ function GuestAvatar({ size }: { size: "sm" | "lg" }) {
       aria-hidden="true"
       className={`${sizeClass} flex shrink-0 items-center justify-center rounded-full border border-zinc-200 bg-zinc-50`}
     >
-      <img src="/img/roup.svg" alt="" className="h-full w-full" />
+      <Image
+        src="/img/roup.svg"
+        alt=""
+        width={size === "sm" ? 28 : 40}
+        height={size === "sm" ? 28 : 40}
+        className="h-full w-full"
+      />
     </span>
   );
 }
