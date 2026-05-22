@@ -13,6 +13,11 @@
     "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 }
 
+html,
+body {
+  background: #202020;
+}
+
 .font-brand {
   font-family: "MARSNEVENEKSK", system-ui, sans-serif;
 }

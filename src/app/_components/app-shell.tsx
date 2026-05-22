@@ -72,12 +72,12 @@ export async function AppShell({ children }: AppShellProps) {
   ];
 
   return (
-    <div className="min-h-screen bg-white text-zinc-950">
-      <header className="sticky top-0 z-30 border-b border-zinc-200 bg-white lg:hidden">
+    <div className="min-h-screen bg-[#202020] text-zinc-100">
+      <header className="sticky top-0 z-30 border-b border-white/10 bg-[#202020] lg:hidden">
         <div className="flex min-h-16 items-center justify-between gap-4 px-4 py-3">
           <Link
             href="/"
-            className="font-brand inline-block text-2xl leading-none tracking-[0.06em] text-zinc-950"
+            className="font-brand inline-block text-2xl leading-none tracking-[0.06em] text-zinc-50"
           >
             ropejumping
           </Link>
@@ -95,12 +95,12 @@ export async function AppShell({ children }: AppShellProps) {
         </div>
       </header>
 
-      <div className="hidden border-b border-zinc-100 bg-white lg:block">
+      <div className="hidden border-b border-white/10 bg-[#202020] lg:block">
         <div className="mx-auto grid w-full max-w-[1500px] grid-cols-[220px_minmax(0,1fr)_280px] px-5 xl:grid-cols-[240px_minmax(0,1fr)_300px]">
           <div className="col-span-2 px-3 py-7">
             <Link
               href="/"
-              className="font-brand inline-block w-fit text-7xl leading-none tracking-[0.08em] text-zinc-950 xl:text-8xl"
+              className="font-brand inline-block w-fit text-7xl leading-none tracking-[0.08em] text-zinc-50 xl:text-8xl"
             >
               ropejumping
             </Link>
@@ -109,7 +109,7 @@ export async function AppShell({ children }: AppShellProps) {
       </div>
 
       <div className="mx-auto w-full lg:grid lg:min-h-[calc(100vh-9rem)] lg:max-w-[1500px] lg:grid-cols-[220px_minmax(0,1fr)_280px] xl:grid-cols-[240px_minmax(0,1fr)_300px]">
-        <aside className="hidden border-r border-zinc-200 bg-white lg:block">
+        <aside className="hidden border-r border-white/10 bg-[#202020] lg:block">
           <div className="sticky top-0 flex max-h-screen flex-col overflow-y-auto px-5 py-6">
             <nav className="grid gap-1" aria-label="Основная навигация">
               {mainLinks.map((link) => (
@@ -123,7 +123,7 @@ export async function AppShell({ children }: AppShellProps) {
 
         <main className="min-w-0">{children}</main>
 
-        <aside className="hidden border-l border-zinc-200 bg-white lg:block">
+        <aside className="hidden border-l border-white/10 bg-[#202020] lg:block">
           <div className="sticky top-0 h-screen overflow-y-auto px-5 py-6">
             {user ? (
               <div>
@@ -134,11 +134,11 @@ export async function AppShell({ children }: AppShellProps) {
                     size="lg"
                   />
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-zinc-950">
+                    <p className="truncate text-sm font-medium text-zinc-50">
                       {userLabel}
                     </p>
                     {userSubLabel ? (
-                      <p className="mt-0.5 truncate text-xs text-zinc-500">
+                      <p className="mt-0.5 truncate text-xs text-zinc-400">
                         {userSubLabel}
                       </p>
                     ) : null}
@@ -161,23 +161,23 @@ export async function AppShell({ children }: AppShellProps) {
                   ))}
                 </nav>
 
-                <div className="mt-6 border-t border-zinc-200 pt-4">
+                <div className="mt-6 border-t border-white/10 pt-4">
                   <SignOutButton />
                 </div>
               </div>
             ) : (
               <div>
                 <GuestAvatar size="lg" />
-                <p className="mt-3 text-sm font-medium text-zinc-950">Jumper</p>
-                <h2 className="mt-4 text-base font-semibold text-zinc-950">
+                <p className="mt-3 text-sm font-medium text-zinc-50">Jumper</p>
+                <h2 className="mt-4 text-base font-semibold text-zinc-50">
                   Авторизуйтесь
                 </h2>
-                <p className="mt-2 text-sm leading-6 text-zinc-600">
+                <p className="mt-2 text-sm leading-6 text-zinc-400">
                   Войдите, чтобы стать частью сообщества.
                 </p>
                 <Link
                   href="/api/auth/signin"
-                  className="mt-5 inline-flex border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:border-zinc-950 hover:text-zinc-950"
+                  className="mt-5 inline-flex border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-zinc-100 hover:bg-white/10 hover:text-white"
                 >
                   Войти
                 </Link>
@@ -200,7 +200,7 @@ function SidebarLink({
   return (
     <Link
       href={href}
-      className="block px-3 py-2 text-sm text-zinc-600 hover:bg-zinc-50 hover:text-zinc-950"
+      className="block px-3 py-2 text-sm text-zinc-300 hover:bg-white/5 hover:text-white"
     >
       {children}
     </Link>
@@ -211,7 +211,7 @@ function MobileSignInLink() {
   return (
     <Link
       href="/api/auth/signin"
-      className="block px-1 py-2 text-sm text-zinc-700 hover:text-zinc-950"
+      className="block px-1 py-2 text-sm text-zinc-300 hover:text-white"
     >
       Войти
     </Link>
@@ -231,8 +231,8 @@ function SignOutButton({ mobile = false }: { mobile?: boolean }) {
         type="submit"
         className={
           mobile
-            ? "block w-full px-1 py-2 text-left text-sm text-zinc-700 hover:text-zinc-950"
-            : "w-full border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:border-zinc-950 hover:text-zinc-950"
+            ? "block w-full px-1 py-2 text-left text-sm text-zinc-300 hover:text-white"
+            : "w-full border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-zinc-100 hover:bg-white/10 hover:text-white"
         }
       >
         Выйти
@@ -276,7 +276,7 @@ function Avatar({
   return (
     <span
       aria-hidden="true"
-      className={`${sizeClass} flex shrink-0 items-center justify-center rounded-full border border-zinc-200 bg-zinc-100 bg-cover bg-center font-medium text-zinc-600`}
+      className={`${sizeClass} flex shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/10 bg-cover bg-center font-medium text-zinc-200`}
       style={imageStyle}
     >
       {imageUrl ? null : initial}
@@ -290,7 +290,7 @@ function GuestAvatar({ size }: { size: "sm" | "lg" }) {
   return (
     <span
       aria-hidden="true"
-      className={`${sizeClass} flex shrink-0 items-center justify-center rounded-full border border-zinc-200 bg-zinc-50`}
+      className={`${sizeClass} flex shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/10`}
     >
       <Image
         src="/img/roup.svg"
