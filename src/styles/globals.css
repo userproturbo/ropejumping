@@ -1,6 +1,18 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: "MARSNEVENEKSK";
+  src: url("/fonts/MARSNEVENEKSK-Regular.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 @theme {
   --font-sans: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji",
     "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+}
+
+.font-brand {
+  font-family: "MARSNEVENEKSK", system-ui, sans-serif;
 }
