@@ -34,7 +34,7 @@ export function SiteMobileMenu({
         aria-controls={menuId}
         aria-expanded={isOpen}
         onClick={() => setIsOpen((current) => !current)}
-        className="flex items-center rounded-full focus:ring-2 focus:ring-white/70 focus:ring-offset-2 focus:ring-offset-[#202020] focus:outline-none"
+        className="flex items-center rounded-full focus:ring-2 focus:ring-[var(--app-text)] focus:ring-offset-2 focus:ring-offset-[var(--app-bg)] focus:outline-none"
       >
         <span className="sr-only">Открыть меню</span>
         {trigger}
@@ -43,12 +43,12 @@ export function SiteMobileMenu({
       {isOpen ? (
         <div
           id={menuId}
-          className="absolute inset-x-0 top-full max-h-[calc(100vh-4rem)] overflow-y-auto border-b border-white/10 bg-[#202020] px-6 py-4 shadow-lg shadow-black/30"
+          className="absolute inset-x-0 top-full max-h-[calc(100vh-4rem)] overflow-y-auto border-b border-[var(--app-border)] bg-[var(--app-bg)] px-6 py-4 shadow-lg shadow-black/30"
         >
           <nav className="grid gap-4" aria-label="Мобильная навигация">
             {sections.map((section) => (
               <div key={section.label}>
-                <p className="px-1 text-xs font-medium text-zinc-500">
+                <p className="px-1 text-xs font-medium text-[var(--app-text-muted)]">
                   {section.label}
                 </p>
                 <div className="mt-1 grid gap-1">
@@ -57,7 +57,7 @@ export function SiteMobileMenu({
                       key={link.href}
                       href={link.href}
                       onClick={() => setIsOpen(false)}
-                      className="px-1 py-2 text-sm text-zinc-300 hover:text-white"
+                      className="px-1 py-2 text-sm text-[var(--app-text-secondary)] hover:text-[var(--app-text)]"
                     >
                       {link.label}
                     </Link>
@@ -66,7 +66,9 @@ export function SiteMobileMenu({
               </div>
             ))}
           </nav>
-          <div className="mt-3 border-t border-white/10 pt-3">{authAction}</div>
+          <div className="mt-3 grid gap-3 border-t border-[var(--app-border)] pt-3">
+            {authAction}
+          </div>
         </div>
       ) : null}
     </div>
