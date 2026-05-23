@@ -190,7 +190,7 @@ export async function AppShell({ children }: AppShellProps) {
                   <ThemeToggle />
                 </div>
                 <Link
-                  href="/api/auth/signin"
+                  href="/login"
                   className="mt-3 inline-flex border border-[var(--app-border-strong)] bg-[var(--app-surface)] px-4 py-2 text-sm font-medium text-[var(--app-text-secondary)] hover:bg-[var(--app-surface-muted)] hover:text-[var(--app-text)]"
                 >
                   Войти
@@ -224,7 +224,7 @@ function SidebarLink({
 function MobileSignInLink() {
   return (
     <Link
-      href="/api/auth/signin"
+      href="/login"
       className="block px-1 py-2 text-sm text-[var(--app-text-secondary)] hover:text-[var(--app-text)]"
     >
       Войти

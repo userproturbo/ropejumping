@@ -54,7 +54,7 @@ export function TeamJoinRequestPanel({
     return (
       <section className="mt-6 border border-zinc-200 bg-white p-6">
         <Link
-          href={`/api/auth/signin?callbackUrl=${encodeURIComponent(`/teams/${teamSlug}`)}`}
+          href={`/login?callbackUrl=${encodeURIComponent(`/teams/${teamSlug}`)}`}
           className="inline-flex bg-zinc-950 px-4 py-2 text-sm text-white hover:bg-zinc-800"
         >
           Войдите, чтобы подать заявку в команду
@@ -84,9 +84,7 @@ export function TeamJoinRequestPanel({
 
     return (
       <section className="mt-6 border border-zinc-200 bg-white p-6">
-        <p className="text-sm text-zinc-700">
-          Вы уже состоите в этой команде.
-        </p>
+        <p className="text-sm text-zinc-700">Вы уже состоите в этой команде.</p>
         <p className="mt-2 text-sm text-zinc-500">
           Ваша роль: {getTeamRoleLabel(state.membership.role)}
         </p>
@@ -114,9 +112,7 @@ export function TeamJoinRequestPanel({
         )}
 
         {leaveTeam.error ? (
-          <p className="mt-3 text-sm text-red-700">
-            {leaveTeam.error.message}
-          </p>
+          <p className="mt-3 text-sm text-red-700">{leaveTeam.error.message}</p>
         ) : null}
       </section>
     );
@@ -181,7 +177,9 @@ export function TeamJoinRequestPanel({
             disabled={createRequest.isPending}
             className="bg-zinc-950 px-4 py-2 text-sm text-white disabled:cursor-not-allowed disabled:bg-zinc-400"
           >
-            {createRequest.isPending ? "Отправка..." : "Подать заявку в команду"}
+            {createRequest.isPending
+              ? "Отправка..."
+              : "Подать заявку в команду"}
           </button>
         </div>
       </form>

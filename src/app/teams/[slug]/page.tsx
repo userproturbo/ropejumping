@@ -160,7 +160,7 @@ export default async function TeamPage({ params }: TeamPageProps) {
                       />
                     ) : (
                       <Link
-                        href="/api/auth/signin"
+                        href={`/login?callbackUrl=${encodeURIComponent(`/teams/${team.slug}`)}`}
                         className="border border-white/25 bg-white/10 px-4 py-2 text-sm text-white hover:bg-white/15"
                       >
                         Войдите, чтобы подписаться
@@ -181,16 +181,8 @@ export default async function TeamPage({ params }: TeamPageProps) {
                 <StatCard label="Мероприятий" value={team.events.length} dark />
                 <StatCard label="Объектов" value={team.objects.length} dark />
                 <StatCard label="Постов" value={team.posts.length} dark />
-                <StatCard
-                  label="Ближайших"
-                  value={activeEvents.length}
-                  dark
-                />
-                <StatCard
-                  label="Проведённых"
-                  value={pastEvents.length}
-                  dark
-                />
+                <StatCard label="Ближайших" value={activeEvents.length} dark />
+                <StatCard label="Проведённых" value={pastEvents.length} dark />
               </dl>
             </div>
           </div>
@@ -230,14 +222,26 @@ export default async function TeamPage({ params }: TeamPageProps) {
             </h2>
             <dl className="mt-5 grid gap-3 sm:grid-cols-2">
               <StatCard label="Подписчиков" value={team.followerCount} />
-              <StatCard label="Публичных объектов" value={team.objects.length} />
-              <StatCard label="Ближайших мероприятий" value={activeEvents.length} />
-              <StatCard label="Прошедших мероприятий" value={pastEvents.length} />
+              <StatCard
+                label="Публичных объектов"
+                value={team.objects.length}
+              />
+              <StatCard
+                label="Ближайших мероприятий"
+                value={activeEvents.length}
+              />
+              <StatCard
+                label="Прошедших мероприятий"
+                value={pastEvents.length}
+              />
             </dl>
           </section>
         </section>
 
-        <section id="events" className="mt-6 border border-zinc-200 bg-white p-6">
+        <section
+          id="events"
+          className="mt-6 border border-zinc-200 bg-white p-6"
+        >
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <h2 className="text-xl font-semibold text-zinc-950">
@@ -370,9 +374,7 @@ export default async function TeamPage({ params }: TeamPageProps) {
               ))}
             </div>
           ) : (
-            <p className="mt-3 text-sm text-zinc-600">
-              Публикаций пока нет.
-            </p>
+            <p className="mt-3 text-sm text-zinc-600">Публикаций пока нет.</p>
           )}
         </section>
       </div>
@@ -421,7 +423,13 @@ function StatCard({
       }
     >
       <dt className={dark ? "text-zinc-300" : "text-zinc-500"}>{label}</dt>
-      <dd className={dark ? "mt-1 font-medium text-white" : "mt-1 font-medium text-zinc-950"}>
+      <dd
+        className={
+          dark
+            ? "mt-1 font-medium text-white"
+            : "mt-1 font-medium text-zinc-950"
+        }
+      >
         {value}
       </dd>
     </div>
@@ -476,7 +484,9 @@ function EventCard({ event }: { event: TeamEvent }) {
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={event.coverImageUrl}
-            alt={event.coverMedia?.alt || `Обложка мероприятия «${event.title}»`}
+            alt={
+              event.coverMedia?.alt || `Обложка мероприятия «${event.title}»`
+            }
             className="hidden h-24 w-32 border border-zinc-200 object-cover sm:block"
           />
         ) : null}

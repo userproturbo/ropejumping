@@ -143,7 +143,7 @@ export default async function PostPage({ params }: PostPageProps) {
               Войдите, чтобы поставить лайк или написать комментарий.
             </p>
             <Link
-              href={`/api/auth/signin?callbackUrl=${encodeURIComponent(`/posts/${post.id}`)}`}
+              href={`/login?callbackUrl=${encodeURIComponent(`/posts/${post.id}`)}`}
               className="mt-4 inline-flex border border-zinc-300 px-4 py-2 text-sm text-zinc-800 hover:border-zinc-950"
             >
               Войти

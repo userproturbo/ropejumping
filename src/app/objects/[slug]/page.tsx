@@ -104,7 +104,7 @@ export default async function ObjectPage({ params }: ObjectPageProps) {
           </p>
           {!user ? (
             <Link
-              href="/api/auth/signin"
+              href={`/login?callbackUrl=${encodeURIComponent(`/objects/${object.slug}`)}`}
               className="mt-3 inline-flex text-sm text-zinc-600 hover:text-zinc-950"
             >
               Войдите, чтобы подписаться или поставить лайк

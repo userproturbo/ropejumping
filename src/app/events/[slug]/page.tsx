@@ -344,7 +344,7 @@ export default async function EventPage({ params }: EventPageProps) {
             </>
           ) : !user ? (
             <Link
-              href={`/api/auth/signin?callbackUrl=${encodeURIComponent(`/events/${event.slug}`)}`}
+              href={`/login?callbackUrl=${encodeURIComponent(`/events/${event.slug}`)}`}
               className="mt-4 inline-flex border border-zinc-300 px-4 py-2 text-sm text-zinc-800 hover:border-zinc-950"
             >
               Войдите, чтобы подать заявку
