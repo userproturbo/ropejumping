@@ -42,6 +42,23 @@ describe("post validation", () => {
     expect(result.imageUrl).toBeNull();
   });
 
+  it("defaults new posts to the global feed", () => {
+    const result = postCreateInputSchema.parse({
+      content: "post",
+    });
+
+    expect(result.showInFeed).toBe(true);
+  });
+
+  it("accepts posts that are not shown in the global feed", () => {
+    const result = postCreateInputSchema.parse({
+      content: "post",
+      showInFeed: false,
+    });
+
+    expect(result.showInFeed).toBe(false);
+  });
+
   it("requires post id for updates", () => {
     expect(
       postUpdateInputSchema.safeParse({

@@ -68,6 +68,7 @@ export const postCreateInputSchema = z.object({
   teamId: optionalCuid,
   eventId: optionalCuid,
   objectId: optionalCuid,
+  showInFeed: z.boolean().optional().default(true),
 });
 
 export const postIdInputSchema = z.string().cuid();
