@@ -2,8 +2,10 @@ import Image from "next/image";
 import Link from "next/link";
 import type { CSSProperties, ReactNode } from "react";
 
+import { TeamRole } from "@/generated/prisma/enums";
 import { signOut } from "@/server/auth";
 import { getCurrentUser } from "@/server/auth/session";
+import { db } from "@/server/db";
 import { isModeratorUser } from "@/server/moderation/permissions";
 import { api } from "@/trpc/server";
 
@@ -33,6 +35,7 @@ const baseUserLinks = [
 ];
 
 const moderatorLink = { href: "/moderation", label: "Модерация" };
+const objectManagerRoles = [TeamRole.OWNER, TeamRole.ADMIN, TeamRole.ORGANIZER];
 
 type AppShellProps = {
   children: ReactNode;
@@ -41,19 +44,60 @@ type AppShellProps = {
 export async function AppShell({ children }: AppShellProps) {
   const user = await getCurrentUser();
   const isModerator = isModeratorUser(user);
-  const [profile, unreadNotifications] = user
+  const [profile, unreadNotifications, teamMembership, objectContext] = user
     ? await Promise.all([
         api.profile.getMine().catch(() => null),
         api.notification.getUnreadCount(),
+        db.teamMember.findFirst({
+          where: {
+            userId: user.id,
+          },
+          select: {
+            id: true,
+          },
+        }),
+        db.jumpObject.findFirst({
+          where: {
+            OR: [
+              {
+                createdById: user.id,
+              },
+              {
+                createdByTeam: {
+                  members: {
+                    some: {
+                      userId: user.id,
+                      role: {
+                        in: objectManagerRoles,
+                      },
+                    },
+                  },
+                },
+              },
+            ],
+          },
+          select: {
+            id: true,
+          },
+        }),
       ])
-    : [null, { count: 0 }];
+    : [null, { count: 0 }, null, null];
+  const showMyTeams = Boolean(teamMembership);
+  const showMyObjects = Boolean(objectContext);
 
   const userLinks = user
-    ? baseUserLinks.map((link) =>
-        link.href === "/notifications" && unreadNotifications.count > 0
-          ? { ...link, label: `Уведомления (${unreadNotifications.count})` }
-          : link,
-      )
+    ? baseUserLinks
+        .filter((link) => {
+          if (link.href === "/teams/my") return showMyTeams;
+          if (link.href === "/objects/my") return showMyObjects;
+
+          return true;
+        })
+        .map((link) =>
+          link.href === "/notifications" && unreadNotifications.count > 0
+            ? { ...link, label: `Уведомления (${unreadNotifications.count})` }
+            : link,
+        )
     : [];
   const moderatorLinks = isModerator ? [moderatorLink] : [];
   const userLabel = getUserLabel({ profile, user });
