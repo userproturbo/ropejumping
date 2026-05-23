@@ -15,7 +15,14 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="ru">
+    <html lang="ru" data-theme="dark" suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{var theme=localStorage.getItem("ropejumping-theme");document.documentElement.dataset.theme=theme==="light"?"light":"dark";}catch(e){document.documentElement.dataset.theme="dark";}`,
+          }}
+        />
+      </head>
       <body>
         <TRPCReactProvider>
           <AppShell>{children}</AppShell>

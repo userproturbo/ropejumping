@@ -53,11 +53,11 @@ const communityItems = [
 
 export default function Home() {
   return (
-    <main className="min-h-[calc(100vh-4rem)] bg-[#202020] text-zinc-100">
+    <main className="min-h-[calc(100vh-4rem)] bg-[var(--app-bg)] text-[var(--app-text)]">
       <section className="relative isolate overflow-hidden">
-        <div className="absolute inset-0 bg-[#202020]" />
+        <div className="absolute inset-0 bg-[var(--app-bg)]" />
         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.04)_1px,transparent_1px)] bg-[size:72px_72px] opacity-20" />
-        <div className="absolute top-24 right-[8%] hidden h-80 w-56 rotate-6 border border-white/15 bg-white/5 shadow-2xl shadow-black/40 backdrop-blur md:block" />
+        <div className="absolute top-24 right-[8%] hidden h-80 w-56 rotate-6 border border-[var(--app-border-strong)] bg-[var(--app-surface)] shadow-2xl shadow-black/40 backdrop-blur md:block" />
         <div className="absolute right-[18%] bottom-20 hidden h-56 w-72 -rotate-3 border border-emerald-200/20 bg-emerald-300/10 shadow-2xl shadow-emerald-950/30 backdrop-blur md:block" />
         <div className="absolute top-44 right-[31%] hidden h-44 w-44 rotate-12 border border-rose-200/20 bg-rose-300/10 shadow-2xl shadow-black/30 backdrop-blur lg:block" />
 
@@ -66,10 +66,10 @@ export default function Home() {
             <p className="text-sm font-medium tracking-[0.18em] text-emerald-300 uppercase">
               СООБЩЕСТВО, ВЫЕЗДЫ И ВЫСОТА
             </p>
-            <h1 className="mt-5 text-5xl font-semibold tracking-tight text-white sm:text-6xl lg:text-7xl">
+            <h1 className="mt-5 text-5xl font-semibold tracking-tight text-[var(--app-text)] sm:text-6xl lg:text-7xl">
               Роупджампинг — это больше, чем прыжок
             </h1>
-            <p className="mt-6 max-w-2xl text-lg leading-8 text-zinc-200">
+            <p className="mt-6 max-w-2xl text-lg leading-8 text-[var(--app-text-secondary)]">
               Место для тех, кто ездит на объекты, встречает друзей, подаёт
               заявки на мероприятия и сохраняет свою историю участия.
             </p>
@@ -87,28 +87,28 @@ export default function Home() {
           </div>
 
           <div className="relative min-h-[380px] lg:min-h-[540px]">
-            <div className="absolute inset-x-2 top-6 border border-white/15 bg-white/5 p-5 shadow-2xl shadow-black/40 backdrop-blur">
-              <div className="flex items-center justify-between gap-4 text-xs text-zinc-400">
+            <div className="absolute inset-x-2 top-6 border border-[var(--app-border-strong)] bg-[var(--app-surface)] p-5 shadow-2xl shadow-black/40 backdrop-blur">
+              <div className="flex items-center justify-between gap-4 text-xs text-[var(--app-text-muted)]">
                 <span>Вечер перед прыжком</span>
                 <span className="text-emerald-300">команда рядом</span>
               </div>
-              <div className="mt-10 h-36 border border-white/10 bg-white/5" />
+              <div className="mt-10 h-36 border border-[var(--app-border)] bg-[var(--app-surface-muted)]" />
               <div className="mt-5 grid gap-3 sm:grid-cols-2">
                 {heroFragments.slice(0, 4).map((fragment) => (
                   <div
                     key={fragment}
-                    className="border border-white/10 bg-white/5 p-3 text-sm text-white"
+                    className="border border-[var(--app-border)] bg-[var(--app-surface-muted)] p-3 text-sm text-[var(--app-text)]"
                   >
                     {fragment}
                   </div>
                 ))}
               </div>
             </div>
-            <div className="absolute right-0 bottom-4 left-8 border border-white/15 bg-white/10 p-5 shadow-2xl shadow-black/30 backdrop-blur">
-              <p className="text-sm text-zinc-300">Остаётся после выезда</p>
-              <div className="mt-4 flex flex-wrap gap-2 text-sm text-white">
+            <div className="absolute right-0 bottom-4 left-8 border border-[var(--app-border-strong)] bg-[var(--app-surface)] p-5 shadow-2xl shadow-black/30 backdrop-blur">
+              <p className="text-sm text-[var(--app-text-secondary)]">Остаётся после выезда</p>
+              <div className="mt-4 flex flex-wrap gap-2 text-sm text-[var(--app-text)]">
                 {heroFragments.slice(2).map((fragment) => (
-                  <span key={fragment} className="border border-white/10 px-3 py-2">
+                  <span key={fragment} className="border border-[var(--app-border)] px-3 py-2">
                     {fragment}
                   </span>
                 ))}
@@ -118,16 +118,16 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="bg-[#202020] text-zinc-100">
+      <section className="bg-[var(--app-bg)] text-[var(--app-text)]">
         <div className="mx-auto w-full max-w-7xl px-6 py-16 sm:py-20">
           <div className="max-w-3xl">
-            <p className="text-sm font-medium tracking-[0.18em] text-zinc-400 uppercase">
+            <p className="text-sm font-medium tracking-[0.18em] text-[var(--app-text-muted)] uppercase">
               Атмосфера
             </p>
-            <h2 className="mt-3 text-4xl font-semibold tracking-tight text-zinc-50">
+            <h2 className="mt-3 text-4xl font-semibold tracking-tight text-[var(--app-text)]">
               Это не только про прыжок
             </h2>
-            <p className="mt-5 text-base leading-7 text-zinc-300">
+            <p className="mt-5 text-base leading-7 text-[var(--app-text-secondary)]">
               Роупджампинг — это дорога до объекта, ожидание своей очереди,
               разговоры с теми, кого давно не видел, истории про старые мосты,
               новые знакомства и момент, когда страх превращается в улыбку.
@@ -136,11 +136,11 @@ export default function Home() {
 
           <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             {atmosphereCards.map((card) => (
-              <section key={card.title} className="border border-white/10 bg-white/5 p-6">
-                <h3 className="text-xl font-semibold text-zinc-50">
+              <section key={card.title} className="border border-[var(--app-border)] bg-[var(--app-surface)] p-6">
+                <h3 className="text-xl font-semibold text-[var(--app-text)]">
                   {card.title}
                 </h3>
-                <p className="mt-3 text-sm leading-6 text-zinc-300">
+                <p className="mt-3 text-sm leading-6 text-[var(--app-text-secondary)]">
                   {card.text}
                 </p>
               </section>
@@ -149,7 +149,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="bg-[#202020] text-zinc-100">
+      <section className="bg-[var(--app-bg)] text-[var(--app-text)]">
         <div className="mx-auto grid w-full max-w-7xl gap-6 px-6 py-16 lg:grid-cols-2">
           <InfoPanel title="Если вы впервые">
             <p>
@@ -185,16 +185,16 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="bg-[#202020] text-zinc-100">
+      <section className="bg-[var(--app-bg)] text-[var(--app-text)]">
         <div className="mx-auto grid w-full max-w-7xl gap-8 px-6 py-16 lg:grid-cols-[0.95fr_1.05fr]">
           <div>
-            <p className="text-sm font-medium tracking-[0.18em] text-zinc-400 uppercase">
+            <p className="text-sm font-medium tracking-[0.18em] text-[var(--app-text-muted)] uppercase">
               Реальные выезды
             </p>
-            <h2 className="mt-3 text-4xl font-semibold tracking-tight text-zinc-50">
+            <h2 className="mt-3 text-4xl font-semibold tracking-tight text-[var(--app-text)]">
               Сообщество вокруг реальных событий
             </h2>
-            <p className="mt-5 text-base leading-7 text-zinc-300">
+            <p className="mt-5 text-base leading-7 text-[var(--app-text-secondary)]">
               Посты, фото, вопросы, заявки, чаты мероприятий, попутки и история
               участия собираются вокруг настоящих выездов, а не вокруг случайной
               ленты.
@@ -205,7 +205,7 @@ export default function Home() {
             {communityItems.map((item) => (
               <div
                 key={item}
-                className="border border-white/10 bg-white/5 p-4 text-sm text-zinc-200"
+                className="border border-[var(--app-border)] bg-[var(--app-surface)] p-4 text-sm text-[var(--app-text-secondary)]"
               >
                 {item}
               </div>
@@ -214,18 +214,18 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="bg-[#202020] text-zinc-100">
+      <section className="bg-[var(--app-bg)] text-[var(--app-text)]">
         <div className="mx-auto grid w-full max-w-7xl gap-8 px-6 py-16 lg:grid-cols-[1.1fr_0.9fr]">
           <div>
             <p className="text-sm font-medium tracking-[0.18em] text-emerald-300 uppercase">
               Safety first
             </p>
-            <h2 className="mt-3 max-w-2xl text-4xl font-semibold tracking-tight text-white">
+            <h2 className="mt-3 max-w-2xl text-4xl font-semibold tracking-tight text-[var(--app-text)]">
               Безопасность важнее красивого кадра
             </h2>
           </div>
           <div>
-            <p className="text-base leading-7 text-zinc-300">
+            <p className="text-base leading-7 text-[var(--app-text-secondary)]">
               На объекте важно слушать организаторов, не лезть в рабочую зону
               без команды и не публиковать координаты, точки крепления, маршруты
               доступа и технические детали.
@@ -239,13 +239,13 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="bg-[#202020] text-zinc-100">
+      <section className="bg-[var(--app-bg)] text-[var(--app-text)]">
         <div className="mx-auto flex w-full max-w-7xl flex-col items-start justify-between gap-6 px-6 py-16 sm:flex-row sm:items-center">
           <div>
-            <h2 className="max-w-xl text-4xl font-semibold tracking-tight text-zinc-50">
+            <h2 className="max-w-xl text-4xl font-semibold tracking-tight text-[var(--app-text)]">
               Найдите ближайшее мероприятие
             </h2>
-            <p className="mt-4 max-w-xl text-sm leading-6 text-zinc-300">
+            <p className="mt-4 max-w-xl text-sm leading-6 text-[var(--app-text-secondary)]">
               Посмотрите события, выберите подходящее и подайте заявку. А дальше
               — дорога, команда, объект и ваша история.
             </p>
@@ -277,11 +277,13 @@ function ButtonLink({
     primary:
       "bg-emerald-300 px-5 py-3 text-sm font-medium text-zinc-950 hover:bg-emerald-200",
     secondary:
-      "border border-white/25 bg-white/10 px-5 py-3 text-sm font-medium text-white hover:bg-white/15",
-    ghost: "px-5 py-3 text-sm font-medium text-zinc-300 hover:text-white",
-    dark: "bg-zinc-50 px-5 py-3 text-sm font-medium text-zinc-950 hover:bg-white",
+      "border border-[var(--app-border-strong)] bg-[var(--app-surface)] px-5 py-3 text-sm font-medium text-[var(--app-text)] hover:bg-[var(--app-surface-muted)]",
+    ghost:
+      "px-5 py-3 text-sm font-medium text-[var(--app-text-secondary)] hover:text-[var(--app-text)]",
+    dark:
+      "bg-[var(--app-text)] px-5 py-3 text-sm font-medium text-[var(--app-bg)] opacity-95 hover:opacity-100",
     light:
-      "border border-white/15 bg-white/5 px-5 py-3 text-sm font-medium text-zinc-100 hover:bg-white/10 hover:text-white",
+      "border border-[var(--app-border-strong)] bg-[var(--app-surface)] px-5 py-3 text-sm font-medium text-[var(--app-text)] hover:bg-[var(--app-surface-muted)]",
   };
 
   return (
@@ -299,11 +301,13 @@ function InfoPanel({
   title: string;
 }) {
   return (
-    <section className="border border-white/10 bg-white/5 p-6 sm:p-8">
-      <h2 className="text-3xl font-semibold tracking-tight text-zinc-50">
+    <section className="border border-[var(--app-border)] bg-[var(--app-surface)] p-6 sm:p-8">
+      <h2 className="text-3xl font-semibold tracking-tight text-[var(--app-text)]">
         {title}
       </h2>
-      <div className="mt-4 text-sm leading-6 text-zinc-300">{children}</div>
+      <div className="mt-4 text-sm leading-6 text-[var(--app-text-secondary)]">
+        {children}
+      </div>
     </section>
   );
 }
