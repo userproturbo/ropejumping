@@ -35,6 +35,7 @@ export function PostCreateForm({
   const [teamId, setTeamId] = useState("");
   const [eventId, setEventId] = useState("");
   const [objectId, setObjectId] = useState("");
+  const [showInFeed, setShowInFeed] = useState(true);
 
   const createPost = api.post.create.useMutation({
     onSuccess: (post) => {
@@ -53,6 +54,7 @@ export function PostCreateForm({
       teamId,
       eventId,
       objectId,
+      showInFeed,
     });
   };
 
@@ -82,6 +84,34 @@ export function PostCreateForm({
         <p className="text-sm font-medium text-zinc-950">Изображение</p>
         <ImageUploadField value={image} onChange={setImage} />
       </div>
+
+      <fieldset className="grid gap-3">
+        <legend className="text-sm font-medium text-zinc-950">
+          Где опубликовать?
+        </legend>
+        <label className="flex gap-3 border border-zinc-200 p-3 text-sm text-zinc-700">
+          <input
+            type="radio"
+            name="showInFeed"
+            value="true"
+            checked={showInFeed}
+            onChange={() => setShowInFeed(true)}
+            className="mt-0.5 h-4 w-4 border-zinc-300 text-zinc-950"
+          />
+          <span>В общей ленте и в моих публикациях</span>
+        </label>
+        <label className="flex gap-3 border border-zinc-200 p-3 text-sm text-zinc-700">
+          <input
+            type="radio"
+            name="showInFeed"
+            value="false"
+            checked={!showInFeed}
+            onChange={() => setShowInFeed(false)}
+            className="mt-0.5 h-4 w-4 border-zinc-300 text-zinc-950"
+          />
+          <span>Только в моих публикациях</span>
+        </label>
+      </fieldset>
 
       <div className="grid gap-2">
         <label htmlFor="teamId" className="text-sm font-medium text-zinc-950">

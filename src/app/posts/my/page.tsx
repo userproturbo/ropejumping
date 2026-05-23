@@ -65,12 +65,18 @@ export default async function MyPostsPage() {
                       </p>
                       <span
                         className={
-                          isVisible
-                            ? "mt-2 inline-flex border border-emerald-200 px-2 py-1 text-xs text-emerald-800"
-                            : "mt-2 inline-flex border border-zinc-200 px-2 py-1 text-xs text-zinc-500"
+                          !isVisible
+                            ? "mt-2 inline-flex border border-zinc-200 px-2 py-1 text-xs text-zinc-500"
+                            : post.showInFeed
+                              ? "mt-2 inline-flex border border-emerald-200 px-2 py-1 text-xs text-emerald-800"
+                              : "mt-2 inline-flex border border-amber-200 px-2 py-1 text-xs text-amber-800"
                         }
                       >
-                        {isVisible ? "Опубликован" : "Скрыт или удалён"}
+                        {!isVisible
+                          ? "Скрыт или удалён"
+                          : post.showInFeed
+                            ? "В общей ленте"
+                            : "Только в моих публикациях"}
                       </span>
                     </div>
                     {isVisible ? (
@@ -87,7 +93,7 @@ export default async function MyPostsPage() {
                     )}
                   </div>
 
-                  <p className="mt-4 line-clamp-4 whitespace-pre-wrap text-sm leading-6 text-zinc-700">
+                  <p className="mt-4 line-clamp-4 text-sm leading-6 whitespace-pre-wrap text-zinc-700">
                     {post.content}
                   </p>
 
@@ -105,7 +111,9 @@ export default async function MyPostsPage() {
                     {post.event ? (
                       <span>Мероприятие: {post.event.title}</span>
                     ) : null}
-                    {post.object ? <span>Объект: {post.object.name}</span> : null}
+                    {post.object ? (
+                      <span>Объект: {post.object.name}</span>
+                    ) : null}
                     <span>Просмотров: {post.viewsCount}</span>
                     <span>Лайков: {post._count.likes}</span>
                     <span>Комментариев: {post._count.comments}</span>
@@ -113,7 +121,8 @@ export default async function MyPostsPage() {
 
                   {isVisible ? (
                     <p className="mt-4 text-sm text-zinc-500">
-                      Редактировать или удалить пост можно на странице публикации.
+                      Редактировать или удалить пост можно на странице
+                      публикации.
                     </p>
                   ) : null}
                 </article>

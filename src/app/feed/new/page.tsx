@@ -33,7 +33,8 @@ export default async function NewPostPage() {
             Новый пост
           </h1>
           <p className="mt-2 text-sm text-zinc-600">
-            Опубликуйте короткую запись в общей ленте.
+            Опубликуйте короткую запись в общей ленте или только в своих
+            публикациях.
           </p>
         </div>
 

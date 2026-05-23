@@ -298,15 +298,15 @@ model Team {
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
 
-  members      TeamMember[]
-  events       Event[]
-  logoMedia    Media?            @relation("TeamLogoMedia", fields: [logoMediaId], references: [id], onDelete: SetNull)
-  objects      JumpObject[]      @relation("TeamObjects")
-  posts        Post[]
-  joinRequests TeamJoinRequest[]
-  invitations  TeamInvitation[]
-  followers    TeamFollow[]
-  chatMessages TeamChatMessage[]
+  members        TeamMember[]
+  events         Event[]
+  logoMedia      Media?              @relation("TeamLogoMedia", fields: [logoMediaId], references: [id], onDelete: SetNull)
+  objects        JumpObject[]        @relation("TeamObjects")
+  posts          Post[]
+  joinRequests   TeamJoinRequest[]
+  invitations    TeamInvitation[]
+  followers      TeamFollow[]
+  chatMessages   TeamChatMessage[]
   chatReadStates TeamChatReadState[]
 
   @@index([status])
@@ -553,8 +553,8 @@ model EventLogisticsPost {
   closedAt          DateTime?
   hiddenAt          DateTime?
 
-  event  Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  author User  @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  event  Event                @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  author User                 @relation(fields: [authorId], references: [id], onDelete: Cascade)
   joins  EventLogisticsJoin[]
 
   @@index([eventId])
@@ -635,10 +635,10 @@ model EventChatMessage {
   deletedAt       DateTime?
   hiddenAt        DateTime?
 
-  event         Event               @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  author        User                @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  parentMessage EventChatMessage?   @relation("EventChatReplies", fields: [parentMessageId], references: [id], onDelete: SetNull)
-  replies       EventChatMessage[]  @relation("EventChatReplies")
+  event         Event              @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  author        User               @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  parentMessage EventChatMessage?  @relation("EventChatReplies", fields: [parentMessageId], references: [id], onDelete: SetNull)
+  replies       EventChatMessage[] @relation("EventChatReplies")
 
   @@index([eventId])
   @@index([authorId])
@@ -796,6 +796,7 @@ model Post {
   imageUrl     String?
   imageMediaId String?
   hiddenAt     DateTime?
+  showInFeed   Boolean   @default(true)
   viewsCount   Int       @default(0)
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
@@ -816,6 +817,7 @@ model Post {
   @@index([objectId])
   @@index([createdAt])
   @@index([hiddenAt])
+  @@index([showInFeed])
   @@index([imageMediaId])
 }
 

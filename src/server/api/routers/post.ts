@@ -67,6 +67,7 @@ type InternalPinTargetContext = PinTargetContext & {
 
 export const publicPostWhere = {
   hiddenAt: null,
+  showInFeed: true,
   AND: [
     {
       OR: [
@@ -161,6 +162,27 @@ const getPublicPostWhere = (
 ): Prisma.PostWhereInput => ({
   ...publicPostWhere,
   AND: [...publicPostWhere.AND, ...filterClauses],
+});
+
+const getReadablePostWhere = ({
+  postId,
+  userId,
+}: {
+  postId: string;
+  userId: string;
+}): Prisma.PostWhereInput => ({
+  id: postId,
+  OR: [
+    publicPostWhere,
+    ...(userId
+      ? [
+          {
+            authorId: userId,
+            hiddenAt: null,
+          },
+        ]
+      : []),
+  ],
 });
 
 const emptyPinsWhere = {
@@ -781,7 +803,10 @@ export const postRouter = createTRPCRouter({
             },
           }),
         ]);
-      const comparePosts = (left: (typeof posts)[number], right: (typeof posts)[number]) => {
+      const comparePosts = (
+        left: (typeof posts)[number],
+        right: (typeof posts)[number],
+      ) => {
         if (sort === "createdAtAsc") {
           return left.createdAt.getTime() - right.createdAt.getTime();
         }
@@ -838,10 +863,7 @@ export const postRouter = createTRPCRouter({
     const userId = ctx.session?.user?.id ?? "";
 
     return ctx.db.post.findFirst({
-      where: {
-        id: input,
-        ...publicPostWhere,
-      },
+      where: getReadablePostWhere({ postId: input, userId }),
       include: {
         author: authorInclude,
         ...linkedEntityInclude,
@@ -889,10 +911,10 @@ export const postRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       const userId = ctx.session?.user?.id ?? null;
       const post = await ctx.db.post.findFirst({
-        where: {
-          id: input.postId,
-          ...publicPostWhere,
-        },
+        where: getReadablePostWhere({
+          postId: input.postId,
+          userId: userId ?? "",
+        }),
         select: {
           id: true,
           authorId: true,
@@ -993,6 +1015,7 @@ export const postRouter = createTRPCRouter({
         createdAt: true,
         updatedAt: true,
         hiddenAt: true,
+        showInFeed: true,
         team: {
           select: {
             id: true,
@@ -1068,28 +1091,31 @@ export const postRouter = createTRPCRouter({
           content: input.content,
           imageMediaId: image.mediaId,
           imageUrl: image.url,
+          showInFeed: input.showInFeed,
         },
       });
 
-      try {
-        const notifiedUserIds = input.teamId
-          ? await notifyTeamFollowersAboutPost(ctx.db, {
-              teamId: input.teamId,
+      if (input.showInFeed) {
+        try {
+          const notifiedUserIds = input.teamId
+            ? await notifyTeamFollowersAboutPost(ctx.db, {
+                teamId: input.teamId,
+                postId: createdPost.id,
+                actorUserId: ctx.session.user.id,
+              })
+            : [];
+
+          if (input.objectId) {
+            await notifyObjectFollowersAboutPost(ctx.db, {
+              objectId: input.objectId,
               postId: createdPost.id,
               actorUserId: ctx.session.user.id,
-            })
-          : [];
-
-        if (input.objectId) {
-          await notifyObjectFollowersAboutPost(ctx.db, {
-            objectId: input.objectId,
-            postId: createdPost.id,
-            actorUserId: ctx.session.user.id,
-            excludeUserIds: notifiedUserIds,
-          });
+              excludeUserIds: notifiedUserIds,
+            });
+          }
+        } catch {
+          // Best effort: post creation must not fail because notifications did.
         }
-      } catch {
-        // Best effort: post creation must not fail because notifications did.
       }
 
       return createdPost;

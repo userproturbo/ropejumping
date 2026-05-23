@@ -31,6 +31,7 @@ export default async function PostPage({ params }: PostPageProps) {
 
   const profile = user ? await api.profile.getMine() : null;
   const isPostAuthor = user?.id === post.author.id;
+  const showInteractions = post.showInFeed;
   const resolvedAlt =
     post.imageMedia?.alt ||
     (post.event
@@ -54,6 +55,11 @@ export default async function PostPage({ params }: PostPageProps) {
               <p className="mt-1 text-sm text-zinc-500">
                 {formatFeedDate(post.createdAt)}
               </p>
+              {!post.showInFeed && isPostAuthor ? (
+                <span className="mt-2 inline-flex border border-amber-200 px-2 py-1 text-xs text-amber-800">
+                  Только в моих публикациях
+                </span>
+              ) : null}
             </div>
             <Link
               href="/feed"
@@ -61,7 +67,7 @@ export default async function PostPage({ params }: PostPageProps) {
             >
               Лента
             </Link>
-            {user ? (
+            {user && showInteractions ? (
               <Link
                 href={`/reports/new?targetType=POST&targetId=${post.id}`}
                 className="text-sm text-zinc-600 hover:text-zinc-950"
@@ -127,17 +133,19 @@ export default async function PostPage({ params }: PostPageProps) {
           ) : null}
         </article>
 
-        <PostInteractions
-          key={`${post.id}-${post._count.likes}-${post._count.comments}-${post.likes.length}`}
-          canComment={Boolean(profile)}
-          initialCommentsCount={post._count.comments}
-          initialLiked={post.likes.length > 0}
-          initialLikesCount={post._count.likes}
-          isLoggedIn={Boolean(user)}
-          postId={post.id}
-        />
+        {showInteractions ? (
+          <PostInteractions
+            key={`${post.id}-${post._count.likes}-${post._count.comments}-${post.likes.length}`}
+            canComment={Boolean(profile)}
+            initialCommentsCount={post._count.comments}
+            initialLiked={post.likes.length > 0}
+            initialLikesCount={post._count.likes}
+            isLoggedIn={Boolean(user)}
+            postId={post.id}
+          />
+        ) : null}
 
-        {!user ? (
+        {!user && showInteractions ? (
           <section className="mt-6 border border-zinc-200 bg-white p-6">
             <p className="text-sm text-zinc-600">
               Войдите, чтобы поставить лайк или написать комментарий.
