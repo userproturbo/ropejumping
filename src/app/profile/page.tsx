@@ -86,31 +86,13 @@ export default async function ProfilePage() {
   return (
     <main className="min-h-[calc(100vh-4rem)] bg-zinc-50">
       <div className="mx-auto w-full max-w-5xl px-6 py-10">
-        <div className="mb-8 flex items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-semibold tracking-tight text-zinc-950">
-              Личный кабинет
-            </h1>
-            <p className="mt-2 text-sm text-zinc-600">
-              Профиль, чаты, публикации и основные разделы платформы.
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <Link
-              href="/profile/edit"
-              className="border border-zinc-300 px-4 py-2 text-sm text-zinc-800 hover:border-zinc-950"
-            >
-              {profile ? "Редактировать профиль" : "Создать профиль"}
-            </Link>
-            {profile?.username ? (
-              <Link
-                href={`/u/${profile.username}`}
-                className="border border-zinc-300 px-4 py-2 text-sm text-zinc-800 hover:border-zinc-950"
-              >
-                Открыть публичный профиль
-              </Link>
-            ) : null}
-          </div>
+        <div className="mb-8">
+          <h1 className="text-3xl font-semibold tracking-tight text-zinc-950">
+            Личный кабинет
+          </h1>
+          <p className="mt-2 text-sm text-zinc-600">
+            Профиль, чаты, публикации и основные разделы платформы.
+          </p>
         </div>
 
         {profile ? (
@@ -151,22 +133,14 @@ export default async function ProfilePage() {
                   {profile.city ? (
                     <p className="mt-2 text-sm text-zinc-600">{profile.city}</p>
                   ) : null}
-                  <div className="mt-4 flex flex-wrap gap-3">
+                  {profile.username ? (
                     <Link
-                      href="/profile/edit"
-                      className="border border-zinc-300 px-4 py-2 text-sm text-zinc-800 hover:border-zinc-950"
+                      href={`/u/${profile.username}`}
+                      className="mt-4 inline-flex border border-zinc-300 px-4 py-2 text-sm text-zinc-800 hover:border-zinc-950"
                     >
-                      Редактировать профиль
+                      Открыть публичный профиль
                     </Link>
-                    {profile.username ? (
-                      <Link
-                        href={`/u/${profile.username}`}
-                        className="border border-zinc-300 px-4 py-2 text-sm text-zinc-800 hover:border-zinc-950"
-                      >
-                        Открыть публичный профиль
-                      </Link>
-                    ) : null}
-                  </div>
+                  ) : null}
                 </div>
               </div>
 
