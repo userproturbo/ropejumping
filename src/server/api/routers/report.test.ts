@@ -22,7 +22,7 @@ vi.mock("@/server/db", () => ({
 vi.mock("server-only", () => ({}));
 
 vi.mock("@/server/api/routers/post", () => ({
-  publicPostWhere: {
+  publicReadablePostWhere: {
     hiddenAt: null,
   },
 }));

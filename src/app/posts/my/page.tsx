@@ -76,7 +76,7 @@ export default async function MyPostsPage() {
                           ? "Скрыт или удалён"
                           : post.showInFeed
                             ? "В общей ленте"
-                            : "Только в моих публикациях"}
+                            : "Только в профиле"}
                       </span>
                     </div>
                     {isVisible ? (

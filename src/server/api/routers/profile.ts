@@ -16,7 +16,7 @@ import {
   protectedProcedure,
   publicProcedure,
 } from "@/server/api/trpc";
-import { publicPostWhere } from "@/server/api/routers/post";
+import { publicReadablePostWhere } from "@/server/api/routers/post";
 import { deleteMediaIfUnreferenced } from "@/server/media/cleanup";
 import { resolveImageMediaForUpdate } from "@/server/media/usage";
 
@@ -275,7 +275,7 @@ export const profileRouter = createTRPCRouter({
                 },
               },
               posts: {
-                where: publicPostWhere,
+                where: publicReadablePostWhere,
                 orderBy: {
                   createdAt: "desc",
                 },

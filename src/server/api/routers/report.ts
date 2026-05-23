@@ -22,7 +22,7 @@ import {
 } from "@/lib/validation/report";
 import { assertReportCreateLimit } from "@/server/anti-spam/rate-limit";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
-import { publicPostWhere } from "@/server/api/routers/post";
+import { publicReadablePostWhere } from "@/server/api/routers/post";
 import type { db as database } from "@/server/db";
 import { assertCanAccessEventChat } from "@/server/events/chat-permissions";
 import { requireModerator } from "@/server/moderation/permissions";
@@ -89,7 +89,7 @@ const ensureReportableTarget = async (
     const post = await db.post.findFirst({
       where: {
         id: targetId,
-        ...publicPostWhere,
+        ...publicReadablePostWhere,
       },
       select: { id: true },
     });
@@ -266,7 +266,7 @@ const ensureReportableTarget = async (
     where: {
       id: targetId,
       hiddenAt: null,
-      post: publicPostWhere,
+      post: publicReadablePostWhere,
     },
     select: { id: true },
   });
