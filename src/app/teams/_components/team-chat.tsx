@@ -122,7 +122,10 @@ export function TeamChat({
   };
 
   return (
-    <section id="team-chat" className="mt-6 border border-zinc-200 bg-white p-6">
+    <section
+      id="team-chat"
+      className="mt-6 border border-zinc-200 bg-white p-6"
+    >
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h2 className="text-xl font-semibold text-zinc-950">Чат команды</h2>
@@ -143,7 +146,7 @@ export function TeamChat({
             Войдите, чтобы увидеть чат команды.
           </p>
           <Link
-            href="/api/auth/signin"
+            href="/login"
             className="mt-4 inline-flex border border-zinc-300 px-4 py-2 text-sm text-zinc-800 hover:border-zinc-950"
           >
             Войти
@@ -356,7 +359,9 @@ export function TeamChat({
         </>
       )}
 
-      {error ? <p className="mt-4 text-sm text-red-700">{error.message}</p> : null}
+      {error ? (
+        <p className="mt-4 text-sm text-red-700">{error.message}</p>
+      ) : null}
     </section>
   );
 }

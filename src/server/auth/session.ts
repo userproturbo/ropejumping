@@ -17,7 +17,7 @@ export const requireCurrentUser = async (callbackUrl = "/profile") => {
   const user = await getCurrentUser();
 
   if (!user) {
-    redirect(`/api/auth/signin?callbackUrl=${encodeURIComponent(callbackUrl)}`);
+    redirect(`/login?callbackUrl=${encodeURIComponent(callbackUrl)}`);
   }
 
   return user;

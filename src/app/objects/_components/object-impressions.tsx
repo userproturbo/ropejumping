@@ -93,13 +93,11 @@ export function ObjectImpressions({
           <h2 className="text-xl font-semibold text-zinc-950">
             Впечатления об объекте
           </h2>
-          <p className="mt-2 text-sm text-zinc-600">
-            {impressionsCount} всего
-          </p>
+          <p className="mt-2 text-sm text-zinc-600">{impressionsCount} всего</p>
         </div>
         {!isAuthenticated ? (
           <Link
-            href="/api/auth/signin"
+            href="/login"
             className="border border-zinc-300 px-4 py-2 text-sm text-zinc-800 hover:border-zinc-950"
           >
             Войдите, чтобы оставить впечатление
@@ -145,7 +143,9 @@ export function ObjectImpressions({
                 htmlFor="objectImpressionBody"
                 className="text-sm font-medium text-zinc-950"
               >
-                {myImpression ? "Редактировать впечатление" : "Оставить впечатление"}
+                {myImpression
+                  ? "Редактировать впечатление"
+                  : "Оставить впечатление"}
               </label>
               <textarea
                 id="objectImpressionBody"
@@ -186,7 +186,9 @@ export function ObjectImpressions({
               </div>
             </form>
           )}
-          {error ? <p className="mt-3 text-sm text-red-700">{error.message}</p> : null}
+          {error ? (
+            <p className="mt-3 text-sm text-red-700">{error.message}</p>
+          ) : null}
         </div>
       ) : null}
 

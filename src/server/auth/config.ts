@@ -108,6 +108,9 @@ if (env.AUTH_DISCORD_ID && env.AUTH_DISCORD_SECRET) {
 
 export const authConfig = {
   providers,
+  pages: {
+    signIn: "/login",
+  },
   adapter: PrismaAdapter(db),
   session: {
     strategy: "jwt",
