@@ -1,7 +1,11 @@
 /* eslint-disable @typescript-eslint/prefer-nullish-coalescing */
 import Link from "next/link";
 
-import { FilterSummary, type FilterChip } from "@/app/_components/filter-summary";
+import { CollapsibleFilterPanel } from "@/app/_components/collapsible-filter-panel";
+import {
+  FilterSummary,
+  type FilterChip,
+} from "@/app/_components/filter-summary";
 import { TeamStatus } from "@/generated/prisma/enums";
 import { getTeamStatusLabel } from "@/lib/display";
 import { api } from "@/trpc/server";
@@ -52,16 +56,17 @@ export default async function TeamsPage({ searchParams }: TeamsPageProps) {
       ? {
           label: "Статус",
           value:
-            statusFilterOptions.find((option) => option.value === filters.status)
-              ?.label ?? filters.status,
+            statusFilterOptions.find(
+              (option) => option.value === filters.status,
+            )?.label ?? filters.status,
         }
       : null,
     filters.sort !== "nameAsc"
       ? {
           label: "Сортировка",
           value:
-            sortOptions.find((option) => option.value === filters.sort)?.label ??
-            filters.sort,
+            sortOptions.find((option) => option.value === filters.sort)
+              ?.label ?? filters.sort,
         }
       : null,
   ].filter((chip): chip is FilterChip => Boolean(chip));
@@ -69,124 +74,130 @@ export default async function TeamsPage({ searchParams }: TeamsPageProps) {
   return (
     <main className="min-h-[calc(100vh-4rem)] bg-zinc-50">
       <div className="mx-auto w-full max-w-5xl px-6 py-10">
-        <div className="mb-8 flex items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-semibold tracking-tight text-zinc-950">
-              Команды
-            </h1>
-            <p className="mt-2 text-sm text-zinc-600">
-              Команды роупджампинг-сообщества, зарегистрированные на платформе.
-            </p>
-          </div>
-          <Link
-            href="/teams/new"
-            className="border border-zinc-300 px-4 py-2 text-sm text-zinc-800 hover:border-zinc-950"
-          >
-            Создать команду
-          </Link>
-        </div>
-
-        <form
-          action="/teams"
-          method="get"
-          className="mb-6 border border-zinc-200 bg-white p-5"
-        >
-          <div className="grid gap-4 md:grid-cols-3">
-            <div className="grid gap-2">
-              <label htmlFor="q" className="text-sm font-medium text-zinc-950">
-                Поиск
-              </label>
-              <input
-                id="q"
-                name="q"
-                type="search"
-                defaultValue={filters.q}
-                placeholder="Название, slug, регион"
-                className="border border-zinc-300 px-3 py-2 text-sm text-zinc-950 outline-none focus:border-zinc-950"
-              />
-            </div>
-
-            <div className="grid gap-2">
-              <label
-                htmlFor="region"
-                className="text-sm font-medium text-zinc-950"
-              >
-                Регион
-              </label>
-              <select
-                id="region"
-                name="region"
-                defaultValue={filters.region}
-                className="border border-zinc-300 px-3 py-2 text-sm text-zinc-950 outline-none focus:border-zinc-950"
-              >
-                <option value="">Все регионы</option>
-                {availableRegions.map((region) => (
-                  <option key={region} value={region}>
-                    {region}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="grid gap-2">
-              <label
-                htmlFor="status"
-                className="text-sm font-medium text-zinc-950"
-              >
-                Статус
-              </label>
-              <select
-                id="status"
-                name="status"
-                defaultValue={filters.status}
-                className="border border-zinc-300 px-3 py-2 text-sm text-zinc-950 outline-none focus:border-zinc-950"
-              >
-                <option value="">Все статусы</option>
-                {statusFilterOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="grid gap-2">
-              <label
-                htmlFor="sort"
-                className="text-sm font-medium text-zinc-950"
-              >
-                Сортировка
-              </label>
-              <select
-                id="sort"
-                name="sort"
-                defaultValue={filters.sort}
-                className="border border-zinc-300 px-3 py-2 text-sm text-zinc-950 outline-none focus:border-zinc-950"
-              >
-                {sortOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div className="mt-5 flex flex-wrap items-center gap-3">
-            <button
-              type="submit"
-              className="bg-zinc-950 px-4 py-2 text-sm text-white hover:bg-zinc-800"
-            >
-              Применить фильтры
-            </button>
+        <CollapsibleFilterPanel
+          actions={
             <Link
-              href="/teams"
-              className="text-sm text-zinc-600 hover:text-zinc-950"
+              href="/teams/new"
+              className="border border-zinc-300 px-4 py-2 text-sm text-zinc-800 hover:border-zinc-950"
             >
-              Сбросить
+              Создать команду
             </Link>
-          </div>
-        </form>
+          }
+          activeCount={activeChips.length}
+          defaultOpen={activeChips.length > 0}
+          header={
+            <>
+              <h1 className="text-3xl font-semibold tracking-tight text-zinc-950">
+                Команды
+              </h1>
+              <p className="mt-2 text-sm text-zinc-600">
+                Команды роупджампинг-сообщества, зарегистрированные на
+                платформе.
+              </p>
+            </>
+          }
+        >
+          <form action="/teams" method="get">
+            <div className="grid gap-4 md:grid-cols-3">
+              <div className="grid gap-2">
+                <label
+                  htmlFor="q"
+                  className="text-sm font-medium text-zinc-950"
+                >
+                  Поиск
+                </label>
+                <input
+                  id="q"
+                  name="q"
+                  type="search"
+                  defaultValue={filters.q}
+                  placeholder="Название, slug, регион"
+                  className="border border-zinc-300 px-3 py-2 text-sm text-zinc-950 outline-none focus:border-zinc-950"
+                />
+              </div>
+
+              <div className="grid gap-2">
+                <label
+                  htmlFor="region"
+                  className="text-sm font-medium text-zinc-950"
+                >
+                  Регион
+                </label>
+                <select
+                  id="region"
+                  name="region"
+                  defaultValue={filters.region}
+                  className="border border-zinc-300 px-3 py-2 text-sm text-zinc-950 outline-none focus:border-zinc-950"
+                >
+                  <option value="">Все регионы</option>
+                  {availableRegions.map((region) => (
+                    <option key={region} value={region}>
+                      {region}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid gap-2">
+                <label
+                  htmlFor="status"
+                  className="text-sm font-medium text-zinc-950"
+                >
+                  Статус
+                </label>
+                <select
+                  id="status"
+                  name="status"
+                  defaultValue={filters.status}
+                  className="border border-zinc-300 px-3 py-2 text-sm text-zinc-950 outline-none focus:border-zinc-950"
+                >
+                  <option value="">Все статусы</option>
+                  {statusFilterOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid gap-2">
+                <label
+                  htmlFor="sort"
+                  className="text-sm font-medium text-zinc-950"
+                >
+                  Сортировка
+                </label>
+                <select
+                  id="sort"
+                  name="sort"
+                  defaultValue={filters.sort}
+                  className="border border-zinc-300 px-3 py-2 text-sm text-zinc-950 outline-none focus:border-zinc-950"
+                >
+                  {sortOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="mt-5 flex flex-wrap items-center gap-3">
+              <button
+                type="submit"
+                className="bg-zinc-950 px-4 py-2 text-sm text-white hover:bg-zinc-800"
+              >
+                Применить фильтры
+              </button>
+              <Link
+                href="/teams"
+                className="text-sm text-zinc-600 hover:text-zinc-950"
+              >
+                Сбросить
+              </Link>
+            </div>
+          </form>
+        </CollapsibleFilterPanel>
 
         <FilterSummary
           chips={activeChips}
@@ -211,7 +222,9 @@ export default async function TeamsPage({ searchParams }: TeamsPageProps) {
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={team.logoUrl}
-                      alt={team.logoMedia?.alt || `Логотип команды ${team.name}`}
+                      alt={
+                        team.logoMedia?.alt || `Логотип команды ${team.name}`
+                      }
                       className="h-16 w-16 border border-zinc-200 object-cover"
                     />
                   ) : null}
