@@ -65,9 +65,8 @@ type InternalPinTargetContext = PinTargetContext & {
   teamIdForPermission: string;
 };
 
-export const publicPostWhere = {
+export const publicReadablePostWhere = {
   hiddenAt: null,
-  showInFeed: true,
   AND: [
     {
       OR: [
@@ -118,6 +117,11 @@ export const publicPostWhere = {
   ],
 } satisfies Prisma.PostWhereInput;
 
+export const publicPostWhere = {
+  ...publicReadablePostWhere,
+  showInFeed: true,
+} satisfies Prisma.PostWhereInput;
+
 const authorInclude = {
   select: {
     id: true,
@@ -164,25 +168,13 @@ const getPublicPostWhere = (
   AND: [...publicPostWhere.AND, ...filterClauses],
 });
 
-const getReadablePostWhere = ({
+export const getReadablePostWhere = ({
   postId,
-  userId,
 }: {
   postId: string;
-  userId: string;
 }): Prisma.PostWhereInput => ({
   id: postId,
-  OR: [
-    publicPostWhere,
-    ...(userId
-      ? [
-          {
-            authorId: userId,
-            hiddenAt: null,
-          },
-        ]
-      : []),
-  ],
+  ...publicReadablePostWhere,
 });
 
 const emptyPinsWhere = {
@@ -863,7 +855,7 @@ export const postRouter = createTRPCRouter({
     const userId = ctx.session?.user?.id ?? "";
 
     return ctx.db.post.findFirst({
-      where: getReadablePostWhere({ postId: input, userId }),
+      where: getReadablePostWhere({ postId: input }),
       include: {
         author: authorInclude,
         ...linkedEntityInclude,
@@ -911,10 +903,7 @@ export const postRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       const userId = ctx.session?.user?.id ?? null;
       const post = await ctx.db.post.findFirst({
-        where: getReadablePostWhere({
-          postId: input.postId,
-          userId: userId ?? "",
-        }),
+        where: getReadablePostWhere({ postId: input.postId }),
         select: {
           id: true,
           authorId: true,
@@ -1335,7 +1324,7 @@ export const postRouter = createTRPCRouter({
       const post = await ctx.db.post.findFirst({
         where: {
           id: input.postId,
-          ...publicPostWhere,
+          ...publicReadablePostWhere,
         },
         select: {
           id: true,
@@ -1380,7 +1369,7 @@ export const postRouter = createTRPCRouter({
         where: {
           id: input.commentId,
           hiddenAt: null,
-          post: getPublicPostWhere(),
+          post: publicReadablePostWhere,
         },
         select: {
           id: true,
@@ -1458,7 +1447,7 @@ export const postRouter = createTRPCRouter({
       const post = await ctx.db.post.findFirst({
         where: {
           id: input,
-          ...publicPostWhere,
+          ...publicReadablePostWhere,
         },
         select: {
           id: true,

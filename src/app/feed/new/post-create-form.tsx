@@ -87,7 +87,7 @@ export function PostCreateForm({
 
       <fieldset className="grid gap-3">
         <legend className="text-sm font-medium text-zinc-950">
-          Где опубликовать?
+          Где показать пост?
         </legend>
         <label className="flex gap-3 border border-zinc-200 p-3 text-sm text-zinc-700">
           <input
@@ -98,7 +98,7 @@ export function PostCreateForm({
             onChange={() => setShowInFeed(true)}
             className="mt-0.5 h-4 w-4 border-zinc-300 text-zinc-950"
           />
-          <span>В общей ленте и в моих публикациях</span>
+          <span>В общей ленте и в профиле</span>
         </label>
         <label className="flex gap-3 border border-zinc-200 p-3 text-sm text-zinc-700">
           <input
@@ -109,7 +109,7 @@ export function PostCreateForm({
             onChange={() => setShowInFeed(false)}
             className="mt-0.5 h-4 w-4 border-zinc-300 text-zinc-950"
           />
-          <span>Только в моих публикациях</span>
+          <span>Только в профиле, без общей ленты</span>
         </label>
       </fieldset>
 
