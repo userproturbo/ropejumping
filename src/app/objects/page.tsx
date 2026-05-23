@@ -1,7 +1,11 @@
 /* eslint-disable @typescript-eslint/prefer-nullish-coalescing */
 import Link from "next/link";
 
-import { FilterSummary, type FilterChip } from "@/app/_components/filter-summary";
+import { CollapsibleFilterPanel } from "@/app/_components/collapsible-filter-panel";
+import {
+  FilterSummary,
+  type FilterChip,
+} from "@/app/_components/filter-summary";
 import { ObjectType } from "@/generated/prisma/enums";
 import { getObjectTypeLabel } from "@/lib/display";
 import { api } from "@/trpc/server";
@@ -57,14 +61,18 @@ export default async function ObjectsPage({ searchParams }: ObjectsPageProps) {
             filters.team,
         }
       : null,
-    filters.minHeight ? { label: "Высота", value: `от ${filters.minHeight} м` } : null,
-    filters.maxHeight ? { label: "Высота", value: `до ${filters.maxHeight} м` } : null,
+    filters.minHeight
+      ? { label: "Высота", value: `от ${filters.minHeight} м` }
+      : null,
+    filters.maxHeight
+      ? { label: "Высота", value: `до ${filters.maxHeight} м` }
+      : null,
     filters.sort !== "createdAtDesc"
       ? {
           label: "Сортировка",
           value:
-            sortOptions.find((option) => option.value === filters.sort)?.label ??
-            filters.sort,
+            sortOptions.find((option) => option.value === filters.sort)
+              ?.label ?? filters.sort,
         }
       : null,
   ].filter((chip): chip is FilterChip => Boolean(chip));
@@ -72,184 +80,189 @@ export default async function ObjectsPage({ searchParams }: ObjectsPageProps) {
   return (
     <main className="min-h-[calc(100vh-4rem)] bg-zinc-50">
       <div className="mx-auto w-full max-w-5xl px-6 py-10">
-        <div className="mb-8 flex items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-semibold tracking-tight text-zinc-950">
-              Объекты
-            </h1>
-            <p className="mt-2 text-sm text-zinc-600">
-              Публичный каталог объектов с безопасным общим описанием.
-            </p>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-500">
-              В каталоге показываются только публичные описания объектов без
-              точных координат, способов доступа и технических деталей.
-            </p>
-          </div>
-          <Link
-            href="/objects/new"
-            className="border border-zinc-300 px-4 py-2 text-sm text-zinc-800 hover:border-zinc-950"
-          >
-            Создать объект
-          </Link>
-        </div>
-
-        <form
-          action="/objects"
-          method="get"
-          className="mb-6 border border-zinc-200 bg-white p-5"
-        >
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="grid gap-2">
-              <label htmlFor="q" className="text-sm font-medium text-zinc-950">
-                Поиск
-              </label>
-              <input
-                id="q"
-                name="q"
-                type="search"
-                defaultValue={filters.q}
-                placeholder="Название, команда, регион"
-                className="border border-zinc-300 px-3 py-2 text-sm text-zinc-950 outline-none focus:border-zinc-950"
-              />
-            </div>
-
-            <div className="grid gap-2">
-              <label
-                htmlFor="type"
-                className="text-sm font-medium text-zinc-950"
-              >
-                Тип
-              </label>
-              <select
-                id="type"
-                name="type"
-                defaultValue={filters.type}
-                className="border border-zinc-300 px-3 py-2 text-sm text-zinc-950 outline-none focus:border-zinc-950"
-              >
-                <option value="">Все типы</option>
-                {Object.values(ObjectType).map((type) => (
-                  <option key={type} value={type}>
-                    {getObjectTypeLabel(type)}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="grid gap-2">
-              <label
-                htmlFor="region"
-                className="text-sm font-medium text-zinc-950"
-              >
-                Регион
-              </label>
-              <select
-                id="region"
-                name="region"
-                defaultValue={filters.region}
-                className="border border-zinc-300 px-3 py-2 text-sm text-zinc-950 outline-none focus:border-zinc-950"
-              >
-                <option value="">Все регионы</option>
-                {availableRegions.map((region) => (
-                  <option key={region} value={region}>
-                    {region}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="grid gap-2">
-              <label
-                htmlFor="team"
-                className="text-sm font-medium text-zinc-950"
-              >
-                Команда
-              </label>
-              <select
-                id="team"
-                name="team"
-                defaultValue={filters.team}
-                className="border border-zinc-300 px-3 py-2 text-sm text-zinc-950 outline-none focus:border-zinc-950"
-              >
-                <option value="">Все команды</option>
-                {availableTeams.map((team) => (
-                  <option key={team.id} value={team.slug}>
-                    {team.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="grid gap-2">
-              <label
-                htmlFor="minHeight"
-                className="text-sm font-medium text-zinc-950"
-              >
-                Высота от, м
-              </label>
-              <input
-                id="minHeight"
-                name="minHeight"
-                type="number"
-                min={1}
-                defaultValue={filters.minHeight}
-                className="border border-zinc-300 px-3 py-2 text-sm text-zinc-950 outline-none focus:border-zinc-950"
-              />
-            </div>
-
-            <div className="grid gap-2">
-              <label
-                htmlFor="maxHeight"
-                className="text-sm font-medium text-zinc-950"
-              >
-                Высота до, м
-              </label>
-              <input
-                id="maxHeight"
-                name="maxHeight"
-                type="number"
-                min={1}
-                defaultValue={filters.maxHeight}
-                className="border border-zinc-300 px-3 py-2 text-sm text-zinc-950 outline-none focus:border-zinc-950"
-              />
-            </div>
-
-            <div className="grid gap-2">
-              <label
-                htmlFor="sort"
-                className="text-sm font-medium text-zinc-950"
-              >
-                Сортировка
-              </label>
-              <select
-                id="sort"
-                name="sort"
-                defaultValue={filters.sort}
-                className="border border-zinc-300 px-3 py-2 text-sm text-zinc-950 outline-none focus:border-zinc-950"
-              >
-                {sortOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div className="mt-5 flex flex-wrap items-center gap-3">
-            <button
-              type="submit"
-              className="bg-zinc-950 px-4 py-2 text-sm text-white hover:bg-zinc-800"
-            >
-              Применить фильтры
-            </button>
+        <CollapsibleFilterPanel
+          actions={
             <Link
-              href="/objects"
-              className="text-sm text-zinc-600 hover:text-zinc-950"
+              href="/objects/new"
+              className="border border-zinc-300 px-4 py-2 text-sm text-zinc-800 hover:border-zinc-950"
             >
-              Сбросить
+              Создать объект
             </Link>
-          </div>
-        </form>
+          }
+          activeCount={activeChips.length}
+          defaultOpen={activeChips.length > 0}
+          header={
+            <>
+              <h1 className="text-3xl font-semibold tracking-tight text-zinc-950">
+                Объекты
+              </h1>
+              <p className="mt-2 text-sm text-zinc-600">
+                Публичный каталог объектов с безопасным общим описанием.
+              </p>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-500">
+                В каталоге показываются только публичные описания объектов без
+                точных координат, способов доступа и технических деталей.
+              </p>
+            </>
+          }
+        >
+          <form action="/objects" method="get">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="grid gap-2">
+                <label
+                  htmlFor="q"
+                  className="text-sm font-medium text-zinc-950"
+                >
+                  Поиск
+                </label>
+                <input
+                  id="q"
+                  name="q"
+                  type="search"
+                  defaultValue={filters.q}
+                  placeholder="Название, команда, регион"
+                  className="border border-zinc-300 px-3 py-2 text-sm text-zinc-950 outline-none focus:border-zinc-950"
+                />
+              </div>
+
+              <div className="grid gap-2">
+                <label
+                  htmlFor="type"
+                  className="text-sm font-medium text-zinc-950"
+                >
+                  Тип
+                </label>
+                <select
+                  id="type"
+                  name="type"
+                  defaultValue={filters.type}
+                  className="border border-zinc-300 px-3 py-2 text-sm text-zinc-950 outline-none focus:border-zinc-950"
+                >
+                  <option value="">Все типы</option>
+                  {Object.values(ObjectType).map((type) => (
+                    <option key={type} value={type}>
+                      {getObjectTypeLabel(type)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid gap-2">
+                <label
+                  htmlFor="region"
+                  className="text-sm font-medium text-zinc-950"
+                >
+                  Регион
+                </label>
+                <select
+                  id="region"
+                  name="region"
+                  defaultValue={filters.region}
+                  className="border border-zinc-300 px-3 py-2 text-sm text-zinc-950 outline-none focus:border-zinc-950"
+                >
+                  <option value="">Все регионы</option>
+                  {availableRegions.map((region) => (
+                    <option key={region} value={region}>
+                      {region}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid gap-2">
+                <label
+                  htmlFor="team"
+                  className="text-sm font-medium text-zinc-950"
+                >
+                  Команда
+                </label>
+                <select
+                  id="team"
+                  name="team"
+                  defaultValue={filters.team}
+                  className="border border-zinc-300 px-3 py-2 text-sm text-zinc-950 outline-none focus:border-zinc-950"
+                >
+                  <option value="">Все команды</option>
+                  {availableTeams.map((team) => (
+                    <option key={team.id} value={team.slug}>
+                      {team.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid gap-2">
+                <label
+                  htmlFor="minHeight"
+                  className="text-sm font-medium text-zinc-950"
+                >
+                  Высота от, м
+                </label>
+                <input
+                  id="minHeight"
+                  name="minHeight"
+                  type="number"
+                  min={1}
+                  defaultValue={filters.minHeight}
+                  className="border border-zinc-300 px-3 py-2 text-sm text-zinc-950 outline-none focus:border-zinc-950"
+                />
+              </div>
+
+              <div className="grid gap-2">
+                <label
+                  htmlFor="maxHeight"
+                  className="text-sm font-medium text-zinc-950"
+                >
+                  Высота до, м
+                </label>
+                <input
+                  id="maxHeight"
+                  name="maxHeight"
+                  type="number"
+                  min={1}
+                  defaultValue={filters.maxHeight}
+                  className="border border-zinc-300 px-3 py-2 text-sm text-zinc-950 outline-none focus:border-zinc-950"
+                />
+              </div>
+
+              <div className="grid gap-2">
+                <label
+                  htmlFor="sort"
+                  className="text-sm font-medium text-zinc-950"
+                >
+                  Сортировка
+                </label>
+                <select
+                  id="sort"
+                  name="sort"
+                  defaultValue={filters.sort}
+                  className="border border-zinc-300 px-3 py-2 text-sm text-zinc-950 outline-none focus:border-zinc-950"
+                >
+                  {sortOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="mt-5 flex flex-wrap items-center gap-3">
+              <button
+                type="submit"
+                className="bg-zinc-950 px-4 py-2 text-sm text-white hover:bg-zinc-800"
+              >
+                Применить фильтры
+              </button>
+              <Link
+                href="/objects"
+                className="text-sm text-zinc-600 hover:text-zinc-950"
+              >
+                Сбросить
+              </Link>
+            </div>
+          </form>
+        </CollapsibleFilterPanel>
 
         <FilterSummary
           chips={activeChips}
@@ -269,7 +282,10 @@ export default async function ObjectsPage({ searchParams }: ObjectsPageProps) {
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={object.coverImageUrl}
-                      alt={object.coverMedia?.alt || `Фото объекта «${object.name}»`}
+                      alt={
+                        object.coverMedia?.alt ||
+                        `Фото объекта «${object.name}»`
+                      }
                       className="h-36 w-full object-cover sm:h-28"
                     />
                   ) : null}
