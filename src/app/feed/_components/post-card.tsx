@@ -1,12 +1,15 @@
 /* eslint-disable @typescript-eslint/prefer-nullish-coalescing */
 import Link from "next/link";
 
+import { PostAuthorAvatar } from "@/app/_components/post-author-avatar";
 import type { RouterOutputs } from "@/trpc/react";
 
 import { PostPinButton } from "./post-pin-button";
 
 type PublicPost = RouterOutputs["post"]["listPublic"]["posts"][number];
-type PinTarget = NonNullable<RouterOutputs["post"]["listPublic"]["currentPinTarget"]>;
+type PinTarget = NonNullable<
+  RouterOutputs["post"]["listPublic"]["currentPinTarget"]
+>;
 
 type PostCardProps = {
   currentPinTarget?: PinTarget | null;
@@ -21,6 +24,9 @@ export function PostCard({
   isLoggedIn = false,
   post,
 }: PostCardProps) {
+  const authorName = getAuthorName(post.author);
+  const authorAvatar =
+    post.author.profile?.avatarUrl ?? post.author.image ?? null;
   const resolvedAlt =
     post.imageMedia?.alt ||
     (post.event
@@ -33,44 +39,27 @@ export function PostCard({
 
   return (
     <article className="border border-zinc-200 bg-white p-5">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
+      <div className="flex items-start gap-3">
+        <PostAuthorAvatar imageUrl={authorAvatar} label={authorName} />
+        <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <p className="font-medium text-zinc-950">{getAuthorName(post.author)}</p>
+            <p className="font-medium text-zinc-950">{authorName}</p>
             {post.isPinnedInCurrentFilter ? (
               <span className="border border-amber-200 px-2 py-1 text-xs text-amber-800">
                 Закреплено
               </span>
             ) : null}
           </div>
-          <p className="mt-1 text-sm text-zinc-500">
-            {formatFeedDate(post.createdAt)}
-          </p>
+          <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-zinc-500">
+            {post.author.profile?.username ? (
+              <span>@{post.author.profile.username}</span>
+            ) : null}
+            <span>{formatFeedDate(post.createdAt)}</span>
+          </div>
         </div>
-        <Link
-          href={`/posts/${post.id}`}
-          className="text-sm text-zinc-600 hover:text-zinc-950"
-        >
-          Открыть
-        </Link>
-        {isLoggedIn ? (
-          <Link
-            href={`/reports/new?targetType=POST&targetId=${post.id}`}
-            className="text-sm text-zinc-600 hover:text-zinc-950"
-          >
-            Пожаловаться
-          </Link>
-        ) : null}
-        {currentUserCanPin && currentPinTarget ? (
-          <PostPinButton
-            isPinned={post.isPinnedInCurrentFilter}
-            postId={post.id}
-            target={currentPinTarget}
-          />
-        ) : null}
       </div>
 
-      <p className="mt-4 text-sm leading-6 whitespace-pre-wrap text-zinc-700">
+      <p className="mt-4 text-base leading-7 whitespace-pre-wrap text-zinc-700">
         {post.content}
       </p>
 
@@ -85,10 +74,35 @@ export function PostCard({
 
       <LinkedEntities post={post} />
 
-      <div className="mt-4 flex flex-wrap gap-4 text-sm text-zinc-500">
-        <span>Просмотров: {post.viewsCount}</span>
-        <span>Лайков: {post._count.likes}</span>
-        <span>Комментариев: {post._count.comments}</span>
+      <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-zinc-200 pt-4 text-sm">
+        <div className="flex flex-wrap gap-4 text-zinc-500">
+          <span>{post.viewsCount} просмотров</span>
+          <span>{post._count.likes} лайков</span>
+          <span>{post._count.comments} комментариев</span>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <Link
+            href={`/posts/${post.id}`}
+            className="font-medium text-zinc-700 hover:text-zinc-950"
+          >
+            Открыть
+          </Link>
+          {isLoggedIn ? (
+            <Link
+              href={`/reports/new?targetType=POST&targetId=${post.id}`}
+              className="text-zinc-500 hover:text-zinc-950"
+            >
+              Пожаловаться
+            </Link>
+          ) : null}
+          {currentUserCanPin && currentPinTarget ? (
+            <PostPinButton
+              isPinned={post.isPinnedInCurrentFilter}
+              postId={post.id}
+              target={currentPinTarget}
+            />
+          ) : null}
+        </div>
       </div>
     </article>
   );
@@ -98,21 +112,27 @@ function LinkedEntities({ post }: PostCardProps) {
   if (!post.team && !post.event && !post.object) return null;
 
   return (
-    <div className="mt-4 flex flex-wrap gap-3 text-sm text-zinc-600">
+    <div className="mt-4 flex flex-wrap gap-2 text-sm text-zinc-600">
       {post.team ? (
-        <Link href={`/teams/${post.team.slug}`} className="hover:text-zinc-950">
+        <Link
+          href={`/teams/${post.team.slug}`}
+          className="border border-zinc-200 px-2 py-1 hover:border-zinc-950 hover:text-zinc-950"
+        >
           Команда: {post.team.name}
         </Link>
       ) : null}
       {post.event ? (
-        <Link href={`/events/${post.event.slug}`} className="hover:text-zinc-950">
+        <Link
+          href={`/events/${post.event.slug}`}
+          className="border border-zinc-200 px-2 py-1 hover:border-zinc-950 hover:text-zinc-950"
+        >
           Мероприятие: {post.event.title}
         </Link>
       ) : null}
       {post.object ? (
         <Link
           href={`/objects/${post.object.slug}`}
-          className="hover:text-zinc-950"
+          className="border border-zinc-200 px-2 py-1 hover:border-zinc-950 hover:text-zinc-950"
         >
           Объект: {post.object.name}
         </Link>

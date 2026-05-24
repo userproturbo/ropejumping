@@ -20,7 +20,7 @@ export default async function MyPostsPage() {
               Мои публикации
             </h1>
             <p className="mt-2 text-sm text-zinc-600">
-              Посты, которые вы создали в ленте.
+              Посты, которые вы создали для ленты или публичного профиля.
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
@@ -56,44 +56,43 @@ export default async function MyPostsPage() {
               return (
                 <article
                   key={post.id}
-                  className="border border-zinc-200 bg-white p-5"
+                  className="border border-zinc-200 bg-white p-5 transition hover:border-zinc-300"
                 >
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <p className="text-sm text-zinc-500">
+                  <div className="flex items-start gap-3">
+                    <span
+                      aria-hidden="true"
+                      className="flex h-11 w-11 shrink-0 items-center justify-center border border-zinc-200 bg-zinc-50 text-sm font-medium text-zinc-600"
+                    >
+                      Я
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="font-medium text-zinc-950">
+                          Моя публикация
+                        </p>
+                        <span
+                          className={
+                            !isVisible
+                              ? "inline-flex border border-zinc-200 px-2 py-1 text-xs text-zinc-500"
+                              : post.showInFeed
+                                ? "inline-flex border border-emerald-200 px-2 py-1 text-xs text-emerald-800"
+                                : "inline-flex border border-amber-200 px-2 py-1 text-xs text-amber-800"
+                          }
+                        >
+                          {!isVisible
+                            ? "Скрыт или удалён"
+                            : post.showInFeed
+                              ? "В ленте"
+                              : "Только в профиле"}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-sm text-zinc-500">
                         {formatFeedDate(post.createdAt)}
                       </p>
-                      <span
-                        className={
-                          !isVisible
-                            ? "mt-2 inline-flex border border-zinc-200 px-2 py-1 text-xs text-zinc-500"
-                            : post.showInFeed
-                              ? "mt-2 inline-flex border border-emerald-200 px-2 py-1 text-xs text-emerald-800"
-                              : "mt-2 inline-flex border border-amber-200 px-2 py-1 text-xs text-amber-800"
-                        }
-                      >
-                        {!isVisible
-                          ? "Скрыт или удалён"
-                          : post.showInFeed
-                            ? "В общей ленте"
-                            : "Только в профиле"}
-                      </span>
                     </div>
-                    {isVisible ? (
-                      <Link
-                        href={`/posts/${post.id}`}
-                        className="text-sm text-zinc-600 hover:text-zinc-950"
-                      >
-                        Открыть
-                      </Link>
-                    ) : (
-                      <span className="text-sm text-zinc-400">
-                        Публикация скрыта и не открывается публично.
-                      </span>
-                    )}
                   </div>
 
-                  <p className="mt-4 line-clamp-4 text-sm leading-6 whitespace-pre-wrap text-zinc-700">
+                  <p className="mt-4 line-clamp-4 text-base leading-7 whitespace-pre-wrap text-zinc-700">
                     {post.content}
                   </p>
 
@@ -102,21 +101,57 @@ export default async function MyPostsPage() {
                     <img
                       src={post.imageUrl}
                       alt={resolvedAlt}
-                      className="mt-4 max-h-72 w-full border border-zinc-200 object-cover"
+                      className="mt-4 max-h-80 w-full border border-zinc-200 object-cover"
                     />
                   ) : null}
 
-                  <div className="mt-4 flex flex-wrap gap-3 text-sm text-zinc-600">
-                    {post.team ? <span>Команда: {post.team.name}</span> : null}
+                  <div className="mt-4 flex flex-wrap gap-2 text-sm text-zinc-600">
+                    {post.team ? (
+                      <Link
+                        href={`/teams/${post.team.slug}`}
+                        className="border border-zinc-200 px-2 py-1 hover:border-zinc-950 hover:text-zinc-950"
+                      >
+                        Команда: {post.team.name}
+                      </Link>
+                    ) : null}
                     {post.event ? (
-                      <span>Мероприятие: {post.event.title}</span>
+                      <Link
+                        href={`/events/${post.event.slug}`}
+                        className="border border-zinc-200 px-2 py-1 hover:border-zinc-950 hover:text-zinc-950"
+                      >
+                        Мероприятие: {post.event.title}
+                      </Link>
                     ) : null}
                     {post.object ? (
-                      <span>Объект: {post.object.name}</span>
+                      <Link
+                        href={`/objects/${post.object.slug}`}
+                        className="border border-zinc-200 px-2 py-1 hover:border-zinc-950 hover:text-zinc-950"
+                      >
+                        Объект: {post.object.name}
+                      </Link>
                     ) : null}
-                    <span>Просмотров: {post.viewsCount}</span>
-                    <span>Лайков: {post._count.likes}</span>
-                    <span>Комментариев: {post._count.comments}</span>
+                  </div>
+
+                  <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-zinc-200 pt-4 text-sm">
+                    <div className="flex flex-wrap gap-4 text-zinc-500">
+                      <span>{post.viewsCount} просмотров</span>
+                      <span>{post._count.likes} лайков</span>
+                      <span>{post._count.comments} комментариев</span>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-3">
+                      {isVisible ? (
+                        <Link
+                          href={`/posts/${post.id}`}
+                          className="font-medium text-zinc-700 hover:text-zinc-950"
+                        >
+                          Открыть
+                        </Link>
+                      ) : (
+                        <span className="text-zinc-400">
+                          Публикация скрыта или удалена.
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   {isVisible ? (
@@ -132,10 +167,11 @@ export default async function MyPostsPage() {
         ) : (
           <section className="border border-zinc-200 bg-white p-6">
             <h2 className="text-xl font-semibold text-zinc-950">
-              Публикаций пока нет
+              У вас пока нет публикаций
             </h2>
             <p className="mt-2 text-sm leading-6 text-zinc-600">
-              Создайте первый пост в ленте сообщества.
+              Создайте пост — он может попасть в общую ленту или остаться только
+              в профиле.
             </p>
             <Link
               href="/feed/new"

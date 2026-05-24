@@ -316,7 +316,9 @@ export default async function PublicProfilePage({
               ))}
             </div>
           ) : (
-            <p className="mt-3 text-sm text-zinc-600">Публикаций пока нет.</p>
+            <p className="mt-3 text-sm leading-6 text-zinc-600">
+              Участник пока не публиковал истории, отчёты или заметки.
+            </p>
           )}
         </section>
       </div>
