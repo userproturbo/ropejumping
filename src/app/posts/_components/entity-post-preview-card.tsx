@@ -1,6 +1,8 @@
 /* eslint-disable @typescript-eslint/prefer-nullish-coalescing */
 import Link from "next/link";
 
+import { PostAuthorAvatar } from "@/app/_components/post-author-avatar";
+
 type EntityPostPreviewCardProps = {
   isPinned: boolean;
   post: {
@@ -63,6 +65,7 @@ export const EntityPostPreviewCard = ({
     profile?.username ??
     post.author.name ??
     "Участник без имени";
+  const avatarUrl = profile?.avatarUrl ?? post.author.image ?? null;
   const resolvedAlt =
     post.imageMedia?.alt ||
     (post.event
@@ -78,8 +81,13 @@ export const EntityPostPreviewCard = ({
       href={`/posts/${post.id}`}
       className="block border border-zinc-200 p-4 hover:border-zinc-950"
     >
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
+      <div className="flex items-start gap-3">
+        <PostAuthorAvatar
+          imageUrl={avatarUrl}
+          label={authorDisplayName}
+          size="sm"
+        />
+        <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <p className="text-sm font-medium text-zinc-950">
               {authorDisplayName}
@@ -95,10 +103,6 @@ export const EntityPostPreviewCard = ({
             <span>{formatPostDate.format(post.createdAt)}</span>
           </div>
         </div>
-        <span className="text-xs text-zinc-500">
-          {post.viewsCount} просмотров · {post._count.likes} лайков ·{" "}
-          {post._count.comments} комментариев
-        </span>
       </div>
 
       <p className="mt-3 text-sm leading-6 whitespace-pre-wrap text-zinc-600">
@@ -115,12 +119,30 @@ export const EntityPostPreviewCard = ({
       ) : null}
 
       {showLinkedEntities && (post.team || post.event || post.object) ? (
-        <div className="mt-4 flex flex-wrap gap-3 text-sm text-zinc-600">
-          {post.team ? <span>Команда: {post.team.name}</span> : null}
-          {post.event ? <span>Мероприятие: {post.event.title}</span> : null}
-          {post.object ? <span>Объект: {post.object.name}</span> : null}
+        <div className="mt-4 flex flex-wrap gap-2 text-sm text-zinc-600">
+          {post.team ? (
+            <span className="border border-zinc-200 px-2 py-1">
+              Команда: {post.team.name}
+            </span>
+          ) : null}
+          {post.event ? (
+            <span className="border border-zinc-200 px-2 py-1">
+              Мероприятие: {post.event.title}
+            </span>
+          ) : null}
+          {post.object ? (
+            <span className="border border-zinc-200 px-2 py-1">
+              Объект: {post.object.name}
+            </span>
+          ) : null}
         </div>
       ) : null}
+
+      <div className="mt-4 flex flex-wrap gap-4 border-t border-zinc-200 pt-3 text-xs text-zinc-500">
+        <span>{post.viewsCount} просмотров</span>
+        <span>{post._count.likes} лайков</span>
+        <span>{post._count.comments} комментариев</span>
+      </div>
     </Link>
   );
 };

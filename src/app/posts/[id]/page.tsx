@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { PostAuthorAvatar } from "@/app/_components/post-author-avatar";
 import { getCurrentUser } from "@/server/auth/session";
 import { api } from "@/trpc/server";
 
@@ -31,6 +32,9 @@ export default async function PostPage({ params }: PostPageProps) {
 
   const profile = user ? await api.profile.getMine() : null;
   const isPostAuthor = user?.id === post.author.id;
+  const authorName = getAuthorName(post.author);
+  const authorAvatar =
+    post.author.profile?.avatarUrl ?? post.author.image ?? null;
   const resolvedAlt =
     post.imageMedia?.alt ||
     (post.event
@@ -46,37 +50,42 @@ export default async function PostPage({ params }: PostPageProps) {
       <PostViewTracker postId={post.id} />
       <div className="mx-auto w-full max-w-3xl px-6 py-10">
         <article className="border border-zinc-200 bg-white p-6">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <p className="font-medium text-zinc-950">
-                {getAuthorName(post.author)}
-              </p>
-              <p className="mt-1 text-sm text-zinc-500">
-                {formatFeedDate(post.createdAt)}
-              </p>
-              {!post.showInFeed && isPostAuthor ? (
-                <span className="mt-2 inline-flex border border-amber-200 px-2 py-1 text-xs text-amber-800">
-                  Без общей ленты
-                </span>
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="flex min-w-0 items-start gap-3">
+              <PostAuthorAvatar imageUrl={authorAvatar} label={authorName} />
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="font-medium text-zinc-950">{authorName}</p>
+                  {!post.showInFeed && isPostAuthor ? (
+                    <span className="inline-flex border border-amber-200 px-2 py-1 text-xs text-amber-800">
+                      Без общей ленты
+                    </span>
+                  ) : null}
+                </div>
+                <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-zinc-500">
+                  {post.author.profile?.username ? (
+                    <span>@{post.author.profile.username}</span>
+                  ) : null}
+                  <span>{formatFeedDate(post.createdAt)}</span>
+                </div>
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-3 text-sm">
+              <Link href="/feed" className="text-zinc-600 hover:text-zinc-950">
+                Лента
+              </Link>
+              {user ? (
+                <Link
+                  href={`/reports/new?targetType=POST&targetId=${post.id}`}
+                  className="text-zinc-600 hover:text-zinc-950"
+                >
+                  Пожаловаться
+                </Link>
               ) : null}
             </div>
-            <Link
-              href="/feed"
-              className="text-sm text-zinc-600 hover:text-zinc-950"
-            >
-              Лента
-            </Link>
-            {user ? (
-              <Link
-                href={`/reports/new?targetType=POST&targetId=${post.id}`}
-                className="text-sm text-zinc-600 hover:text-zinc-950"
-              >
-                Пожаловаться
-              </Link>
-            ) : null}
           </div>
 
-          <p className="mt-4 text-sm leading-6 whitespace-pre-wrap text-zinc-700">
+          <p className="mt-5 text-base leading-7 whitespace-pre-wrap text-zinc-700">
             {post.content}
           </p>
 
@@ -89,11 +98,11 @@ export default async function PostPage({ params }: PostPageProps) {
             />
           ) : null}
 
-          <div className="mt-4 flex flex-wrap gap-3 text-sm text-zinc-600">
+          <div className="mt-4 flex flex-wrap gap-2 text-sm text-zinc-600">
             {post.team ? (
               <Link
                 href={`/teams/${post.team.slug}`}
-                className="hover:text-zinc-950"
+                className="border border-zinc-200 px-2 py-1 hover:border-zinc-950 hover:text-zinc-950"
               >
                 Команда: {post.team.name}
               </Link>
@@ -101,7 +110,7 @@ export default async function PostPage({ params }: PostPageProps) {
             {post.event ? (
               <Link
                 href={`/events/${post.event.slug}`}
-                className="hover:text-zinc-950"
+                className="border border-zinc-200 px-2 py-1 hover:border-zinc-950 hover:text-zinc-950"
               >
                 Мероприятие: {post.event.title}
               </Link>
@@ -109,17 +118,17 @@ export default async function PostPage({ params }: PostPageProps) {
             {post.object ? (
               <Link
                 href={`/objects/${post.object.slug}`}
-                className="hover:text-zinc-950"
+                className="border border-zinc-200 px-2 py-1 hover:border-zinc-950 hover:text-zinc-950"
               >
                 Объект: {post.object.name}
               </Link>
             ) : null}
           </div>
 
-          <div className="mt-4 flex flex-wrap gap-4 text-sm text-zinc-500">
-            <span>Просмотров: {post.viewsCount}</span>
-            <span>Лайков: {post._count.likes}</span>
-            <span>Комментариев: {post._count.comments}</span>
+          <div className="mt-5 flex flex-wrap gap-4 border-t border-zinc-200 pt-4 text-sm text-zinc-500">
+            <span>{post.viewsCount} просмотров</span>
+            <span>{post._count.likes} лайков</span>
+            <span>{post._count.comments} комментариев</span>
           </div>
 
           {isPostAuthor ? (

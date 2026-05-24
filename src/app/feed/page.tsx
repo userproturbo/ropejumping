@@ -253,10 +253,14 @@ export default async function FeedPage({ searchParams }: FeedPageProps) {
         ) : (
           <section className="border border-zinc-200 bg-white p-6">
             <h2 className="text-xl font-semibold text-zinc-950">
-              Постов по выбранным фильтрам не найдено
+              {activeChips.length > 0
+                ? "Постов по выбранным фильтрам не найдено"
+                : "В ленте пока нет публикаций."}
             </h2>
             <p className="mt-2 text-sm leading-6 text-zinc-600">
-              Попробуйте убрать часть фильтров или изменить поисковый запрос.
+              {activeChips.length > 0
+                ? "Попробуйте убрать часть фильтров или изменить поисковый запрос."
+                : "Будьте первым, кто расскажет о выезде, объекте или впечатлении."}
             </p>
           </section>
         )}
