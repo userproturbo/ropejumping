@@ -9,6 +9,7 @@ import { db } from "@/server/db";
 import { isModeratorUser } from "@/server/moderation/permissions";
 import { api } from "@/trpc/server";
 
+import { AnimatedLogo } from "./animated-logo";
 import { SiteMobileMenu, type MobileMenuSection } from "./site-mobile-menu";
 import { ThemeToggle } from "./theme-toggle";
 
@@ -122,9 +123,9 @@ export async function AppShell({ children }: AppShellProps) {
         <div className="flex min-h-16 items-center justify-between gap-4 px-4 py-3">
           <Link
             href="/"
-            className="font-brand inline-block text-2xl leading-none tracking-[0.06em] text-[var(--app-text)]"
+            className="block w-[150px] max-w-[52vw] text-[var(--app-text)] [--logo-color:var(--app-text)]"
           >
-            ropejumping
+            <AnimatedLogo replayOnClick={false} />
           </Link>
           <SiteMobileMenu
             authAction={
@@ -147,12 +148,12 @@ export async function AppShell({ children }: AppShellProps) {
 
       <div className="hidden border-b border-[var(--app-border)] bg-[var(--app-bg)] lg:block">
         <div className="mx-auto grid w-full max-w-[1500px] grid-cols-[220px_minmax(0,1fr)_280px] px-5 xl:grid-cols-[240px_minmax(0,1fr)_300px]">
-          <div className="col-span-2 px-3 py-7">
+          <div className="col-span-2 flex items-center justify-between gap-6 px-3 py-5">
             <Link
               href="/"
-              className="font-brand inline-block w-fit text-7xl leading-none tracking-[0.08em] text-[var(--app-text)] xl:text-8xl"
+              className="block w-[min(620px,55vw)] max-w-full text-[var(--app-text)] [--logo-color:var(--app-text)] xl:w-[min(700px,55vw)]"
             >
-              ropejumping
+              <AnimatedLogo replayOnClick={false} />
             </Link>
           </div>
         </div>

@@ -1,0 +1,57 @@
+.logo {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: 100%;
+  overflow: visible;
+  color: var(--logo-color, #080808);
+  --logo-shadow-color: rgba(220, 20, 20, 0.76);
+}
+
+.isReplayable {
+  cursor: pointer;
+}
+
+.logoShape path,
+.logoFinal path {
+  fill: currentColor;
+}
+
+.logoFinal {
+  color: var(--logo-color, #080808);
+}
+
+.logoShadow {
+  color: var(--logo-shadow-color, rgba(220, 20, 20, 0.76));
+  opacity: 0;
+  transform: translate(2.5px, 3.5px);
+  transition: opacity 1.45s cubic-bezier(0.22, 1, 0.36, 1);
+  pointer-events: none;
+  will-change: opacity;
+}
+
+.isFinished .logoShadow {
+  opacity: 1;
+}
+
+.logoShadow path,
+.logoFinal path {
+  fill: currentColor;
+}
+
+.sprayLayer {
+  color: var(--logo-color, #080808);
+  pointer-events: none;
+}
+
+.sprayLayer circle {
+  fill: currentColor;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .logoShadow {
+    transition: none;
+  }
+}
