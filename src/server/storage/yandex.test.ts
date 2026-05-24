@@ -65,3 +65,37 @@ describe("Yandex storage image keys", () => {
     expect(isManagedMediaKey("")).toBe(false);
   });
 });
+
+describe("Yandex storage radio keys", () => {
+  it("creates structured radio audio object keys", async () => {
+    const { createRadioAudioObjectKey } = await import(
+      "@/server/storage/yandex"
+    );
+
+    const key = createRadioAudioObjectKey({
+      contentType: "audio/mpeg",
+      date: new Date("2026-05-24T12:00:00.000Z"),
+      fileName: " bridge mix!.mp3 ",
+    });
+
+    expect(key).toMatch(
+      /^radio\/audio\/2026\/05\/_bridge_mix_-[a-f0-9]{32}\.mp3$/,
+    );
+  });
+
+  it("creates structured radio cover object keys", async () => {
+    const { createRadioCoverObjectKey } = await import(
+      "@/server/storage/yandex"
+    );
+
+    const key = createRadioCoverObjectKey({
+      contentType: "image/webp",
+      date: new Date("2026-05-24T12:00:00.000Z"),
+      fileName: "cover.webp",
+    });
+
+    expect(key).toMatch(
+      /^radio\/covers\/2026\/05\/cover-[a-f0-9]{32}\.webp$/,
+    );
+  });
+});

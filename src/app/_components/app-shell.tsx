@@ -11,6 +11,7 @@ import { api } from "@/trpc/server";
 
 import { AnimatedLogo } from "./animated-logo";
 import { SiteMobileMenu, type MobileMenuSection } from "./site-mobile-menu";
+import { SiteRadioPlayer } from "./site-radio-player";
 import { ThemeToggle } from "./theme-toggle";
 
 const mainLinks = [
@@ -36,6 +37,7 @@ const baseUserLinks = [
 ];
 
 const moderatorLink = { href: "/moderation", label: "Модерация" };
+const radioAdminLink = { href: "/admin/radio", label: "Радио" };
 const objectManagerRoles = [TeamRole.OWNER, TeamRole.ADMIN, TeamRole.ORGANIZER];
 
 type AppShellProps = {
@@ -100,7 +102,7 @@ export async function AppShell({ children }: AppShellProps) {
             : link,
         )
     : [];
-  const moderatorLinks = isModerator ? [moderatorLink] : [];
+  const moderatorLinks = isModerator ? [moderatorLink, radioAdminLink] : [];
   const userLabel = getUserLabel({ profile, user });
   const userSubLabel =
     profile?.username && profile.displayName
@@ -151,10 +153,11 @@ export async function AppShell({ children }: AppShellProps) {
           <div className="col-span-2 flex items-center justify-between gap-6 px-3 py-5">
             <Link
               href="/"
-              className="block w-[min(620px,55vw)] max-w-full text-[var(--app-text)] [--logo-color:var(--app-text)] xl:w-[min(700px,55vw)]"
+              className="block min-w-[280px] shrink w-[min(620px,55vw)] max-w-full text-[var(--app-text)] [--logo-color:var(--app-text)] xl:w-[min(700px,55vw)]"
             >
               <AnimatedLogo replayOnClick={false} />
             </Link>
+            <SiteRadioPlayer />
           </div>
         </div>
       </div>

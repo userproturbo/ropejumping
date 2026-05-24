@@ -12,6 +12,7 @@ import { objectLikeRouter } from "@/server/api/routers/object-like";
 import { objectRouter } from "@/server/api/routers/object";
 import { postRouter } from "@/server/api/routers/post";
 import { profileRouter } from "@/server/api/routers/profile";
+import { radioRouter } from "@/server/api/routers/radio";
 import { reportRouter } from "@/server/api/routers/report";
 import { systemRouter } from "@/server/api/routers/system";
 import { teamChatRouter } from "@/server/api/routers/team-chat";
@@ -41,6 +42,7 @@ export const appRouter = createTRPCRouter({
   object: objectRouter,
   post: postRouter,
   profile: profileRouter,
+  radio: radioRouter,
   report: reportRouter,
   system: systemRouter,
   teamChat: teamChatRouter,
