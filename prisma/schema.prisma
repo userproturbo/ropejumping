@@ -154,6 +154,12 @@ enum PostPinTargetType {
   OBJECT
 }
 
+enum RadioMood {
+  RELAX
+  ENERGETIC
+  FUN
+}
+
 enum AuditAction {
   TEAM_CREATED
   TEAM_UPDATED
@@ -253,6 +259,19 @@ model User {
   eventLogisticsJoins     EventLogisticsJoin[]
   eventChatReadStates     EventChatReadState[]
   teamChatReadStates      TeamChatReadState[]
+}
+
+model RadioTrack {
+  id        String    @id @default(cuid())
+  title     String
+  artist    String?
+  mood      RadioMood
+  audioUrl  String
+  coverUrl  String?
+  isActive  Boolean   @default(true)
+  sortOrder Int       @default(0)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 }
 
 model VerificationToken {

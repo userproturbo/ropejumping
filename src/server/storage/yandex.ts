@@ -10,7 +10,10 @@ import {
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 import { env } from "@/env";
-import type { AllowedImageContentType } from "@/lib/validation/upload";
+import type {
+  AllowedImageContentType,
+  AllowedRadioAudioContentType,
+} from "@/lib/validation/upload";
 
 const imageExtensions = {
   "image/jpeg": "jpg",
@@ -18,6 +21,16 @@ const imageExtensions = {
   "image/webp": "webp",
   "image/gif": "gif",
 } satisfies Record<AllowedImageContentType, string>;
+
+const radioAudioExtensions = {
+  "audio/mpeg": "mp3",
+  "audio/mp4": "m4a",
+  "audio/x-m4a": "m4a",
+  "audio/wav": "wav",
+  "audio/wave": "wav",
+  "audio/x-wav": "wav",
+  "audio/ogg": "ogg",
+} satisfies Record<AllowedRadioAudioContentType, string>;
 
 type YandexStorageConfig = {
   accessKeyId: string;
@@ -121,6 +134,58 @@ export const createImageObjectKey = ({
   ].join("/");
 };
 
+export const createRadioAudioObjectKey = ({
+  contentType,
+  date = new Date(),
+  fileName,
+}: {
+  contentType: AllowedRadioAudioContentType;
+  date?: Date;
+  fileName?: string;
+}) => {
+  const year = String(date.getUTCFullYear());
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const random = randomBytes(16).toString("hex");
+  const extension = radioAudioExtensions[contentType];
+  const safeName = fileName
+    ? sanitizeKeySegment(fileName.replace(/\.[^.]+$/, "")).slice(0, 80)
+    : "track";
+
+  return [
+    "radio",
+    "audio",
+    year,
+    month,
+    `${safeName || "track"}-${random}.${extension}`,
+  ].join("/");
+};
+
+export const createRadioCoverObjectKey = ({
+  contentType,
+  date = new Date(),
+  fileName,
+}: {
+  contentType: AllowedImageContentType;
+  date?: Date;
+  fileName?: string;
+}) => {
+  const year = String(date.getUTCFullYear());
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const random = randomBytes(16).toString("hex");
+  const extension = imageExtensions[contentType];
+  const safeName = fileName
+    ? sanitizeKeySegment(fileName.replace(/\.[^.]+$/, "")).slice(0, 80)
+    : "cover";
+
+  return [
+    "radio",
+    "covers",
+    year,
+    month,
+    `${safeName || "cover"}-${random}.${extension}`,
+  ].join("/");
+};
+
 export const getYandexStorageBucket = () => {
   const config = requireYandexStorageConfig();
 
@@ -147,6 +212,29 @@ export const createPresignedImagePutUrl = async ({
   key,
 }: {
   contentType: AllowedImageContentType;
+  key: string;
+}) => {
+  const { client, config } = getConfiguredYandexStorage();
+  const command = new PutObjectCommand({
+    Bucket: config.bucket,
+    Key: key,
+    ContentType: contentType,
+  });
+
+  const uploadUrl = await getSignedUrl(client, command, { expiresIn: 300 });
+
+  return {
+    bucket: config.bucket,
+    publicUrl: buildYandexStoragePublicUrl(key),
+    uploadUrl,
+  };
+};
+
+export const createPresignedObjectPutUrl = async ({
+  contentType,
+  key,
+}: {
+  contentType: string;
   key: string;
 }) => {
   const { client, config } = getConfiguredYandexStorage();

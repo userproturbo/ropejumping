@@ -5,6 +5,8 @@ import { MediaStatus, MediaType } from "@/generated/prisma/enums";
 import {
   imageUploadCreateInputSchema,
   mediaIdInputSchema,
+  radioAudioUploadCreateInputSchema,
+  radioCoverUploadCreateInputSchema,
 } from "@/lib/validation/upload";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import type { db as database } from "@/server/db";
@@ -14,7 +16,10 @@ import { requireModerator } from "@/server/moderation/permissions";
 import {
   createImageObjectKey,
   createPendingImageObjectKey,
+  createPresignedObjectPutUrl,
   createPresignedImagePutUrl,
+  createRadioAudioObjectKey,
+  createRadioCoverObjectKey,
   deleteYandexStorageObject,
   getYandexStorageBucket,
   isManagedMediaKey,
@@ -43,6 +48,72 @@ const ensureProfile = async (db: UploadRouterDb, userId: string) => {
 };
 
 export const uploadRouter = createTRPCRouter({
+  createRadioAudioUpload: protectedProcedure
+    .input(radioAudioUploadCreateInputSchema)
+    .mutation(async ({ ctx, input }) => {
+      requireModerator(ctx);
+
+      if (!isYandexStorageConfigured()) {
+        throw new TRPCError({
+          code: "PRECONDITION_FAILED",
+          message:
+            "Хранилище файлов не настроено. Заполните переменные Yandex Object Storage.",
+        });
+      }
+
+      const key = createRadioAudioObjectKey({
+        contentType: input.contentType,
+        fileName: input.fileName,
+      });
+      const { publicUrl, uploadUrl } = await createPresignedObjectPutUrl({
+        contentType: input.contentType,
+        key,
+      });
+
+      return {
+        headers: {
+          "Content-Type": input.contentType,
+        },
+        key,
+        method: "PUT" as const,
+        publicUrl,
+        uploadUrl,
+      };
+    }),
+
+  createRadioCoverUpload: protectedProcedure
+    .input(radioCoverUploadCreateInputSchema)
+    .mutation(async ({ ctx, input }) => {
+      requireModerator(ctx);
+
+      if (!isYandexStorageConfigured()) {
+        throw new TRPCError({
+          code: "PRECONDITION_FAILED",
+          message:
+            "Хранилище файлов не настроено. Заполните переменные Yandex Object Storage.",
+        });
+      }
+
+      const key = createRadioCoverObjectKey({
+        contentType: input.contentType,
+        fileName: input.fileName,
+      });
+      const { publicUrl, uploadUrl } = await createPresignedObjectPutUrl({
+        contentType: input.contentType,
+        key,
+      });
+
+      return {
+        headers: {
+          "Content-Type": input.contentType,
+        },
+        key,
+        method: "PUT" as const,
+        publicUrl,
+        uploadUrl,
+      };
+    }),
+
   createImageUpload: protectedProcedure
     .input(imageUploadCreateInputSchema)
     .mutation(async ({ ctx, input }) => {

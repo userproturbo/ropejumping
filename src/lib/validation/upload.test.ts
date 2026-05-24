@@ -2,8 +2,11 @@ import { describe, expect, it } from "vitest";
 
 import {
   imageUploadCreateInputSchema,
+  maxRadioAudioUploadSizeBytes,
   maxImageUploadSizeBytes,
   mediaIdInputSchema,
+  radioAudioUploadCreateInputSchema,
+  radioCoverUploadCreateInputSchema,
 } from "@/lib/validation/upload";
 
 const validUploadInput = {
@@ -126,5 +129,55 @@ describe("upload validation", () => {
 
   it("rejects invalid media ids", () => {
     expect(mediaIdInputSchema.safeParse("not-a-cuid").success).toBe(false);
+  });
+
+  it("accepts radio MP3 uploads", () => {
+    expect(
+      radioAudioUploadCreateInputSchema.safeParse({
+        contentType: "audio/mpeg",
+        fileName: "track.mp3",
+        sizeBytes: 1024,
+      }).success,
+    ).toBe(true);
+  });
+
+  it("accepts radio M4A uploads", () => {
+    expect(
+      radioAudioUploadCreateInputSchema.safeParse({
+        contentType: "audio/x-m4a",
+        fileName: "track.m4a",
+        sizeBytes: 1024,
+      }).success,
+    ).toBe(true);
+  });
+
+  it("rejects non-audio radio uploads", () => {
+    expect(
+      radioAudioUploadCreateInputSchema.safeParse({
+        contentType: "text/html",
+        fileName: "track.html",
+        sizeBytes: 1024,
+      }).success,
+    ).toBe(false);
+  });
+
+  it("rejects radio audio files above the size limit", () => {
+    expect(
+      radioAudioUploadCreateInputSchema.safeParse({
+        contentType: "audio/mpeg",
+        fileName: "track.mp3",
+        sizeBytes: maxRadioAudioUploadSizeBytes + 1,
+      }).success,
+    ).toBe(false);
+  });
+
+  it("accepts radio cover image uploads", () => {
+    expect(
+      radioCoverUploadCreateInputSchema.safeParse({
+        contentType: "image/webp",
+        fileName: "cover.webp",
+        sizeBytes: 1024,
+      }).success,
+    ).toBe(true);
   });
 });
