@@ -267,7 +267,6 @@ export default async function ObjectsPage({ searchParams }: ObjectsPageProps) {
         <FilterSummary
           chips={activeChips}
           resetHref="/objects"
-          resultCount={objects.length}
         />
 
         {objects.length > 0 ? (

@@ -235,7 +235,6 @@ export default async function FeedPage({ searchParams }: FeedPageProps) {
         <FilterSummary
           chips={activeChips}
           resetHref="/feed"
-          resultCount={posts.length}
         />
 
         {posts.length > 0 ? (
