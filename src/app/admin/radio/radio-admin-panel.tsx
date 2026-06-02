@@ -1,6 +1,12 @@
 "use client";
 
-import { useRef, useState, type ChangeEvent, type FormEvent } from "react";
+import {
+  useMemo,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type FormEvent,
+} from "react";
 
 import { RadioMood } from "@/generated/prisma/enums";
 import {
@@ -38,20 +44,29 @@ const emptyForm: RadioFormState = {
   mood: RadioMood.RELAX,
   audioUrl: "",
   coverUrl: "",
-  sortOrder: "0",
+  sortOrder: "",
   isActive: true,
 };
 
 export function RadioAdminPanel({ initialTracks }: RadioAdminPanelProps) {
+  const utils = api.useUtils();
   const [tracks, setTracks] = useState(initialTracks);
+  const [selectedPlaylist, setSelectedPlaylist] = useState<RadioMood>(
+    RadioMood.RELAX,
+  );
   const [createForm, setCreateForm] = useState<RadioFormState>(emptyForm);
   const [editingTrackId, setEditingTrackId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<RadioFormState>(emptyForm);
+  const [playlistMessage, setPlaylistMessage] = useState<string | null>(null);
+  const tracksByMood = useMemo(() => groupTracksByMood(tracks), [tracks]);
+  const selectedTracks = tracksByMood[selectedPlaylist];
 
   const createTrack = api.radio.create.useMutation({
     onSuccess: (track) => {
       setTracks((currentTracks) => sortTracks([...currentTracks, track]));
-      setCreateForm(emptyForm);
+      setCreateForm({ ...emptyForm, mood: selectedPlaylist });
+      setPlaylistMessage(null);
+      void utils.radio.listActive.invalidate();
     },
   });
   const updateTrack = api.radio.update.useMutation({
@@ -64,6 +79,8 @@ export function RadioAdminPanel({ initialTracks }: RadioAdminPanelProps) {
         ),
       );
       setEditingTrackId(null);
+      setPlaylistMessage(null);
+      void utils.radio.listActive.invalidate();
     },
   });
   const setActive = api.radio.setActive.useMutation({
@@ -75,12 +92,57 @@ export function RadioAdminPanel({ initialTracks }: RadioAdminPanelProps) {
           ),
         ),
       );
+      setPlaylistMessage(null);
+      void utils.radio.listActive.invalidate();
+    },
+  });
+  const deleteTrack = api.radio.delete.useMutation({
+    onSuccess: (track) => {
+      setTracks((currentTracks) =>
+        currentTracks.filter((currentTrack) => currentTrack.id !== track.id),
+      );
+      if (editingTrackId === track.id) {
+        setEditingTrackId(null);
+      }
+      setPlaylistMessage(null);
+      void utils.radio.listActive.invalidate();
+    },
+  });
+  const shufflePlaylist = api.radio.shufflePlaylist.useMutation({
+    onSuccess: (updatedTracks) => {
+      setTracks((currentTracks) =>
+        sortTracks(
+          currentTracks.map((currentTrack) => {
+            const updatedTrack = updatedTracks.find(
+              (track) => track.id === currentTrack.id,
+            );
+            return updatedTrack ?? currentTrack;
+          }),
+        ),
+      );
+      setPlaylistMessage("Порядок плейлиста обновлён.");
+      void utils.radio.listActive.invalidate();
     },
   });
 
   const handleCreate = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    createTrack.mutate(toRadioInput(createForm));
+    createTrack.mutate(
+      toRadioInput({
+        ...createForm,
+        mood: selectedPlaylist,
+        sortOrder:
+          createForm.sortOrder ||
+          String(getNextSortOrder(tracks, selectedPlaylist)),
+      }),
+    );
+  };
+
+  const selectPlaylist = (mood: RadioMood) => {
+    setSelectedPlaylist(mood);
+    setCreateForm((currentForm) => ({ ...currentForm, mood }));
+    setEditingTrackId(null);
+    setPlaylistMessage(null);
   };
 
   const startEditing = (track: RadioTrack) => {
@@ -101,16 +163,65 @@ export function RadioAdminPanel({ initialTracks }: RadioAdminPanelProps) {
     updateTrack.mutate({ id, ...toRadioInput(editForm) });
   };
 
+  const handleDelete = (track: RadioTrack) => {
+    const confirmed = window.confirm(
+      `Удалить трек «${getTrackTitle(track)}»? Это действие нельзя отменить.`,
+    );
+    if (!confirmed) return;
+
+    deleteTrack.mutate({ id: track.id });
+  };
+
+  const handleShufflePlaylist = () => {
+    shufflePlaylist.mutate(selectedPlaylist);
+  };
+
   return (
     <div className="grid gap-6">
+      <section className="border border-zinc-200 bg-white p-4 sm:p-6">
+        <h2 className="text-xl font-semibold text-zinc-950">Плейлисты радио</h2>
+        <div
+          className="mt-4 flex flex-wrap gap-2"
+          role="tablist"
+          aria-label="Плейлисты радио"
+        >
+          {moods.map((mood) => (
+            <button
+              key={mood}
+              type="button"
+              role="tab"
+              aria-selected={mood === selectedPlaylist}
+              onClick={() => selectPlaylist(mood)}
+              className={
+                mood === selectedPlaylist
+                  ? "border border-zinc-950 bg-zinc-950 px-4 py-2 text-sm font-medium text-white"
+                  : "border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:border-zinc-950 hover:text-zinc-950"
+              }
+            >
+              {radioMoodLabels[mood]}
+            </button>
+          ))}
+        </div>
+      </section>
+
       <section className="border border-zinc-200 bg-white p-6">
         <h2 className="text-xl font-semibold text-zinc-950">Новый трек</h2>
+        <p className="mt-1 text-sm text-zinc-500">
+          Плейлист: {radioMoodLabels[selectedPlaylist]}
+        </p>
         <RadioTrackForm
           formId="radio-create"
-          state={createForm}
+          state={{ ...createForm, mood: selectedPlaylist }}
           submitLabel={createTrack.isPending ? "Сохранение..." : "Добавить"}
           disabled={createTrack.isPending}
-          onChange={setCreateForm}
+          onChange={(state) => {
+            if (state.mood !== selectedPlaylist) {
+              selectPlaylist(state.mood);
+              return;
+            }
+
+            setCreateForm(state);
+          }}
           onSubmit={handleCreate}
         />
         {createTrack.error ? (
@@ -121,10 +232,31 @@ export function RadioAdminPanel({ initialTracks }: RadioAdminPanelProps) {
       </section>
 
       <section className="border border-zinc-200 bg-white p-6">
-        <h2 className="text-xl font-semibold text-zinc-950">Треки</h2>
-        {tracks.length > 0 ? (
-          <div className="mt-5 grid gap-4">
-            {tracks.map((track) => (
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="text-xl font-semibold text-zinc-950">
+              Треки плейлиста
+            </h2>
+            <p className="mt-1 text-sm text-zinc-500">
+              {radioMoodLabels[selectedPlaylist]} · {selectedTracks.length}{" "}
+              трек(ов)
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={handleShufflePlaylist}
+            disabled={shufflePlaylist.isPending || selectedTracks.length === 0}
+            className="border border-zinc-300 px-3 py-2 text-sm text-zinc-800 hover:border-zinc-950 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {shufflePlaylist.isPending ? "Перемешиваем..." : "Перемешать"}
+          </button>
+        </div>
+        {playlistMessage ? (
+          <p className="mt-3 text-sm text-emerald-700">{playlistMessage}</p>
+        ) : null}
+        {selectedTracks.length > 0 ? (
+          <div className="mt-5 grid gap-3">
+            {selectedTracks.map((track) => (
               <article key={track.id} className="border border-zinc-200 p-4">
                 {editingTrackId === track.id ? (
                   <>
@@ -158,9 +290,6 @@ export function RadioAdminPanel({ initialTracks }: RadioAdminPanelProps) {
                         <h3 className="font-medium text-zinc-950">
                           {getTrackTitle(track)}
                         </h3>
-                        <span className="border border-zinc-200 px-2 py-1 text-xs text-zinc-500">
-                          {radioMoodLabels[track.mood]}
-                        </span>
                         <span
                           className={
                             track.isActive
@@ -172,14 +301,14 @@ export function RadioAdminPanel({ initialTracks }: RadioAdminPanelProps) {
                         </span>
                       </div>
                       <p className="mt-2 break-all text-sm text-zinc-600">
-                        {track.audioUrl}
+                        Аудио: {track.audioUrl}
                       </p>
                       {track.coverUrl ? (
                         <p className="mt-1 break-all text-sm text-zinc-500">
                           Обложка: {track.coverUrl}
                         </p>
                       ) : null}
-                      <p className="mt-1 text-sm text-zinc-500">
+                      <p className="mt-1 text-xs text-zinc-400">
                         Порядок: {track.sortOrder}
                       </p>
                     </div>
@@ -204,15 +333,39 @@ export function RadioAdminPanel({ initialTracks }: RadioAdminPanelProps) {
                       >
                         {track.isActive ? "Выключить" : "Включить"}
                       </button>
+                      <button
+                        type="button"
+                        disabled={deleteTrack.isPending}
+                        onClick={() => handleDelete(track)}
+                        className="border border-red-200 px-3 py-2 text-sm text-red-700 hover:border-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        Удалить
+                      </button>
                     </div>
                   </div>
                 )}
               </article>
             ))}
           </div>
+        ) : tracks.length === 0 ? (
+          <p className="mt-3 text-sm text-zinc-600">
+            Треков пока нет. Добавьте первый трек для радио.
+          </p>
         ) : (
-          <p className="mt-3 text-sm text-zinc-600">Треков пока нет.</p>
+          <p className="mt-3 text-sm text-zinc-600">
+            В этом плейлисте пока нет треков.
+          </p>
         )}
+        {deleteTrack.error ? (
+          <p className="mt-3 text-sm text-red-700">
+            {deleteTrack.error.message}
+          </p>
+        ) : null}
+        {shufflePlaylist.error ? (
+          <p className="mt-3 text-sm text-red-700">
+            {shufflePlaylist.error.message}
+          </p>
+        ) : null}
       </section>
     </div>
   );
@@ -233,6 +386,14 @@ function RadioTrackForm({
   state: RadioFormState;
   submitLabel: string;
 }) {
+  const [isAudioUploading, setIsAudioUploading] = useState(false);
+  const [isCoverUploading, setIsCoverUploading] = useState(false);
+  const hasAudio = state.audioUrl.trim().length > 0;
+  const isSubmitDisabled =
+    disabled || isAudioUploading || isCoverUploading || !hasAudio;
+  const resolvedSubmitLabel =
+    isAudioUploading || isCoverUploading ? "Дождитесь загрузки..." : submitLabel;
+
   return (
     <form onSubmit={onSubmit} className="mt-5 grid gap-4">
       <div className="grid gap-2 sm:grid-cols-2">
@@ -255,7 +416,7 @@ function RadioTrackForm({
           htmlFor={`${formId}-mood`}
           className="grid gap-2 text-sm font-medium text-zinc-950"
         >
-          Настроение
+          Настроение / альбом
           <select
             id={`${formId}-mood`}
             value={state.mood}
@@ -271,37 +432,18 @@ function RadioTrackForm({
             ))}
           </select>
         </label>
-        <TextField
-          id={`${formId}-sortOrder`}
-          label="Порядок"
-          value={state.sortOrder}
-          type="number"
-          onChange={(sortOrder) => onChange({ ...state, sortOrder })}
-        />
       </div>
-      <TextField
-        id={`${formId}-audioUrl`}
-        label="Ссылка на аудио или загруженный файл"
-        value={state.audioUrl}
-        type="url"
-        required
-        onChange={(audioUrl) => onChange({ ...state, audioUrl })}
-      />
       <RadioAudioUploadField
+        hasAudio={hasAudio}
         id={`${formId}-audio-upload`}
         onUploaded={(audioUrl) => onChange({ ...state, audioUrl })}
-      />
-      <TextField
-        id={`${formId}-coverUrl`}
-        label="Ссылка на обложку или загруженный файл"
-        value={state.coverUrl}
-        type="url"
-        onChange={(coverUrl) => onChange({ ...state, coverUrl })}
+        onUploadStateChange={setIsAudioUploading}
       />
       <RadioCoverUploadField
         coverUrl={state.coverUrl}
         id={`${formId}-cover-upload`}
         onUploaded={(coverUrl) => onChange({ ...state, coverUrl })}
+        onUploadStateChange={setIsCoverUploading}
       />
       <label className="flex items-center gap-3 text-sm text-zinc-700">
         <input
@@ -314,23 +456,32 @@ function RadioTrackForm({
         />
         Активен
       </label>
+      {!hasAudio ? (
+        <p className="text-sm text-zinc-500">
+          Загрузите аудиофайл перед сохранением трека.
+        </p>
+      ) : null}
       <button
         type="submit"
-        disabled={disabled}
+        disabled={isSubmitDisabled}
         className="w-fit bg-zinc-950 px-4 py-2 text-sm text-white hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-400"
       >
-        {submitLabel}
+        {resolvedSubmitLabel}
       </button>
     </form>
   );
 }
 
 function RadioAudioUploadField({
+  hasAudio,
   id,
   onUploaded,
+  onUploadStateChange,
 }: {
+  hasAudio: boolean;
   id: string;
   onUploaded: (url: string) => void;
+  onUploadStateChange: (isUploading: boolean) => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
@@ -360,6 +511,7 @@ function RadioAudioUploadField({
 
     try {
       setIsPuttingFile(true);
+      onUploadStateChange(true);
       const upload = await createRadioAudioUpload.mutateAsync({
         contentType: file.type as (typeof allowedRadioAudioContentTypes)[number],
         fileName: file.name,
@@ -381,13 +533,17 @@ function RadioAudioUploadField({
       setError(getUploadErrorMessage(uploadError, "Не удалось загрузить аудио."));
     } finally {
       setIsPuttingFile(false);
+      onUploadStateChange(false);
       event.target.value = "";
     }
   };
 
   return (
     <div className="grid gap-3">
-      <p className="text-sm font-medium text-zinc-950">Аудиофайл</p>
+      <p className="text-sm font-medium text-zinc-950">
+        Аудиофайл{" "}
+        <span className="text-xs font-normal text-zinc-500">обязательно</span>
+      </p>
       <div className="flex flex-wrap items-center gap-3">
         <label
           htmlFor={id}
@@ -402,7 +558,7 @@ function RadioAudioUploadField({
         </label>
         {uploadedFileName ? (
           <span className="text-sm text-emerald-700">
-            Загружено: {uploadedFileName}
+            Аудио загружено, ссылка подставлена: {uploadedFileName}
           </span>
         ) : null}
       </div>
@@ -416,9 +572,11 @@ function RadioAudioUploadField({
         className="sr-only"
       />
       <p className="text-xs text-zinc-500">
-        Поддерживаются MP3, M4A, WAV и OGG. Максимум 80 МБ. Можно оставить
-        ручную ссылку выше как fallback.
+        Поддерживаются MP3, M4A, WAV и OGG. Максимум 80 МБ.
       </p>
+      {hasAudio && !uploadedFileName ? (
+        <p className="text-sm text-emerald-700">Аудио выбрано.</p>
+      ) : null}
       {error ? <p className="text-sm text-red-700">{error}</p> : null}
     </div>
   );
@@ -428,10 +586,12 @@ function RadioCoverUploadField({
   coverUrl,
   id,
   onUploaded,
+  onUploadStateChange,
 }: {
   coverUrl: string;
   id: string;
   onUploaded: (url: string) => void;
+  onUploadStateChange: (isUploading: boolean) => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
@@ -466,6 +626,7 @@ function RadioCoverUploadField({
 
     try {
       setIsPuttingFile(true);
+      onUploadStateChange(true);
       const upload = await createRadioCoverUpload.mutateAsync({
         contentType: file.type as (typeof allowedImageContentTypes)[number],
         fileName: file.name,
@@ -489,6 +650,7 @@ function RadioCoverUploadField({
       );
     } finally {
       setIsPuttingFile(false);
+      onUploadStateChange(false);
       event.target.value = "";
     }
   };
@@ -510,7 +672,7 @@ function RadioCoverUploadField({
         </label>
         {uploadedFileName ? (
           <span className="text-sm text-emerald-700">
-            Загружено: {uploadedFileName}
+            Обложка загружена, ссылка подставлена: {uploadedFileName}
           </span>
         ) : null}
       </div>
@@ -524,8 +686,7 @@ function RadioCoverUploadField({
         className="sr-only"
       />
       <p className="text-xs text-zinc-500">
-        Поддерживаются JPEG, PNG, WebP и GIF. Максимум 10 МБ. Можно оставить
-        ручную ссылку выше как fallback.
+        Поддерживаются JPEG, PNG, WebP и GIF. Максимум 10 МБ.
       </p>
       {coverUrl ? (
         <span
@@ -557,7 +718,14 @@ function TextField({
 }) {
   return (
     <label htmlFor={id} className="grid gap-2 text-sm font-medium text-zinc-950">
-      {label}
+      <span>
+        {label}
+        {required ? (
+          <span className="ml-1 text-xs font-normal text-zinc-500">
+            обязательно
+          </span>
+        ) : null}
+      </span>
       <input
         id={id}
         type={type}
@@ -587,6 +755,29 @@ function sortTracks(tracks: RadioTrack[]) {
     if (a.sortOrder !== b.sortOrder) return a.sortOrder - b.sortOrder;
     return a.createdAt.getTime() - b.createdAt.getTime();
   });
+}
+
+function groupTracksByMood(tracks: RadioTrack[]) {
+  return moods.reduce(
+    (accumulator, mood) => {
+      accumulator[mood] = sortTracks(
+        tracks.filter((track) => track.mood === mood),
+      );
+      return accumulator;
+    },
+    {
+      [RadioMood.RELAX]: [],
+      [RadioMood.ENERGETIC]: [],
+      [RadioMood.FUN]: [],
+    } as Record<RadioMood, RadioTrack[]>,
+  );
+}
+
+function getNextSortOrder(tracks: RadioTrack[], mood: RadioMood) {
+  const moodTracks = tracks.filter((track) => track.mood === mood);
+  if (moodTracks.length === 0) return 0;
+
+  return Math.max(...moodTracks.map((track) => track.sortOrder)) + 1;
 }
 
 function getTrackTitle(track: RadioTrack) {

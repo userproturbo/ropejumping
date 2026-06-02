@@ -13,6 +13,26 @@
     "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 }
 
+@keyframes radio-marquee {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-radio-marquee {
+  animation: radio-marquee 18s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-radio-marquee {
+    animation: none;
+  }
+}
+
 :root,
 html[data-theme="dark"] {
   --app-bg: #202020;
