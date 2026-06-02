@@ -213,7 +213,7 @@ describe("radioRouter", () => {
       { id: "clx0a1b2c0000abcd1234efgh" },
       { id: "clx0a1b2c0001abcd1234efgh" },
     ]);
-    const randomSpy = vi.spyOn(Math, "random").mockReturnValueOnce(0);
+    const randomSpy = vi.spyOn(Math, "random").mockReturnValue(0);
     const caller = createCaller(radioRouter)(
       createContext({ db, email: "moderator@example.com" }),
     );
