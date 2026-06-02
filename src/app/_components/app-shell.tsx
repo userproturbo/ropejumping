@@ -157,13 +157,15 @@ export async function AppShell({ children }: AppShellProps) {
 
         <div className="hidden border-b border-[var(--app-border)] bg-[var(--app-bg)] lg:block">
           <div className="mx-auto grid w-full max-w-[1500px] grid-cols-[220px_minmax(0,1fr)_280px] px-5 xl:grid-cols-[240px_minmax(0,1fr)_300px]">
-            <div className="col-span-2 grid min-h-[132px] grid-cols-[minmax(0,1fr)_auto] items-center gap-6 py-5 pr-3 pl-3">
+            <div className="col-span-2 flex min-h-[132px] items-center py-5 pl-3">
               <Link
                 href="/"
                 className="block min-w-[280px] w-[min(620px,55vw)] max-w-full text-[var(--app-text)] [--logo-color:var(--app-text)] xl:w-[min(700px,55vw)]"
               >
                 <AnimatedLogo replayOnClick={false} />
               </Link>
+            </div>
+            <div className="flex min-h-[132px] items-center justify-end py-5 pr-3">
               <SiteRadioPlayer variant="desktop" />
             </div>
           </div>

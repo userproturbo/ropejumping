@@ -17,6 +17,7 @@ import { useRadioPlayer } from "./radio-provider";
 type RadioTrack = RouterOutputs["radio"]["listActive"][number];
 
 const moods = [RadioMood.RELAX, RadioMood.ENERGETIC, RadioMood.FUN] as const;
+const radioProgressColor = "#a855f7";
 
 type SiteRadioPlayerProps = {
   variant?: "desktop" | "mobile";
@@ -36,6 +37,7 @@ export function SiteRadioPlayer({ variant = "desktop" }: SiteRadioPlayerProps) {
     togglePlayback,
     tracksByMood,
   } = useRadioPlayer();
+  const [hasInteracted, setHasInteracted] = useState(false);
   const statusText = isLoading
     ? "Загрузка..."
     : isError
@@ -43,7 +45,8 @@ export function SiteRadioPlayer({ variant = "desktop" }: SiteRadioPlayerProps) {
       : currentTrack
         ? getTrackTitle(currentTrack)
         : "Нет треков";
-  const isDesktopDrawerOpen = isPlaying || Boolean(playbackError);
+  const isDesktopDrawerOpen =
+    hasInteracted || isPlaying || Boolean(playbackError);
   const iconStyle = {
     WebkitMaskImage: `url(${isPlaying ? "/svg/pause.svg" : "/svg/play.svg"})`,
     maskImage: `url(${isPlaying ? "/svg/pause.svg" : "/svg/play.svg"})`,
@@ -54,6 +57,10 @@ export function SiteRadioPlayer({ variant = "desktop" }: SiteRadioPlayerProps) {
     WebkitMaskSize: "contain",
     maskSize: "contain",
   } satisfies CSSProperties;
+  const handleTogglePlayback = () => {
+    setHasInteracted(true);
+    togglePlayback();
+  };
 
   if (variant === "mobile") {
     if (!isLoading && !isError && !hasTracks) return null;
@@ -71,7 +78,7 @@ export function SiteRadioPlayer({ variant = "desktop" }: SiteRadioPlayerProps) {
             isPlaying={isPlaying}
             progress={progress}
             size="sm"
-            togglePlayback={togglePlayback}
+            togglePlayback={handleTogglePlayback}
           />
           <div className="min-w-0 flex-1">
             <p className="truncate text-[11px] font-semibold tracking-[0.08em] text-[var(--app-text-secondary)] uppercase">
@@ -104,17 +111,23 @@ export function SiteRadioPlayer({ variant = "desktop" }: SiteRadioPlayerProps) {
   return (
     <section
       aria-label="Радио"
-      className="relative hidden h-[96px] w-[360px] shrink-0 justify-self-end text-[var(--app-text)] xl:w-[420px] lg:block"
+      className="relative ml-auto hidden h-[96px] w-[360px] shrink-0 justify-self-end text-[var(--app-text)] xl:w-[420px] lg:block"
     >
       <div
         className={
           isDesktopDrawerOpen
-            ? "absolute top-1/2 right-[60px] flex min-h-[96px] max-w-[288px] -translate-y-1/2 translate-x-0 items-center overflow-hidden py-2.5 pr-6 pl-3 opacity-100 transition-[max-width,opacity,transform,padding] duration-300 ease-out xl:max-w-[348px]"
-            : "pointer-events-none absolute top-1/2 right-[60px] flex min-h-[96px] max-w-0 -translate-y-1/2 translate-x-4 items-center overflow-hidden py-2.5 pr-0 pl-0 opacity-0 transition-[max-width,opacity,transform,padding] duration-300 ease-out"
+            ? "absolute top-1/2 right-[60px] flex min-h-[96px] max-w-[288px] -translate-y-1/2 translate-x-0 items-center overflow-hidden py-2.5 pr-6 pl-3 opacity-100 transition-[max-width,opacity,transform,padding] duration-[450ms] ease-out xl:max-w-[348px]"
+            : "pointer-events-none absolute top-1/2 right-[60px] flex min-h-[96px] max-w-0 -translate-y-1/2 translate-x-3 items-center overflow-hidden py-2.5 pr-0 pl-0 opacity-0 transition-[max-width,opacity,transform,padding] duration-[450ms] ease-out"
         }
         aria-hidden={!isDesktopDrawerOpen}
       >
-        <div className="w-[248px] min-w-0 text-right xl:w-[308px]">
+        <div
+          className={
+            isDesktopDrawerOpen
+              ? "w-[248px] min-w-0 translate-x-0 text-right opacity-100 transition-[opacity,transform] delay-75 duration-[350ms] ease-out xl:w-[308px]"
+              : "w-[248px] min-w-0 translate-x-2 text-right opacity-0 transition-[opacity,transform] duration-200 ease-out xl:w-[308px]"
+          }
+        >
           <p className="truncate text-[11px] font-semibold tracking-[0.12em] text-[var(--app-text-secondary)] uppercase">
             Ropejumping радио
           </p>
@@ -152,7 +165,7 @@ export function SiteRadioPlayer({ variant = "desktop" }: SiteRadioPlayerProps) {
           isPlaying={isPlaying}
           progress={progress}
           size="md"
-          togglePlayback={togglePlayback}
+          togglePlayback={handleTogglePlayback}
         />
       </div>
     </section>
@@ -217,7 +230,8 @@ function CoverButton({
           strokeDashoffset={offset}
           strokeLinecap="round"
           strokeWidth={strokeWidth}
-          className="text-[var(--app-text)] transition-[stroke-dashoffset] duration-300"
+          className="transition-[stroke-dashoffset] duration-300"
+          style={{ color: radioProgressColor }}
         />
       </svg>
       <button
@@ -267,7 +281,7 @@ function MoodChip({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      aria-label={`Выбрать плейлист ${radioMoodLabels[mood]}`}
+      aria-label={radioMoodLabels[mood]}
       aria-pressed={isSelected}
       title={radioMoodLabels[mood]}
       tabIndex={tabIndex}
@@ -281,7 +295,7 @@ function MoodChip({
             }`
       }
     >
-      {compact ? getCompactMoodLabel(mood) : radioMoodLabels[mood]}
+      {compact ? getCompactMoodEmoji(mood) : radioMoodLabels[mood]}
     </button>
   );
 }
@@ -362,10 +376,10 @@ function MarqueeText({
   );
 }
 
-function getCompactMoodLabel(mood: RadioMood) {
-  if (mood === RadioMood.RELAX) return "Р";
-  if (mood === RadioMood.ENERGETIC) return "Б";
-  return "В";
+function getCompactMoodEmoji(mood: RadioMood) {
+  if (mood === RadioMood.RELAX) return "😇";
+  if (mood === RadioMood.ENERGETIC) return "😈";
+  return "🙃";
 }
 
 function getTrackTitle(track: RadioTrack) {
