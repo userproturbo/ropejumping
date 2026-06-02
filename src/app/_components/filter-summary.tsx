@@ -8,7 +8,7 @@ export type FilterChip = {
 type FilterSummaryProps = {
   chips: FilterChip[];
   resetHref: string;
-  resultCount: number;
+  resultCount?: number;
   resultLabel?: string;
 };
 
@@ -18,12 +18,16 @@ export function FilterSummary({
   resultCount,
   resultLabel = "Найдено",
 }: FilterSummaryProps) {
+  if (chips.length === 0 && resultCount === undefined) return null;
+
   return (
     <div className="mb-6 border border-zinc-200 bg-white p-4">
       <div className="flex flex-wrap items-center gap-3">
-        <p className="text-sm font-medium text-zinc-950">
-          {resultLabel}: {resultCount}
-        </p>
+        {resultCount !== undefined ? (
+          <p className="text-sm font-medium text-zinc-950">
+            {resultLabel}: {resultCount}
+          </p>
+        ) : null}
         {chips.length > 0 ? (
           <>
             <div className="flex flex-wrap gap-2">

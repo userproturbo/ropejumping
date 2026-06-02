@@ -202,7 +202,6 @@ export default async function TeamsPage({ searchParams }: TeamsPageProps) {
         <FilterSummary
           chips={activeChips}
           resetHref="/teams"
-          resultCount={teams.length}
         />
 
         {teams.length > 0 ? (

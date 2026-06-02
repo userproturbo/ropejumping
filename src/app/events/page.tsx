@@ -234,7 +234,6 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
         <FilterSummary
           chips={activeChips}
           resetHref="/events"
-          resultCount={events.length}
         />
 
         {events.length > 0 ? (
