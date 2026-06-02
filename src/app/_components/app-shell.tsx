@@ -127,7 +127,7 @@ export async function AppShell({ children }: AppShellProps) {
           <div className="flex min-h-16 items-center justify-between gap-4 px-4 py-3">
             <Link
               href="/"
-              className="block w-[150px] max-w-[52vw] text-[var(--app-text)] [--logo-color:var(--app-text)]"
+              className="block w-[clamp(180px,58vw,280px)] max-w-[calc(100vw-6rem)] text-[var(--app-text)] [--logo-color:var(--app-text)]"
             >
               <AnimatedLogo replayOnClick={false} />
             </Link>
@@ -160,7 +160,7 @@ export async function AppShell({ children }: AppShellProps) {
             <div className="col-span-2 flex min-h-[132px] items-center py-5 pl-3">
               <Link
                 href="/"
-                className="block min-w-[280px] w-[min(620px,55vw)] max-w-full text-[var(--app-text)] [--logo-color:var(--app-text)] xl:w-[min(700px,55vw)]"
+                className="block min-w-[280px] w-[min(720px,58vw)] max-w-full text-[var(--app-text)] [--logo-color:var(--app-text)] xl:w-[min(860px,58vw)]"
               >
                 <AnimatedLogo replayOnClick={false} />
               </Link>
