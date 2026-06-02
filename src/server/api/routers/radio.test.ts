@@ -55,6 +55,7 @@ const createDb = () => ({
     findMany: vi.fn().mockResolvedValue([activeRelaxTrack]),
     create: vi.fn().mockResolvedValue(activeRelaxTrack),
     update: vi.fn().mockResolvedValue({ ...activeRelaxTrack, isActive: false }),
+    delete: vi.fn().mockResolvedValue(activeRelaxTrack),
   },
 });
 
@@ -178,5 +179,74 @@ describe("radioRouter", () => {
 
     expect(tracks).not.toContainEqual(disabledFunTrack);
     expect(tracks).toEqual([activeRelaxTrack]);
+  });
+
+  it("allows moderators to delete tracks", async () => {
+    const db = createDb();
+    const caller = createCaller(radioRouter)(
+      createContext({ db, email: "moderator@example.com" }),
+    );
+
+    await caller.delete({ id: activeRelaxTrack.id });
+
+    expect(db.radioTrack.delete).toHaveBeenCalledWith({
+      where: { id: activeRelaxTrack.id },
+      select: expectedRadioTrackSelect,
+    });
+  });
+
+  it("rejects non-moderators deleting tracks", async () => {
+    const db = createDb();
+    const caller = createCaller(radioRouter)(
+      createContext({ db, email: "user@example.com" }),
+    );
+
+    await expect(caller.delete({ id: activeRelaxTrack.id })).rejects.toMatchObject({
+      code: "FORBIDDEN",
+    });
+    expect(db.radioTrack.delete).not.toHaveBeenCalled();
+  });
+
+  it("allows moderators to shuffle one playlist order", async () => {
+    const db = createDb();
+    db.radioTrack.findMany.mockResolvedValueOnce([
+      { id: "clx0a1b2c0000abcd1234efgh" },
+      { id: "clx0a1b2c0001abcd1234efgh" },
+    ]);
+    const randomSpy = vi.spyOn(Math, "random").mockReturnValueOnce(0);
+    const caller = createCaller(radioRouter)(
+      createContext({ db, email: "moderator@example.com" }),
+    );
+
+    await caller.shufflePlaylist(RadioMood.RELAX);
+
+    expect(db.radioTrack.findMany).toHaveBeenCalledWith({
+      where: { mood: RadioMood.RELAX },
+      orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+      select: { id: true },
+    });
+    expect(db.radioTrack.update).toHaveBeenNthCalledWith(1, {
+      where: { id: "clx0a1b2c0001abcd1234efgh" },
+      data: { sortOrder: 0 },
+      select: expectedRadioTrackSelect,
+    });
+    expect(db.radioTrack.update).toHaveBeenNthCalledWith(2, {
+      where: { id: "clx0a1b2c0000abcd1234efgh" },
+      data: { sortOrder: 1 },
+      select: expectedRadioTrackSelect,
+    });
+    randomSpy.mockRestore();
+  });
+
+  it("rejects non-moderators shuffling playlist order", async () => {
+    const db = createDb();
+    const caller = createCaller(radioRouter)(
+      createContext({ db, email: "user@example.com" }),
+    );
+
+    await expect(caller.shufflePlaylist(RadioMood.RELAX)).rejects.toMatchObject({
+      code: "FORBIDDEN",
+    });
+    expect(db.radioTrack.update).not.toHaveBeenCalled();
   });
 });
