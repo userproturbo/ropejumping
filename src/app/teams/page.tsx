@@ -41,6 +41,20 @@ const sortOptions = [
   { value: "followersDesc", label: "Больше подписчиков" },
 ];
 
+const formatRuCount = (
+  count: number,
+  forms: [one: string, few: string, many: string],
+) => {
+  const lastTwoDigits = count % 100;
+  const lastDigit = count % 10;
+
+  if (lastTwoDigits >= 11 && lastTwoDigits <= 14) return forms[2];
+  if (lastDigit === 1) return forms[0];
+  if (lastDigit >= 2 && lastDigit <= 4) return forms[1];
+
+  return forms[2];
+};
+
 export default async function TeamsPage({ searchParams }: TeamsPageProps) {
   const resolvedSearchParams = searchParams ? await searchParams : {};
   const { teams, availableRegions, filters } = await api.team.listPublic({
@@ -72,13 +86,13 @@ export default async function TeamsPage({ searchParams }: TeamsPageProps) {
   ].filter((chip): chip is FilterChip => Boolean(chip));
 
   return (
-    <main className="min-h-[calc(100vh-4rem)] bg-zinc-50">
-      <div className="mx-auto w-full max-w-5xl px-6 py-10">
+    <main className="min-h-[calc(100vh-4rem)] bg-[var(--app-bg)] text-[var(--app-text)]">
+      <div className="mx-auto w-full max-w-6xl px-5 py-8 sm:px-6 lg:py-10">
         <CollapsibleFilterPanel
           actions={
             <Link
               href="/teams/new"
-              className="border border-zinc-300 px-4 py-2 text-sm text-zinc-800 hover:border-zinc-950"
+              className="border border-[var(--app-border-strong)] px-4 py-2 text-sm text-[var(--app-text)] hover:border-[var(--app-text-muted)]"
             >
               Создать команду
             </Link>
@@ -86,15 +100,9 @@ export default async function TeamsPage({ searchParams }: TeamsPageProps) {
           activeCount={activeChips.length}
           defaultOpen={activeChips.length > 0}
           header={
-            <>
-              <h1 className="text-3xl font-semibold tracking-tight text-zinc-950">
-                Команды
-              </h1>
-              <p className="mt-2 text-sm text-zinc-600">
-                Команды роупджампинг-сообщества, зарегистрированные на
-                платформе.
-              </p>
-            </>
+            <p className="max-w-2xl text-base leading-6 text-[var(--app-text)]">
+              Команды роупджампинг-сообщества, зарегистрированные на платформе.
+            </p>
           }
         >
           <form action="/teams" method="get">
@@ -205,67 +213,60 @@ export default async function TeamsPage({ searchParams }: TeamsPageProps) {
         />
 
         {teams.length > 0 ? (
-          <div className="grid gap-4">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {teams.map((team) => (
               <Link
                 key={team.id}
                 href={`/teams/${team.slug}`}
-                className="block border border-zinc-200 bg-white p-5 hover:border-zinc-950"
+                className="block border border-[var(--app-border)] bg-[var(--app-surface)] p-4 transition hover:border-[var(--app-border-strong)]"
               >
-                <div
-                  className={
-                    team.logoUrl ? "grid gap-5 sm:grid-cols-[72px_1fr]" : ""
-                  }
-                >
-                  {team.logoUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={team.logoUrl}
-                      alt={
-                        team.logoMedia?.alt || `Логотип команды ${team.name}`
-                      }
-                      className="h-16 w-16 border border-zinc-200 object-cover"
-                    />
-                  ) : null}
-
-                  <div>
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <h2 className="text-xl font-semibold text-zinc-950">
-                          {team.name}
-                        </h2>
-                        <p className="mt-1 text-sm text-zinc-500">
-                          /teams/{team.slug}
-                        </p>
-                      </div>
-                      <span className="text-xs font-medium text-zinc-500">
-                        {getTeamStatusLabel(team.status)}
-                      </span>
-                    </div>
-                    <div className="mt-4 flex flex-wrap gap-3 text-sm text-zinc-600">
-                      {team.region ? <span>{team.region}</span> : null}
-                      <span>
-                        {team._count.members}{" "}
-                        {team._count.members === 1 ? "участник" : "участников"}
-                      </span>
-                      <span>Подписчиков: {team._count.followers}</span>
-                    </div>
-                    {team.description ? (
-                      <p className="mt-4 line-clamp-3 text-sm leading-6 text-zinc-600">
-                        {team.description}
-                      </p>
-                    ) : null}
+                {team.logoUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={team.logoUrl}
+                    alt={team.logoMedia?.alt || `Логотип команды ${team.name}`}
+                    className="h-16 w-16 border border-[var(--app-border)] object-cover"
+                  />
+                ) : (
+                  <div className="flex h-16 w-16 items-center justify-center border border-[var(--app-border)] bg-[var(--app-surface-muted)] text-lg font-semibold text-[var(--app-text-muted)]">
+                    {team.name.slice(0, 1)}
                   </div>
+                )}
+
+                <h2 className="mt-4 line-clamp-2 text-lg font-semibold leading-6 text-[var(--app-text)]">
+                  {team.name}
+                </h2>
+                <p className="mt-1 min-h-5 text-sm text-[var(--app-text-muted)]">
+                  {team.region || "Регион не указан"}
+                </p>
+                <div className="mt-4 grid gap-1.5 text-sm text-[var(--app-text-secondary)]">
+                  <span>
+                    {team._count.members}{" "}
+                    {formatRuCount(team._count.members, [
+                      "участник",
+                      "участника",
+                      "участников",
+                    ])}
+                  </span>
+                  <span>
+                    {team._count.followers}{" "}
+                    {formatRuCount(team._count.followers, [
+                      "подписчик",
+                      "подписчика",
+                      "подписчиков",
+                    ])}
+                  </span>
+                  <span>Мероприятий: {team._count.events}</span>
                 </div>
               </Link>
             ))}
           </div>
         ) : (
-          <section className="border border-zinc-200 bg-white p-6">
-            <h2 className="text-xl font-semibold text-zinc-950">
+          <section className="border border-[var(--app-border)] bg-[var(--app-surface)] p-6">
+            <h2 className="text-xl font-semibold text-[var(--app-text)]">
               Команд по выбранным фильтрам не найдено
             </h2>
-            <p className="mt-2 text-sm leading-6 text-zinc-600">
+            <p className="mt-2 text-sm leading-6 text-[var(--app-text-secondary)]">
               Попробуйте убрать часть фильтров или изменить поисковый запрос.
             </p>
           </section>

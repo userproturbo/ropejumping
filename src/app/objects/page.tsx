@@ -78,13 +78,13 @@ export default async function ObjectsPage({ searchParams }: ObjectsPageProps) {
   ].filter((chip): chip is FilterChip => Boolean(chip));
 
   return (
-    <main className="min-h-[calc(100vh-4rem)] bg-zinc-50">
-      <div className="mx-auto w-full max-w-5xl px-6 py-10">
+    <main className="min-h-[calc(100vh-4rem)] bg-[var(--app-bg)] text-[var(--app-text)]">
+      <div className="mx-auto w-full max-w-6xl px-5 py-8 sm:px-6 lg:py-10">
         <CollapsibleFilterPanel
           actions={
             <Link
               href="/objects/new"
-              className="border border-zinc-300 px-4 py-2 text-sm text-zinc-800 hover:border-zinc-950"
+              className="border border-[var(--app-border-strong)] px-4 py-2 text-sm text-[var(--app-text)] hover:border-[var(--app-text-muted)]"
             >
               Создать объект
             </Link>
@@ -92,18 +92,9 @@ export default async function ObjectsPage({ searchParams }: ObjectsPageProps) {
           activeCount={activeChips.length}
           defaultOpen={activeChips.length > 0}
           header={
-            <>
-              <h1 className="text-3xl font-semibold tracking-tight text-zinc-950">
-                Объекты
-              </h1>
-              <p className="mt-2 text-sm text-zinc-600">
-                Публичный каталог объектов с безопасным общим описанием.
-              </p>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-500">
-                В каталоге показываются только публичные описания объектов без
-                точных координат, способов доступа и технических деталей.
-              </p>
-            </>
+            <p className="max-w-2xl text-base leading-6 text-[var(--app-text)]">
+              Объекты
+            </p>
           }
         >
           <form action="/objects" method="get">
@@ -270,70 +261,52 @@ export default async function ObjectsPage({ searchParams }: ObjectsPageProps) {
         />
 
         {objects.length > 0 ? (
-          <div className="grid gap-4">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {objects.map((object) => (
-              <article
+              <Link
                 key={object.id}
-                className="border border-zinc-200 bg-white p-5"
+                href={`/objects/${object.slug}`}
+                className="block border border-[var(--app-border)] bg-[var(--app-surface)] p-4 transition hover:border-[var(--app-border-strong)]"
               >
-                <div className="grid gap-5 sm:grid-cols-[160px_1fr]">
-                  {object.coverImageUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={object.coverImageUrl}
-                      alt={
-                        object.coverMedia?.alt ||
-                        `Фото объекта «${object.name}»`
-                      }
-                      className="h-36 w-full object-cover sm:h-28"
-                    />
-                  ) : null}
-
-                  <div>
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <h2 className="text-xl font-semibold text-zinc-950">
-                          <Link
-                            href={`/objects/${object.slug}`}
-                            className="hover:text-zinc-700"
-                          >
-                            {object.name}
-                          </Link>
-                        </h2>
-                        <p className="mt-1 text-sm text-zinc-500">
-                          {getObjectTypeLabel(object.type)}
-                        </p>
-                      </div>
-                      <span className="text-xs font-medium text-zinc-500">
-                        Мероприятий: {object.events.length}
-                      </span>
-                    </div>
-
-                    <div className="mt-4 flex flex-wrap gap-3 text-sm text-zinc-600">
-                      {object.heightMeters ? (
-                        <span>{object.heightMeters} м</span>
-                      ) : null}
-                      {object.region ? <span>{object.region}</span> : null}
-                      {object.createdByTeam ? (
-                        <Link
-                          href={`/teams/${object.createdByTeam.slug}`}
-                          className="text-zinc-800 hover:text-zinc-950"
-                        >
-                          {object.createdByTeam.name}
-                        </Link>
-                      ) : null}
-                    </div>
+                {object.coverImageUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={object.coverImageUrl}
+                    alt={
+                      object.coverMedia?.alt || `Фото объекта «${object.name}»`
+                    }
+                    className="aspect-[4/3] w-full border border-[var(--app-border)] object-cover"
+                  />
+                ) : (
+                  <div className="flex aspect-[4/3] w-full items-center justify-center border border-[var(--app-border)] bg-[var(--app-surface-muted)] text-sm text-[var(--app-text-muted)]">
+                    Фото не добавлено
                   </div>
+                )}
+
+                <h2 className="mt-4 line-clamp-2 text-lg font-semibold leading-6 text-[var(--app-text)]">
+                  {object.name}
+                </h2>
+                <p className="mt-1 text-sm text-[var(--app-text-muted)]">
+                  {getObjectTypeLabel(object.type)}
+                </p>
+                <div className="mt-4 grid gap-1.5 text-sm text-[var(--app-text-secondary)]">
+                  <span>{object.region || "Регион не указан"}</span>
+                  <span>
+                    {object.heightMeters
+                      ? `${object.heightMeters} м`
+                      : "Высота не указана"}
+                  </span>
+                  <span>Мероприятий: {object.events.length}</span>
                 </div>
-              </article>
+              </Link>
             ))}
           </div>
         ) : (
-          <section className="border border-zinc-200 bg-white p-6">
-            <h2 className="text-xl font-semibold text-zinc-950">
+          <section className="border border-[var(--app-border)] bg-[var(--app-surface)] p-6">
+            <h2 className="text-xl font-semibold text-[var(--app-text)]">
               Объектов по выбранным фильтрам не найдено
             </h2>
-            <p className="mt-2 text-sm leading-6 text-zinc-600">
+            <p className="mt-2 text-sm leading-6 text-[var(--app-text-secondary)]">
               Попробуйте убрать часть фильтров или изменить поисковый запрос.
             </p>
           </section>

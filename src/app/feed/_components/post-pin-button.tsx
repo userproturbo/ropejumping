@@ -43,7 +43,7 @@ export function PostPinButton({ isPinned, postId, target }: PostPinButtonProps) 
         type="button"
         disabled={mutation.isPending}
         onClick={handleClick}
-        className="text-sm text-zinc-600 hover:text-zinc-950 disabled:cursor-not-allowed disabled:text-zinc-400"
+        className="text-sm text-[var(--app-text-secondary)] hover:text-[var(--app-text)] disabled:cursor-not-allowed disabled:text-[var(--app-muted)]"
       >
         {mutation.isPending
           ? "Сохранение..."

@@ -94,13 +94,9 @@ export const profileRouter = createTRPCRouter({
           user: {
             select: {
               name: true,
-              badges: {
-                take: 3,
-                orderBy: {
-                  awardedAt: "desc",
-                },
-                include: {
-                  badge: true,
+              _count: {
+                select: {
+                  badges: true,
                 },
               },
             },

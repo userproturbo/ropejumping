@@ -30,7 +30,7 @@ export function CollapsibleFilterPanel({
             aria-controls={panelId}
             aria-expanded={isOpen}
             onClick={() => setIsOpen((current) => !current)}
-            className="border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-800 hover:border-zinc-950"
+            className="border border-[var(--app-border-strong)] bg-[var(--app-surface)] px-4 py-2 text-sm font-medium text-[var(--app-text)] hover:border-[var(--app-muted)] hover:bg-[var(--app-surface-muted)]"
           >
             Фильтры{activeCount > 0 ? `: ${activeCount}` : ""}
           </button>
@@ -41,12 +41,14 @@ export function CollapsibleFilterPanel({
       {isOpen ? (
         <section
           id={panelId}
-          className="mb-6 border border-zinc-200 bg-white p-5"
+          className="theme-filter-panel mb-6 border border-[var(--app-border)] bg-[var(--app-surface)] p-5"
         >
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <h2 className="text-sm font-medium text-zinc-950">Фильтры</h2>
+            <h2 className="text-sm font-medium text-[var(--app-text)]">
+              Фильтры
+            </h2>
             {activeCount > 0 ? (
-              <span className="text-sm text-zinc-500">
+              <span className="text-sm text-[var(--app-muted)]">
                 {activeCount} {getActiveFilterLabel(activeCount)}
               </span>
             ) : null}

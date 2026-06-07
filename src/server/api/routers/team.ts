@@ -252,6 +252,13 @@ export const teamRouter = createTRPCRouter({
               select: {
                 members: true,
                 followers: true,
+                events: {
+                  where: {
+                    status: {
+                      in: publicEventStatuses,
+                    },
+                  },
+                },
               },
             },
           },
