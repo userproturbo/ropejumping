@@ -93,13 +93,13 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
   ].filter((chip): chip is FilterChip => Boolean(chip));
 
   return (
-    <main className="min-h-[calc(100vh-4rem)] bg-zinc-50">
-      <div className="mx-auto w-full max-w-5xl px-6 py-10">
+    <main className="min-h-[calc(100vh-4rem)] bg-[var(--app-bg)] text-[var(--app-text)]">
+      <div className="mx-auto w-full max-w-5xl px-5 py-8 sm:px-6 lg:py-10">
         <CollapsibleFilterPanel
           actions={
             <Link
               href="/events/new"
-              className="border border-zinc-300 px-4 py-2 text-sm text-zinc-800 hover:border-zinc-950"
+              className="border border-[var(--app-border-strong)] px-4 py-2 text-sm text-[var(--app-text)] hover:border-[var(--app-text-muted)]"
             >
               Создать мероприятие
             </Link>
@@ -107,14 +107,9 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
           activeCount={activeChips.length}
           defaultOpen={activeChips.length > 0}
           header={
-            <>
-              <h1 className="text-3xl font-semibold tracking-tight text-zinc-950">
-                Мероприятия
-              </h1>
-              <p className="mt-2 text-sm text-zinc-600">
-                Открытые мероприятия роупджампинг-сообщества.
-              </p>
-            </>
+            <p className="max-w-2xl text-base leading-6 text-[var(--app-text)]">
+              Открытые мероприятия роупджампинг-сообщества.
+            </p>
           }
         >
           <form action="/events" method="get">
@@ -242,22 +237,53 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
               <Link
                 key={event.id}
                 href={`/events/${event.slug}`}
-                className="block border border-zinc-200 bg-white p-5 hover:border-zinc-950"
+                className="block border border-[var(--app-border)] bg-[var(--app-surface)] bg-cover bg-center p-5 transition hover:border-[var(--app-border-strong)]"
+                style={
+                  event.coverImageUrl
+                    ? {
+                        backgroundImage: `linear-gradient(90deg, rgb(0 0 0 / 0.78), rgb(0 0 0 / 0.48)), url("${event.coverImageUrl}")`,
+                      }
+                    : undefined
+                }
               >
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <h2 className="text-xl font-semibold text-zinc-950">
+                    <h2
+                      className={
+                        event.coverImageUrl
+                          ? "text-xl font-semibold text-white"
+                          : "text-xl font-semibold text-[var(--app-text)]"
+                      }
+                    >
                       {event.title}
                     </h2>
-                    <p className="mt-1 text-sm text-zinc-500">
+                    <p
+                      className={
+                        event.coverImageUrl
+                          ? "mt-1 text-sm text-zinc-200"
+                          : "mt-1 text-sm text-[var(--app-text-muted)]"
+                      }
+                    >
                       {formatEventDateRange(event.startsAt, event.endsAt)}
                     </p>
                   </div>
-                  <span className="border border-zinc-200 px-2 py-1 text-xs font-medium text-zinc-600">
+                  <span
+                    className={
+                      event.coverImageUrl
+                        ? "border border-white/30 bg-black/25 px-2 py-1 text-xs font-medium text-white"
+                        : "border border-[var(--app-border)] px-2 py-1 text-xs font-medium text-[var(--app-text-secondary)]"
+                    }
+                  >
                     {getEventStatusLabel(event.status)}
                   </span>
                 </div>
-                <div className="mt-4 flex flex-wrap gap-3 text-sm text-zinc-600">
+                <div
+                  className={
+                    event.coverImageUrl
+                      ? "mt-4 flex flex-wrap gap-3 text-sm text-zinc-100"
+                      : "mt-4 flex flex-wrap gap-3 text-sm text-[var(--app-text-secondary)]"
+                  }
+                >
                   <span>{event.team.name}</span>
                   {event.region ? <span>{event.region}</span> : null}
                   {event.object ? (
@@ -272,20 +298,18 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
                       <span>Объект скрыт</span>
                     )
                   ) : null}
-                  {event.capacity ? (
-                    <span>Количество мест: {event.capacity}</span>
-                  ) : null}
+                  {event.capacity ? <span>Мест: {event.capacity}</span> : null}
                   <span>Заявок: {event._count.applications}</span>
                 </div>
               </Link>
             ))}
           </div>
         ) : (
-          <section className="border border-zinc-200 bg-white p-6">
-            <h2 className="text-xl font-semibold text-zinc-950">
+          <section className="border border-[var(--app-border)] bg-[var(--app-surface)] p-6">
+            <h2 className="text-xl font-semibold text-[var(--app-text)]">
               Мероприятий по выбранным фильтрам не найдено
             </h2>
-            <p className="mt-2 text-sm leading-6 text-zinc-600">
+            <p className="mt-2 text-sm leading-6 text-[var(--app-text-secondary)]">
               Попробуйте убрать часть фильтров или изменить поисковый запрос.
             </p>
           </section>

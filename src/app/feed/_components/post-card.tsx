@@ -38,19 +38,19 @@ export function PostCard({
           : "Изображение к посту");
 
   return (
-    <article className="border border-zinc-200 bg-white p-5">
+    <article className="border border-[var(--app-border)] bg-[var(--app-surface)] p-5">
       <div className="flex items-start gap-3">
         <PostAuthorAvatar imageUrl={authorAvatar} label={authorName} />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <p className="font-medium text-zinc-950">{authorName}</p>
+            <p className="font-medium text-[var(--app-text)]">{authorName}</p>
             {post.isPinnedInCurrentFilter ? (
               <span className="border border-amber-200 px-2 py-1 text-xs text-amber-800">
                 Закреплено
               </span>
             ) : null}
           </div>
-          <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-zinc-500">
+          <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-[var(--app-muted)]">
             {post.author.profile?.username ? (
               <span>@{post.author.profile.username}</span>
             ) : null}
@@ -59,7 +59,7 @@ export function PostCard({
         </div>
       </div>
 
-      <p className="mt-4 text-base leading-7 whitespace-pre-wrap text-zinc-700">
+      <p className="mt-4 text-base leading-7 whitespace-pre-wrap text-[var(--app-text-secondary)]">
         {post.content}
       </p>
 
@@ -68,14 +68,14 @@ export function PostCard({
         <img
           src={post.imageUrl}
           alt={resolvedAlt}
-          className="mt-4 max-h-96 w-full border border-zinc-200 object-cover"
+          className="mt-4 max-h-96 w-full border border-[var(--app-border)] object-cover"
         />
       ) : null}
 
       <LinkedEntities post={post} />
 
-      <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-zinc-200 pt-4 text-sm">
-        <div className="flex flex-wrap gap-4 text-zinc-500">
+      <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--app-border)] pt-4 text-sm">
+        <div className="flex flex-wrap gap-4 text-[var(--app-muted)]">
           <span>{post.viewsCount} просмотров</span>
           <span>{post._count.likes} лайков</span>
           <span>{post._count.comments} комментариев</span>
@@ -83,14 +83,14 @@ export function PostCard({
         <div className="flex flex-wrap items-center gap-3">
           <Link
             href={`/posts/${post.id}`}
-            className="font-medium text-zinc-700 hover:text-zinc-950"
+            className="font-medium text-[var(--app-text-secondary)] hover:text-[var(--app-text)]"
           >
             Открыть
           </Link>
           {isLoggedIn ? (
             <Link
               href={`/reports/new?targetType=POST&targetId=${post.id}`}
-              className="text-zinc-500 hover:text-zinc-950"
+              className="text-[var(--app-muted)] hover:text-[var(--app-text)]"
             >
               Пожаловаться
             </Link>
@@ -112,11 +112,11 @@ function LinkedEntities({ post }: PostCardProps) {
   if (!post.team && !post.event && !post.object) return null;
 
   return (
-    <div className="mt-4 flex flex-wrap gap-2 text-sm text-zinc-600">
+    <div className="mt-4 flex flex-wrap gap-2 text-sm text-[var(--app-text-secondary)]">
       {post.team ? (
         <Link
           href={`/teams/${post.team.slug}`}
-          className="border border-zinc-200 px-2 py-1 hover:border-zinc-950 hover:text-zinc-950"
+          className="border border-[var(--app-border)] px-2 py-1 hover:border-[var(--app-border-strong)] hover:text-[var(--app-text)]"
         >
           Команда: {post.team.name}
         </Link>
@@ -124,7 +124,7 @@ function LinkedEntities({ post }: PostCardProps) {
       {post.event ? (
         <Link
           href={`/events/${post.event.slug}`}
-          className="border border-zinc-200 px-2 py-1 hover:border-zinc-950 hover:text-zinc-950"
+          className="border border-[var(--app-border)] px-2 py-1 hover:border-[var(--app-border-strong)] hover:text-[var(--app-text)]"
         >
           Мероприятие: {post.event.title}
         </Link>
@@ -132,7 +132,7 @@ function LinkedEntities({ post }: PostCardProps) {
       {post.object ? (
         <Link
           href={`/objects/${post.object.slug}`}
-          className="border border-zinc-200 px-2 py-1 hover:border-zinc-950 hover:text-zinc-950"
+          className="border border-[var(--app-border)] px-2 py-1 hover:border-[var(--app-border-strong)] hover:text-[var(--app-text)]"
         >
           Объект: {post.object.name}
         </Link>

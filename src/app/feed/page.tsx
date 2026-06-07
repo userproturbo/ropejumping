@@ -84,13 +84,13 @@ export default async function FeedPage({ searchParams }: FeedPageProps) {
   ].filter((chip): chip is FilterChip => Boolean(chip));
 
   return (
-    <main className="min-h-[calc(100vh-4rem)] bg-zinc-50">
-      <div className="mx-auto w-full max-w-3xl px-6 py-10">
+    <main className="min-h-[calc(100vh-4rem)] bg-[var(--app-bg)] text-[var(--app-text)]">
+      <div className="mx-auto w-full max-w-3xl px-5 py-8 sm:px-6 lg:py-10">
         <CollapsibleFilterPanel
           actions={
             <Link
               href="/feed/new"
-              className="border border-zinc-300 px-4 py-2 text-sm text-zinc-800 hover:border-zinc-950"
+              className="border border-[var(--app-border-strong)] px-4 py-2 text-sm text-[var(--app-text)] hover:border-[var(--app-text-muted)]"
             >
               Создать пост
             </Link>
@@ -98,14 +98,9 @@ export default async function FeedPage({ searchParams }: FeedPageProps) {
           activeCount={activeChips.length}
           defaultOpen={activeChips.length > 0}
           header={
-            <>
-              <h1 className="text-3xl font-semibold tracking-tight text-zinc-950">
-                Лента
-              </h1>
-              <p className="mt-2 text-sm text-zinc-600">
-                Простая хронологическая лента сообщества.
-              </p>
-            </>
+            <p className="max-w-2xl text-base leading-6 text-[var(--app-text)]">
+              Хронологическая лента сообщества.
+            </p>
           }
         >
           <form action="/feed" method="get">
@@ -250,13 +245,13 @@ export default async function FeedPage({ searchParams }: FeedPageProps) {
             ))}
           </div>
         ) : (
-          <section className="border border-zinc-200 bg-white p-6">
-            <h2 className="text-xl font-semibold text-zinc-950">
+          <section className="border border-[var(--app-border)] bg-[var(--app-surface)] p-6">
+            <h2 className="text-xl font-semibold text-[var(--app-text)]">
               {activeChips.length > 0
                 ? "Постов по выбранным фильтрам не найдено"
                 : "В ленте пока нет публикаций."}
             </h2>
-            <p className="mt-2 text-sm leading-6 text-zinc-600">
+            <p className="mt-2 text-sm leading-6 text-[var(--app-text-secondary)]">
               {activeChips.length > 0
                 ? "Попробуйте убрать часть фильтров или изменить поисковый запрос."
                 : "Будьте первым, кто расскажет о выезде, объекте или впечатлении."}
