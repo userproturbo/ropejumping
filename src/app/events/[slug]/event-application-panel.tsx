@@ -54,39 +54,39 @@ export function EventApplicationPanel({
 
     return (
       <div className="mt-4 space-y-4">
-        <div className="border border-zinc-200 p-4">
-          <h3 className="text-lg font-semibold text-zinc-950">Ваша заявка</h3>
-          <dl className="mt-3 grid gap-3 text-sm text-zinc-600 sm:grid-cols-2">
+        <div className="border border-[rgba(199,217,136,0.22)] bg-[rgba(255,255,255,0.04)] p-4">
+          <h3 className="text-lg font-semibold text-[#e9eddc]">Ваша заявка</h3>
+          <dl className="mt-3 grid gap-3 text-sm text-[#d7dcc5] sm:grid-cols-2">
             <div>
-              <dt className="font-medium text-zinc-950">Статус заявки</dt>
+              <dt className="font-medium text-[#c7d988]">Статус заявки</dt>
               <dd className="mt-1">
                 {getOwnApplicationStatusLabel(application.status)}
               </dd>
             </div>
             <div>
-              <dt className="font-medium text-zinc-950">Отправлена</dt>
+              <dt className="font-medium text-[#c7d988]">Отправлена</dt>
               <dd className="mt-1">
                 {formatApplicationDate(application.createdAt)}
               </dd>
             </div>
           </dl>
-          <p className="mt-3 text-sm text-zinc-600">{statusHelp}</p>
+          <p className="mt-3 text-sm text-[#aab497]">{statusHelp}</p>
           {application.message ? (
             <div className="mt-3">
-              <h4 className="text-sm font-medium text-zinc-950">
+              <h4 className="text-sm font-medium text-[#c7d988]">
                 Ваше сообщение
               </h4>
-              <p className="mt-1 text-sm leading-6 whitespace-pre-wrap text-zinc-600">
+              <p className="mt-1 text-sm leading-6 whitespace-pre-wrap text-[#d7dcc5]">
                 {application.message}
               </p>
             </div>
           ) : null}
           {application.organizerNote ? (
             <div className="mt-3">
-              <h4 className="text-sm font-medium text-zinc-950">
+              <h4 className="text-sm font-medium text-[#c7d988]">
                 Заметка организатора
               </h4>
-              <p className="mt-1 text-sm leading-6 whitespace-pre-wrap text-zinc-600">
+              <p className="mt-1 text-sm leading-6 whitespace-pre-wrap text-[#d7dcc5]">
                 {application.organizerNote}
               </p>
             </div>
@@ -98,14 +98,14 @@ export function EventApplicationPanel({
             type="button"
             disabled={cancel.isPending}
             onClick={() => cancel.mutate({ applicationId: application.id })}
-            className="border border-zinc-300 px-4 py-2 text-sm text-zinc-800 hover:border-zinc-950 disabled:cursor-not-allowed disabled:text-zinc-400"
+            className="border border-[rgba(199,217,136,0.3)] px-4 py-2 text-sm text-[#e9eddc] hover:border-[rgba(199,217,136,0.65)] hover:text-[#c7d988] disabled:cursor-not-allowed disabled:text-[#aab497]"
           >
             {cancel.isPending ? "Отмена..." : "Отменить заявку"}
           </button>
         ) : null}
 
         {cancel.error ? (
-          <p className="text-sm text-red-700">{cancel.error.message}</p>
+          <p className="text-sm text-red-300">{cancel.error.message}</p>
         ) : null}
       </div>
     );
@@ -113,7 +113,7 @@ export function EventApplicationPanel({
 
   if (!canApply) {
     return (
-      <p className="mt-2 text-sm text-zinc-600">
+      <p className="mt-2 text-sm text-[#d7dcc5]">
         Подача заявок на это мероприятие сейчас недоступна.
       </p>
     );
@@ -122,13 +122,13 @@ export function EventApplicationPanel({
   if (!hasProfile) {
     return (
       <div className="mt-4 space-y-4">
-        <p className="text-sm leading-6 text-zinc-600">
+        <p className="text-sm leading-6 text-[#d7dcc5]">
           Перед подачей заявки заполните профиль. Это поможет организатору
           понять ваш опыт.
         </p>
         <Link
           href="/profile/edit"
-          className="inline-flex bg-zinc-950 px-4 py-2 text-sm text-white hover:bg-zinc-800"
+          className="inline-flex border border-[rgba(199,217,136,0.3)] px-4 py-2 text-sm text-[#e9eddc] hover:border-[rgba(199,217,136,0.65)] hover:text-[#c7d988]"
         >
           Заполнить профиль
         </Link>
@@ -139,7 +139,7 @@ export function EventApplicationPanel({
   return (
     <form onSubmit={handleApply} className="mt-4 space-y-4">
       <div className="grid gap-2">
-        <label htmlFor="message" className="text-sm font-medium text-zinc-950">
+        <label htmlFor="message" className="text-sm font-medium text-[#c7d988]">
           Сообщение организатору
         </label>
         <textarea
@@ -149,12 +149,12 @@ export function EventApplicationPanel({
           onChange={(event) => setMessage(event.target.value)}
           maxLength={1000}
           rows={5}
-          className="resize-y border border-zinc-300 px-3 py-2 text-zinc-950 outline-none focus:border-zinc-950"
+          className="resize-y border border-[rgba(199,217,136,0.3)] bg-[#151a12] px-3 py-2 text-[#e9eddc] outline-none focus:border-[rgba(199,217,136,0.65)]"
         />
       </div>
 
       {submitApplication.error ? (
-        <p className="text-sm text-red-700">
+        <p className="text-sm text-red-300">
           {submitApplication.error.message}
         </p>
       ) : null}
@@ -162,7 +162,7 @@ export function EventApplicationPanel({
       <button
         type="submit"
         disabled={submitApplication.isPending}
-        className="bg-zinc-950 px-4 py-2 text-sm text-white disabled:cursor-not-allowed disabled:bg-zinc-400"
+        className="border border-[rgba(199,217,136,0.3)] px-4 py-2 text-sm text-[#e9eddc] hover:border-[rgba(199,217,136,0.65)] hover:text-[#c7d988] disabled:cursor-not-allowed disabled:text-[#aab497]"
       >
         {submitApplication.isPending ? "Отправка..." : "Подать заявку"}
       </button>
