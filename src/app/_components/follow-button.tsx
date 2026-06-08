@@ -9,12 +9,14 @@ type FollowButtonProps = {
   targetId: string;
   targetType: "team" | "object";
   initialFollowing: boolean;
+  className?: string;
 };
 
 export function FollowButton({
   targetId,
   targetType,
   initialFollowing,
+  className,
 }: FollowButtonProps) {
   const router = useRouter();
   const [following, setFollowing] = useState(initialFollowing);
@@ -61,7 +63,10 @@ export function FollowButton({
       type="button"
       onClick={handleClick}
       disabled={isPending}
-      className="border border-zinc-300 px-4 py-2 text-sm text-zinc-800 hover:border-zinc-950 disabled:cursor-not-allowed disabled:border-zinc-200 disabled:text-zinc-400"
+      className={
+        className ??
+        "border border-zinc-300 px-4 py-2 text-sm text-zinc-800 hover:border-zinc-950 disabled:cursor-not-allowed disabled:border-zinc-200 disabled:text-zinc-400"
+      }
     >
       {following ? "Вы подписаны" : "Подписаться"}
     </button>
