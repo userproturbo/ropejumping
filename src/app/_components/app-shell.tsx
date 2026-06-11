@@ -139,9 +139,9 @@ export async function AppShell({ children }: AppShellProps) {
   ];
 
   return (
-    <div className="min-h-screen bg-[var(--app-bg)] text-[var(--app-text)]">
+    <div className="relative z-10 min-h-screen text-[var(--app-text)]">
       <RadioProvider>
-        <header className="sticky top-0 z-30 border-b border-[var(--app-border)] bg-[var(--app-bg)] lg:hidden">
+        <header className="sticky top-0 z-30 bg-[var(--app-shell-bg)] lg:hidden">
           <div className="flex min-h-16 items-center justify-between gap-4 px-4 py-3">
             <Link
               href="/"
@@ -173,7 +173,7 @@ export async function AppShell({ children }: AppShellProps) {
           <SiteRadioPlayer variant="mobile" />
         </header>
 
-        <div className="hidden border-b border-[var(--app-border)] bg-[var(--app-bg)] lg:block">
+        <div className="hidden bg-[var(--app-shell-bg)] lg:block">
           <div className="mx-auto grid w-full max-w-[1500px] grid-cols-[220px_minmax(0,1fr)_280px] px-5 xl:grid-cols-[240px_minmax(0,1fr)_300px]">
             <div className="col-span-2 flex min-h-[132px] items-center py-5 pl-3">
               <Link
@@ -191,7 +191,7 @@ export async function AppShell({ children }: AppShellProps) {
       </RadioProvider>
 
       <div className="mx-auto w-full lg:grid lg:min-h-[calc(100vh-9rem)] lg:max-w-[1500px] lg:grid-cols-[220px_minmax(0,1fr)_280px] xl:grid-cols-[240px_minmax(0,1fr)_300px]">
-        <aside className="hidden border-r border-[var(--app-border)] bg-[var(--app-bg)] lg:block">
+        <aside className="hidden bg-[var(--app-shell-bg)] lg:block">
           <div className="sticky top-0 flex max-h-screen flex-col overflow-y-auto px-5 py-6">
             <nav className="grid gap-1" aria-label="Основная навигация">
               {mainLinks.map((link) => (
@@ -205,7 +205,7 @@ export async function AppShell({ children }: AppShellProps) {
 
         <main className="min-w-0">{children}</main>
 
-        <aside className="hidden border-l border-[var(--app-border)] bg-[var(--app-bg)] lg:block">
+        <aside className="hidden bg-[var(--app-shell-bg)] lg:block">
           <div className="sticky top-0 h-screen overflow-y-auto px-5 py-6">
             {user ? (
               <div>
