@@ -68,7 +68,7 @@ export function SiteRadioPlayer({ variant = "desktop" }: SiteRadioPlayerProps) {
     return (
       <section
         aria-label="Радио"
-        className="border-t border-[var(--app-border)] px-4 py-2 text-[var(--app-text)] lg:hidden"
+        className="px-4 py-2 text-[var(--app-text)] lg:hidden"
       >
         <div className="flex min-h-12 min-w-0 items-center gap-3">
           <CoverButton

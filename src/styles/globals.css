@@ -36,7 +36,8 @@
 
 :root,
 html[data-theme="dark"] {
-  --app-bg: #202020;
+  --app-bg: #0b0f08;
+  --app-shell-bg: rgb(5 9 5 / 0.38);
   --app-surface: rgb(255 255 255 / 0.05);
   --app-surface-muted: rgb(255 255 255 / 0.03);
   --app-border: rgb(255 255 255 / 0.1);
@@ -45,11 +46,19 @@ html[data-theme="dark"] {
   --app-text-secondary: rgb(212 212 216);
   --app-text-muted: rgb(161 161 170);
   --app-muted: rgb(161 161 170);
+  --app-grid-small-line: rgb(199 217 136 / 0.055);
+  --app-grid-large-line: rgb(199 217 136 / 0.13);
+  --app-grid-glow-primary: rgb(199 217 136 / 0.11);
+  --app-grid-glow-secondary: rgb(95 111 56 / 0.16);
+  --app-grid-vignette: rgb(0 0 0 / 0.38);
+  --app-grid-scan: rgb(199 217 136 / 0.03);
+  --app-grid-shade: rgb(0 0 0 / 0.22);
   color-scheme: dark;
 }
 
 html[data-theme="light"] {
   --app-bg: #f4f4f5;
+  --app-shell-bg: rgb(244 244 245 / 0.94);
   --app-surface: #ffffff;
   --app-surface-muted: #fafafa;
   --app-border: rgb(228 228 231);
@@ -58,12 +67,67 @@ html[data-theme="light"] {
   --app-text-secondary: rgb(63 63 70);
   --app-text-muted: rgb(113 113 122);
   --app-muted: rgb(113 113 122);
+  --app-grid-small-line: rgb(95 111 56 / 0.012);
+  --app-grid-large-line: rgb(95 111 56 / 0.025);
+  --app-grid-glow-primary: transparent;
+  --app-grid-glow-secondary: transparent;
+  --app-grid-vignette: transparent;
+  --app-grid-scan: transparent;
+  --app-grid-shade: transparent;
   color-scheme: light;
 }
 
-html,
-body {
+html {
   background: var(--app-bg);
+}
+
+body {
+  min-height: 100vh;
+  background:
+    radial-gradient(
+      circle at 50% 10%,
+      var(--app-grid-glow-primary),
+      transparent 34%
+    ),
+    radial-gradient(
+      circle at 80% 40%,
+      var(--app-grid-glow-secondary),
+      transparent 28%
+    ),
+    linear-gradient(var(--app-grid-small-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--app-grid-small-line) 1px, transparent 1px),
+    linear-gradient(var(--app-grid-large-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--app-grid-large-line) 1px, transparent 1px),
+    var(--app-bg);
+  background-attachment: fixed;
+  background-size:
+    auto,
+    auto,
+    14px 14px,
+    14px 14px,
+    56px 56px,
+    56px 56px,
+    auto;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      circle at 50% 50%,
+      transparent 0 48%,
+      var(--app-grid-vignette) 100%
+    ),
+    linear-gradient(
+      180deg,
+      var(--app-grid-scan),
+      transparent 28%,
+      var(--app-grid-shade)
+    );
 }
 
 .font-brand {
@@ -82,8 +146,12 @@ body {
 }
 
 html[data-theme="dark"] main.bg-zinc-50 {
-  background: #202020;
+  background: var(--app-shell-bg);
   color: rgb(244 244 245);
+}
+
+html[data-theme="dark"] main.bg-\[var\(--app-bg\)\] {
+  background: var(--app-shell-bg);
 }
 
 html[data-theme="dark"] main.bg-zinc-50 .bg-white {
