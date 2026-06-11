@@ -2,13 +2,14 @@ import Image from "next/image";
 import Link from "next/link";
 import type { CSSProperties, ReactNode } from "react";
 
-import { TeamRole } from "@/generated/prisma/enums";
+import { ObjectVisibility, TeamRole } from "@/generated/prisma/enums";
 import { signOut } from "@/server/auth";
 import { getCurrentUser } from "@/server/auth/session";
 import { db } from "@/server/db";
 import { isModeratorUser } from "@/server/moderation/permissions";
 import { api } from "@/trpc/server";
 
+import { AccountDossierCard } from "./account-dossier-card";
 import { AnimatedLogo } from "./animated-logo";
 import { RadioProvider } from "./radio-provider";
 import { SiteMobileMenu, type MobileMenuSection } from "./site-mobile-menu";
@@ -48,7 +49,13 @@ type AppShellProps = {
 export async function AppShell({ children }: AppShellProps) {
   const user = await getCurrentUser();
   const isModerator = isModeratorUser(user);
-  const [profile, unreadNotifications, teamMembership, objectContext] = user
+  const [
+    profile,
+    unreadNotifications,
+    teamMembership,
+    objectContext,
+    userStats,
+  ] = user
     ? await Promise.all([
         api.profile.getMine().catch(() => null),
         api.notification.getUnreadCount(),
@@ -84,8 +91,25 @@ export async function AppShell({ children }: AppShellProps) {
             id: true,
           },
         }),
+        db.user.findUnique({
+          where: {
+            id: user.id,
+          },
+          select: {
+            _count: {
+              select: {
+                badges: true,
+                createdObjects: {
+                  where: {
+                    visibility: ObjectVisibility.PUBLIC,
+                  },
+                },
+              },
+            },
+          },
+        }),
       ])
-    : [null, { count: 0 }, null, null];
+    : [null, { count: 0 }, null, null, null];
   const showMyTeams = Boolean(teamMembership);
   const showMyObjects = Boolean(objectContext);
 
@@ -105,12 +129,6 @@ export async function AppShell({ children }: AppShellProps) {
     : [];
   const moderatorLinks = isModerator ? [moderatorLink, radioAdminLink] : [];
   const userLabel = getUserLabel({ profile, user });
-  const userSubLabel =
-    profile?.username && profile.displayName
-      ? profile.displayName
-      : user?.name && user.email
-        ? user.email
-        : null;
   const avatarImageUrl = profile?.avatarUrl ?? user?.image ?? null;
   const mobileSections: MobileMenuSection[] = [
     { label: "Навигация", links: mainLinks },
@@ -160,7 +178,7 @@ export async function AppShell({ children }: AppShellProps) {
             <div className="col-span-2 flex min-h-[132px] items-center py-5 pl-3">
               <Link
                 href="/"
-                className="block min-w-[280px] w-[min(720px,58vw)] max-w-full text-[var(--app-text)] [--logo-color:var(--app-text)] xl:w-[min(860px,58vw)]"
+                className="block w-[min(720px,58vw)] max-w-full min-w-[280px] text-[var(--app-text)] [--logo-color:var(--app-text)] xl:w-[min(860px,58vw)]"
               >
                 <AnimatedLogo replayOnClick={false} />
               </Link>
@@ -191,26 +209,15 @@ export async function AppShell({ children }: AppShellProps) {
           <div className="sticky top-0 h-screen overflow-y-auto px-5 py-6">
             {user ? (
               <div>
-                <div className="flex min-w-0 items-center gap-3">
-                  <Avatar
-                    imageUrl={avatarImageUrl}
-                    label={userLabel}
-                    size="lg"
-                  />
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-[var(--app-text)]">
-                      {userLabel}
-                    </p>
-                    {userSubLabel ? (
-                      <p className="mt-0.5 truncate text-xs text-[var(--app-text-muted)]">
-                        {userSubLabel}
-                      </p>
-                    ) : null}
-                  </div>
-                </div>
+                <AccountDossierCard
+                  user={user}
+                  profile={profile}
+                  achievementsCount={userStats?._count.badges ?? 0}
+                  objectsCount={userStats?._count.createdObjects ?? 0}
+                />
 
                 <nav
-                  className="mt-6 grid gap-1"
+                  className="mt-4 grid gap-1"
                   aria-label="Навигация пользователя"
                 >
                   {userLinks.map((link) => (
