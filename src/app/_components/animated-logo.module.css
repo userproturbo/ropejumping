@@ -1,11 +1,25 @@
 .logo {
+  position: relative;
+  isolation: isolate;
   display: block;
   width: 100%;
-  height: auto;
   max-width: 100%;
   overflow: visible;
   color: var(--logo-color, #080808);
-  --logo-shadow-color: rgba(220, 20, 20, 0.76);
+  --logo-shadow-color: rgb(199 217 136 / 0.76);
+  --logo-scanner-acid: 217 255 133;
+  --logo-scanner-soft: 199 217 136;
+  --logo-scan-duration: 1.7s;
+  --logo-scan-width: clamp(42px, 7vw, 82px);
+  --logo-scanner-opacity: 0;
+  --logo-scanner-x: calc(var(--logo-scan-width) * -1);
+}
+
+.logoSvg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
 }
 
 .isReplayable {
@@ -22,12 +36,45 @@
 }
 
 .logoShadow {
-  color: var(--logo-shadow-color, rgba(220, 20, 20, 0.76));
+  color: var(--logo-shadow-color, rgb(199 217 136 / 0.76));
   opacity: 0;
   transform: translate(2.5px, 3.5px);
   transition: opacity 1.45s cubic-bezier(0.22, 1, 0.36, 1);
   pointer-events: none;
   will-change: opacity;
+}
+
+.logo::before,
+.logo::after {
+  position: absolute;
+  top: -22%;
+  bottom: -22%;
+  left: var(--logo-scanner-x);
+  margin-left: calc(var(--logo-scan-width) * -0.68);
+  pointer-events: none;
+  opacity: var(--logo-scanner-opacity);
+  mix-blend-mode: screen;
+  content: "";
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgb(var(--logo-scanner-acid) / 0.28),
+    rgb(var(--logo-scanner-soft) / 0.06),
+    transparent
+  );
+  will-change: left, opacity;
+}
+
+.logo::before {
+  z-index: 3;
+  width: var(--logo-scan-width);
+  filter: blur(28px);
+}
+
+.logo::after {
+  z-index: 4;
+  width: var(--logo-scan-width);
+  filter: blur(7px);
 }
 
 .isFinished .logoShadow {
@@ -53,5 +100,24 @@
 @media (prefers-reduced-motion: reduce) {
   .logoShadow {
     transition: none;
+  }
+
+  .logo::before,
+  .logo::after {
+    display: none;
+    opacity: 0;
+  }
+}
+
+@media (max-width: 1024px) {
+  .logo {
+    --logo-scan-width: 56px;
+  }
+}
+
+@media (max-width: 640px) {
+  .logo {
+    --logo-scan-duration: 1.45s;
+    --logo-scan-width: 42px;
   }
 }
