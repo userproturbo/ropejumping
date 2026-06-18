@@ -97,11 +97,6 @@ export const profileRouter = createTRPCRouter({
               _count: {
                 select: {
                   badges: true,
-                  createdObjects: {
-                    where: {
-                      visibility: ObjectVisibility.PUBLIC,
-                    },
-                  },
                 },
               },
             },

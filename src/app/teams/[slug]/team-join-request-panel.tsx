@@ -52,10 +52,10 @@ export function TeamJoinRequestPanel({
 
   if (!isAuthenticated) {
     return (
-      <section className="mt-6 border border-[rgba(199,217,136,0.25)] bg-[#10150e] p-4 text-[#d7dcc5] sm:p-6">
+      <section className="mt-6 border border-zinc-200 bg-white p-6">
         <Link
           href={`/login?callbackUrl=${encodeURIComponent(`/teams/${teamSlug}`)}`}
-          className="inline-flex border border-[rgba(199,217,136,0.3)] px-4 py-2 text-sm text-[#e9eddc] hover:border-[rgba(199,217,136,0.65)] hover:text-[#c7d988]"
+          className="inline-flex bg-zinc-950 px-4 py-2 text-sm text-white hover:bg-zinc-800"
         >
           Войдите, чтобы подать заявку в команду
         </Link>
@@ -65,13 +65,13 @@ export function TeamJoinRequestPanel({
 
   if (!state?.hasProfile) {
     return (
-      <section className="mt-6 border border-[rgba(199,217,136,0.25)] bg-[#10150e] p-4 text-[#d7dcc5] sm:p-6">
-        <p className="text-sm text-[#d7dcc5]">
+      <section className="mt-6 border border-zinc-200 bg-white p-6">
+        <p className="text-sm text-zinc-700">
           Перед подачей заявки заполните профиль.
         </p>
         <Link
           href="/profile/edit"
-          className="mt-4 inline-flex border border-[rgba(199,217,136,0.3)] px-4 py-2 text-sm text-[#e9eddc] hover:border-[rgba(199,217,136,0.65)] hover:text-[#c7d988]"
+          className="mt-4 inline-flex border border-zinc-300 px-4 py-2 text-sm text-zinc-800 hover:border-zinc-950"
         >
           Заполнить профиль
         </Link>
@@ -83,16 +83,14 @@ export function TeamJoinRequestPanel({
     const isOwner = state.membership.role === TeamRole.OWNER;
 
     return (
-      <section className="mt-6 border border-[rgba(199,217,136,0.25)] bg-[#10150e] p-4 text-[#d7dcc5] sm:p-6">
-        <p className="text-sm text-[#d7dcc5]">
-          Вы уже состоите в этой команде.
-        </p>
-        <p className="mt-2 text-sm text-[#aab497]">
+      <section className="mt-6 border border-zinc-200 bg-white p-6">
+        <p className="text-sm text-zinc-700">Вы уже состоите в этой команде.</p>
+        <p className="mt-2 text-sm text-zinc-500">
           Ваша роль: {getTeamRoleLabel(state.membership.role)}
         </p>
 
         {isOwner ? (
-          <p className="mt-4 text-sm text-[#aab497]">
+          <p className="mt-4 text-sm text-zinc-500">
             Владелец не может выйти из команды. Сначала передайте владение
             другому участнику.
           </p>
@@ -107,14 +105,14 @@ export function TeamJoinRequestPanel({
 
               leaveTeam.mutate({ teamSlug });
             }}
-            className="mt-4 border border-[rgba(199,217,136,0.3)] px-4 py-2 text-sm text-[#e9eddc] hover:border-[rgba(199,217,136,0.65)] hover:text-[#c7d988] disabled:cursor-not-allowed disabled:text-[#aab497]"
+            className="mt-4 border border-zinc-300 px-4 py-2 text-sm text-zinc-800 hover:border-zinc-950 disabled:cursor-not-allowed disabled:text-zinc-400"
           >
             {leaveTeam.isPending ? "Выход..." : "Выйти из команды"}
           </button>
         )}
 
         {leaveTeam.error ? (
-          <p className="mt-3 text-sm text-red-300">{leaveTeam.error.message}</p>
+          <p className="mt-3 text-sm text-red-700">{leaveTeam.error.message}</p>
         ) : null}
       </section>
     );
@@ -122,8 +120,8 @@ export function TeamJoinRequestPanel({
 
   if (state.pendingJoinRequest) {
     return (
-      <section className="mt-6 border border-[rgba(199,217,136,0.25)] bg-[#10150e] p-4 text-[#d7dcc5] sm:p-6">
-        <p className="text-sm text-[#d7dcc5]">Заявка отправлена.</p>
+      <section className="mt-6 border border-zinc-200 bg-white p-6">
+        <p className="text-sm text-zinc-700">Заявка отправлена.</p>
         <button
           type="button"
           disabled={cancelRequest.isPending}
@@ -132,12 +130,12 @@ export function TeamJoinRequestPanel({
               requestId: state.pendingJoinRequest?.id ?? "",
             })
           }
-          className="mt-4 border border-[rgba(199,217,136,0.3)] px-4 py-2 text-sm text-[#e9eddc] hover:border-[rgba(199,217,136,0.65)] hover:text-[#c7d988] disabled:cursor-not-allowed disabled:text-[#aab497]"
+          className="mt-4 border border-zinc-300 px-4 py-2 text-sm text-zinc-800 hover:border-zinc-950 disabled:cursor-not-allowed disabled:text-zinc-400"
         >
           {cancelRequest.isPending ? "Отмена..." : "Отменить заявку"}
         </button>
         {cancelRequest.error ? (
-          <p className="mt-3 text-sm text-red-300">
+          <p className="mt-3 text-sm text-red-700">
             {cancelRequest.error.message}
           </p>
         ) : null}
@@ -146,15 +144,15 @@ export function TeamJoinRequestPanel({
   }
 
   return (
-    <section className="mt-6 border border-[rgba(199,217,136,0.25)] bg-[#10150e] p-4 text-[#d7dcc5] sm:p-6">
-      <h2 className="text-xl font-semibold text-[#e9eddc]">
+    <section className="mt-6 border border-zinc-200 bg-white p-6">
+      <h2 className="text-xl font-semibold text-zinc-950">
         Подать заявку в команду
       </h2>
       <form onSubmit={handleSubmit} className="mt-5 grid gap-4">
         <div className="grid gap-2">
           <label
             htmlFor="teamJoinRequestMessage"
-            className="text-sm font-medium text-[#c7d988]"
+            className="text-sm font-medium text-zinc-950"
           >
             Сообщение
           </label>
@@ -165,19 +163,19 @@ export function TeamJoinRequestPanel({
             onChange={(event) => setMessage(event.target.value)}
             maxLength={1000}
             rows={4}
-            className="resize-y border border-[rgba(199,217,136,0.3)] bg-[#151a12] px-3 py-2 text-[#e9eddc] outline-none focus:border-[rgba(199,217,136,0.65)]"
+            className="resize-y border border-zinc-300 px-3 py-2 text-zinc-950 outline-none focus:border-zinc-950"
           />
         </div>
 
         {createRequest.error ? (
-          <p className="text-sm text-red-300">{createRequest.error.message}</p>
+          <p className="text-sm text-red-700">{createRequest.error.message}</p>
         ) : null}
 
         <div>
           <button
             type="submit"
             disabled={createRequest.isPending}
-            className="border border-[rgba(199,217,136,0.3)] px-4 py-2 text-sm text-[#e9eddc] hover:border-[rgba(199,217,136,0.65)] hover:text-[#c7d988] disabled:cursor-not-allowed disabled:text-[#aab497]"
+            className="bg-zinc-950 px-4 py-2 text-sm text-white disabled:cursor-not-allowed disabled:bg-zinc-400"
           >
             {createRequest.isPending
               ? "Отправка..."

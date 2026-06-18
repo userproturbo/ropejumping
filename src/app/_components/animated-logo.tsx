@@ -25,9 +25,8 @@ const logoPaths = [
 ] as const;
 
 const SVG_NS = "http://www.w3.org/2000/svg";
-const revealDuration = 1700;
-const mobileRevealDuration = 1450;
-const revealMaxWidth = 862.504;
+const revealDuration = 2600;
+const revealMaxWidth = 930;
 const isFinishedClass = styles.isFinished!;
 
 export function AnimatedLogo({
@@ -41,7 +40,7 @@ export function AnimatedLogo({
   const revealId = `${reactId}-logo-reveal`;
   const revealRectId = `${reactId}-reveal-rect`;
   const sprayLayerId = `${reactId}-spray-layer`;
-  const logoRef = useRef<HTMLDivElement | null>(null);
+  const svgRef = useRef<SVGSVGElement | null>(null);
   const revealRectRef = useRef<SVGRectElement | null>(null);
   const sprayLayerRef = useRef<SVGGElement | null>(null);
   const animationFrameRef = useRef<number | null>(null);
@@ -105,10 +104,7 @@ export function AnimatedLogo({
   const finishImmediately = useCallback(() => {
     clearRun();
     revealRectRef.current?.setAttribute("width", String(revealMaxWidth));
-    const logo = logoRef.current;
-    logo?.style.setProperty("--logo-scanner-opacity", "0");
-    logo?.style.setProperty("--logo-scanner-x", "calc(100% + 16px)");
-    logo?.classList.add(isFinishedClass);
+    svgRef.current?.classList.add(isFinishedClass);
   }, [clearRun]);
 
   const animateLogo = useCallback(() => {
@@ -119,17 +115,12 @@ export function AnimatedLogo({
 
     clearRun();
 
-    const logo = logoRef.current;
+    const svg = svgRef.current;
     const revealRect = revealRectRef.current;
-    if (!logo || !revealRect) return;
+    if (!svg || !revealRect) return;
 
-    const logoWidth = logo.getBoundingClientRect().width;
-    const scanWidth = getScannerWidth();
-    const duration = getRevealDuration();
     const currentRunId = runIdRef.current;
-    logo.classList.remove(isFinishedClass);
-    logo.style.setProperty("--logo-scanner-opacity", "0");
-    logo.style.setProperty("--logo-scanner-x", `${scanWidth * -1}px`);
+    svg.classList.remove(isFinishedClass);
     revealRect.setAttribute("width", "0");
 
     let start: number | null = null;
@@ -139,21 +130,14 @@ export function AnimatedLogo({
       if (currentRunId !== runIdRef.current) return;
       start ??= time;
 
-      const progress = Math.min((time - start) / duration, 1);
-      const easedProgress = easeOut(progress);
-      const currentRevealWidth = revealMaxWidth * easedProgress;
-      const currentScannerX = logoWidth * easedProgress;
-      const scannerOpacity = getScannerOpacity(progress);
+      const progress = Math.min((time - start) / revealDuration, 1);
+      const eased = easeOutCubic(progress);
+      const currentWidth = revealMaxWidth * eased;
 
-      revealRect.setAttribute("width", String(currentRevealWidth));
-      logo.style.setProperty("--logo-scanner-x", `${currentScannerX}px`);
-      logo.style.setProperty(
-        "--logo-scanner-opacity",
-        String(scannerOpacity),
-      );
+      revealRect.setAttribute("width", String(currentWidth));
 
       if (time - lastDot > 26 && progress < 0.985) {
-        createSprayDot(currentRevealWidth);
+        createSprayDot(-30 + currentWidth);
         lastDot = time;
       }
 
@@ -163,11 +147,9 @@ export function AnimatedLogo({
       }
 
       animationFrameRef.current = null;
-      logo.style.setProperty("--logo-scanner-opacity", "0");
-      logo.style.setProperty("--logo-scanner-x", `${logoWidth + scanWidth}px`);
       shadowTimeoutRef.current = window.setTimeout(() => {
         if (currentRunId !== runIdRef.current) return;
-        logo.classList.add(isFinishedClass);
+        svg.classList.add(isFinishedClass);
         shadowTimeoutRef.current = null;
       }, 220);
     };
@@ -190,8 +172,8 @@ export function AnimatedLogo({
   };
 
   return (
-    <div
-      ref={logoRef}
+    <svg
+      ref={svgRef}
       className={[
         styles.logo,
         replayOnClick ? styles.isReplayable : "",
@@ -199,92 +181,57 @@ export function AnimatedLogo({
       ]
         .filter(Boolean)
         .join(" ")}
+      viewBox="0 0 862.504 82.1472"
+      xmlns="http://www.w3.org/2000/svg"
+      role="img"
+      aria-label={ariaLabel}
       onClick={handleClick}
     >
-      <svg
-        className={styles.logoSvg}
-        viewBox="0 0 862.504 82.1472"
-        xmlns="http://www.w3.org/2000/svg"
-        role="img"
-        aria-label={ariaLabel}
-      >
-        <defs>
-          <g id={shapeId} className={styles.logoShape}>
-            {logoPaths.map((pathData) => (
-              <path key={pathData} d={pathData} fillRule="evenodd" />
-            ))}
-          </g>
+      <defs>
+        <g id={shapeId} className={styles.logoShape}>
+          {logoPaths.map((pathData) => (
+            <path key={pathData} d={pathData} fillRule="evenodd" />
+          ))}
+        </g>
 
-          <clipPath id={clipId} clipPathUnits="userSpaceOnUse">
-            <use href={`#${shapeId}`} />
-          </clipPath>
+        <clipPath id={clipId} clipPathUnits="userSpaceOnUse">
+          <use href={`#${shapeId}`} />
+        </clipPath>
 
-          <clipPath id={revealId} clipPathUnits="userSpaceOnUse">
-            <rect
-              ref={revealRectRef}
-              id={revealRectId}
-              x="0"
-              y="-30"
-              width="0"
-              height="150"
-            />
-          </clipPath>
-        </defs>
+        <clipPath id={revealId} clipPathUnits="userSpaceOnUse">
+          <rect
+            ref={revealRectRef}
+            id={revealRectId}
+            x="-30"
+            y="-30"
+            width="0"
+            height="150"
+          />
+        </clipPath>
+      </defs>
 
-        <g
-          ref={sprayLayerRef}
-          id={sprayLayerId}
-          className={styles.sprayLayer}
-          clipPath={`url(#${clipId})`}
-        />
-        <use
-          className={styles.logoShadow}
-          href={`#${shapeId}`}
-          clipPath={`url(#${revealId})`}
-        />
-        <use
-          className={styles.logoFinal}
-          href={`#${shapeId}`}
-          clipPath={`url(#${revealId})`}
-        />
-      </svg>
-    </div>
+      <g
+        ref={sprayLayerRef}
+        id={sprayLayerId}
+        className={styles.sprayLayer}
+        clipPath={`url(#${clipId})`}
+      />
+      <use
+        className={styles.logoShadow}
+        href={`#${shapeId}`}
+        clipPath={`url(#${revealId})`}
+      />
+      <use
+        className={styles.logoFinal}
+        href={`#${shapeId}`}
+        clipPath={`url(#${revealId})`}
+      />
+    </svg>
   );
 }
 
-function getRevealDuration() {
-  return window.matchMedia("(max-width: 640px)").matches
-    ? mobileRevealDuration
-    : revealDuration;
-}
-
-function getScannerWidth() {
-  if (window.matchMedia("(max-width: 640px)").matches) {
-    return 42;
-  }
-
-  if (window.matchMedia("(max-width: 1024px)").matches) {
-    return 56;
-  }
-
-  return Math.min(82, Math.max(42, window.innerWidth * 0.07));
-}
-
-function easeOut(t: number) {
+function easeOutCubic(t: number) {
   return 1 - Math.pow(1 - t, 3);
-}
-
-function getScannerOpacity(progress: number) {
-  if (progress < 0.08) {
-    return (progress / 0.08) * 0.85;
-  }
-
-  if (progress < 0.88) {
-    const opacityProgress = (progress - 0.08) / 0.8;
-    return 0.85 - opacityProgress * 0.1;
-  }
-
-  return Math.max(0, 0.75 * (1 - (progress - 0.88) / 0.12));
 }
 
 function randomBetween(min: number, max: number) {

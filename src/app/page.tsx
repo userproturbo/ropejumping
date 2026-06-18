@@ -55,6 +55,8 @@ export default function Home() {
   return (
     <main className="min-h-[calc(100vh-4rem)] bg-[var(--app-bg)] text-[var(--app-text)]">
       <section className="relative isolate overflow-hidden">
+        <div className="absolute inset-0 bg-[var(--app-bg)]" />
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.04)_1px,transparent_1px)] bg-[size:72px_72px] opacity-20" />
         <div className="absolute top-24 right-[8%] hidden h-80 w-56 rotate-6 border border-[var(--app-border-strong)] bg-[var(--app-surface)] shadow-2xl shadow-black/40 backdrop-blur md:block" />
         <div className="absolute right-[18%] bottom-20 hidden h-56 w-72 -rotate-3 border border-emerald-200/20 bg-emerald-300/10 shadow-2xl shadow-emerald-950/30 backdrop-blur md:block" />
         <div className="absolute top-44 right-[31%] hidden h-44 w-44 rotate-12 border border-rose-200/20 bg-rose-300/10 shadow-2xl shadow-black/30 backdrop-blur lg:block" />
@@ -116,7 +118,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="text-[var(--app-text)]">
+      <section className="bg-[var(--app-bg)] text-[var(--app-text)]">
         <div className="mx-auto w-full max-w-7xl px-6 py-16 sm:py-20">
           <div className="max-w-3xl">
             <p className="text-sm font-medium tracking-[0.18em] text-[var(--app-text-muted)] uppercase">
@@ -147,7 +149,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="text-[var(--app-text)]">
+      <section className="bg-[var(--app-bg)] text-[var(--app-text)]">
         <div className="mx-auto grid w-full max-w-7xl gap-6 px-6 py-16 lg:grid-cols-2">
           <InfoPanel title="Если вы впервые">
             <p>
@@ -183,7 +185,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="text-[var(--app-text)]">
+      <section className="bg-[var(--app-bg)] text-[var(--app-text)]">
         <div className="mx-auto grid w-full max-w-7xl gap-8 px-6 py-16 lg:grid-cols-[0.95fr_1.05fr]">
           <div>
             <p className="text-sm font-medium tracking-[0.18em] text-[var(--app-text-muted)] uppercase">
@@ -212,7 +214,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="text-[var(--app-text)]">
+      <section className="bg-[var(--app-bg)] text-[var(--app-text)]">
         <div className="mx-auto grid w-full max-w-7xl gap-8 px-6 py-16 lg:grid-cols-[1.1fr_0.9fr]">
           <div>
             <p className="text-sm font-medium tracking-[0.18em] text-emerald-300 uppercase">
@@ -237,7 +239,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="text-[var(--app-text)]">
+      <section className="bg-[var(--app-bg)] text-[var(--app-text)]">
         <div className="mx-auto flex w-full max-w-7xl flex-col items-start justify-between gap-6 px-6 py-16 sm:flex-row sm:items-center">
           <div>
             <h2 className="max-w-xl text-4xl font-semibold tracking-tight text-[var(--app-text)]">

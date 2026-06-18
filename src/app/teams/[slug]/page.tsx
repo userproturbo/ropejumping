@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 
 import { FollowButton } from "@/app/_components/follow-button";
+import { EntityPostPreviewCard } from "@/app/posts/_components/entity-post-preview-card";
 import {
   EventStatus,
   ObjectVisibility,
@@ -42,10 +43,6 @@ type TeamEvent = NonNullable<
 type TeamMember = NonNullable<
   RouterOutputs["team"]["getBySlug"]
 >["members"][number];
-
-type TeamPost = NonNullable<
-  RouterOutputs["team"]["getBySlug"]
->["posts"][number];
 
 const activeEventStatuses = new Set<EventStatus>([
   EventStatus.PUBLISHED,
@@ -110,97 +107,84 @@ export default async function TeamPage({ params }: TeamPageProps) {
     : "Команда роупджампинга: мероприятия, участники и история выездов.";
 
   return (
-    <main className="min-h-[calc(100vh-4rem)] overflow-hidden bg-[#202020] text-[#e9eddc]">
-      <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-10">
-        <section className="relative overflow-hidden border border-[rgba(199,217,136,0.28)] bg-[#10150e]">
-          <div className="absolute inset-0 [background-image:linear-gradient(90deg,transparent_0_48%,rgba(199,217,136,0.08)_49%,transparent_51%),linear-gradient(0deg,transparent_0_48%,rgba(199,217,136,0.08)_49%,transparent_51%)] [background-size:46px_46px] opacity-25" />
-          <div className="absolute top-0 right-0 h-64 w-64 bg-[radial-gradient(circle,rgba(199,217,136,0.2),transparent_66%)]" />
-          <div className="relative grid gap-6 p-4 sm:p-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
-            <div className="grid gap-5 md:grid-cols-[13rem_minmax(0,1fr)]">
-              <div className="relative min-h-72 overflow-hidden rounded-[28px_28px_88px_28px] border border-[rgba(199,217,136,0.35)] bg-[#050705]">
+    <main className="min-h-[calc(100vh-4rem)] bg-zinc-50">
+      <div className="mx-auto w-full max-w-6xl px-6 py-10">
+        <section className="overflow-hidden border border-zinc-200 bg-zinc-950 text-white">
+          <div className="bg-[radial-gradient(circle_at_18%_0%,rgba(16,185,129,0.22),transparent_28%),linear-gradient(135deg,#09090b_0%,#18181b_58%,#030712_100%)] p-6 sm:p-8">
+            <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+              <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
                 {team.logoUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={team.logoUrl}
                     alt={team.logoMedia?.alt || `Логотип команды ${team.name}`}
-                    className="h-full min-h-72 w-full object-cover contrast-125 grayscale-[18%] saturate-[0.72]"
+                    className="h-28 w-28 border border-white/20 object-cover"
                   />
                 ) : (
-                  <div className="flex h-full min-h-72 items-center justify-center bg-[#151a12] text-6xl font-semibold text-[#c7d988]">
+                  <div className="flex h-28 w-28 items-center justify-center border border-white/20 bg-white/10 text-3xl font-semibold">
                     {team.name.slice(0, 1).toUpperCase()}
                   </div>
                 )}
-                <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent,rgba(16,21,14,0.72)),repeating-linear-gradient(0deg,rgba(255,255,255,0.08)_0_1px,transparent_1px_7px)]" />
-                <div className="absolute right-3 bottom-3 left-3 border border-[rgba(199,217,136,0.3)] bg-[rgba(5,7,5,0.72)] px-3 py-2 text-xs [overflow-wrap:anywhere] text-[#aab497] backdrop-blur">
-                  <span className="text-[#c7d988]">Штаб команды</span>
-                  <span className="mx-2 text-[rgba(233,237,220,0.35)]">/</span>
-                  {team.slug}
-                </div>
-              </div>
 
-              <div className="flex min-w-0 flex-col justify-between gap-6">
-                <div>
-                  <p className="text-xs font-medium tracking-[0.24em] text-[#aab497] uppercase">
-                    Досье команды
-                  </p>
-                  <h1 className="mt-3 text-4xl leading-tight font-semibold tracking-tight [overflow-wrap:anywhere] text-[#c7d988] sm:text-5xl">
-                    {team.name}
-                  </h1>
-                  <div className="mt-3 flex flex-wrap gap-2 text-sm text-[#aab497]">
-                    <span className="border border-[rgba(199,217,136,0.25)] bg-[rgba(255,255,255,0.04)] px-3 py-1">
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <span className="border border-emerald-200/30 bg-emerald-300/10 px-3 py-1 text-xs font-medium text-emerald-200">
                       {getTeamStatusLabel(team.status)}
                     </span>
                     {team.region ? (
-                      <span className="min-w-0 border border-[rgba(199,217,136,0.25)] bg-[rgba(255,255,255,0.04)] px-3 py-1 [overflow-wrap:anywhere]">
+                      <span className="text-sm text-zinc-300">
                         {team.region}
                       </span>
                     ) : null}
-                    <span className="border border-[rgba(199,217,136,0.25)] bg-[rgba(255,255,255,0.04)] px-3 py-1">
-                      Подписчиков: {team.followerCount}
+                    <span className="text-sm text-zinc-400">
+                      {team.followerCount} подписчиков
                     </span>
                   </div>
-                  <p className="mt-5 max-w-2xl text-sm leading-6 text-[#d7dcc5]">
+
+                  <h1 className="mt-4 text-4xl font-semibold tracking-tight sm:text-5xl">
+                    {team.name}
+                  </h1>
+                  <p className="mt-2 text-sm text-zinc-400">
+                    /teams/{team.slug}
+                  </p>
+                  <p className="mt-5 max-w-2xl text-base leading-7 text-zinc-200">
                     {descriptionPreview}
                   </p>
-                </div>
 
-                <div className="flex flex-wrap gap-3">
-                  {currentUser ? (
-                    <FollowButton
-                      targetId={team.id}
-                      targetType="team"
-                      initialFollowing={team.isFollowedByCurrentUser}
-                      className="border border-[rgba(199,217,136,0.3)] px-4 py-2 text-sm text-[#e9eddc] hover:border-[rgba(199,217,136,0.65)] hover:text-[#c7d988] disabled:cursor-not-allowed disabled:text-[#aab497]"
-                    />
-                  ) : (
+                  <div className="mt-6 flex flex-wrap gap-3">
+                    {currentUser ? (
+                      <FollowButton
+                        targetId={team.id}
+                        targetType="team"
+                        initialFollowing={team.isFollowedByCurrentUser}
+                      />
+                    ) : (
+                      <Link
+                        href={`/login?callbackUrl=${encodeURIComponent(`/teams/${team.slug}`)}`}
+                        className="border border-white/25 bg-white/10 px-4 py-2 text-sm text-white hover:bg-white/15"
+                      >
+                        Войдите, чтобы подписаться
+                      </Link>
+                    )}
                     <Link
-                      href={`/login?callbackUrl=${encodeURIComponent(`/teams/${team.slug}`)}`}
-                      className="border border-[rgba(199,217,136,0.3)] px-4 py-2 text-sm text-[#e9eddc] hover:border-[rgba(199,217,136,0.65)] hover:text-[#c7d988]"
+                      href="#events"
+                      className="border border-white/25 px-4 py-2 text-sm text-zinc-100 hover:bg-white/10"
                     >
-                      Войдите, чтобы подписаться
+                      Мероприятия команды
                     </Link>
-                  )}
-                  <Link
-                    href="#events"
-                    className="border border-[rgba(199,217,136,0.3)] px-4 py-2 text-sm text-[#e9eddc] hover:border-[rgba(199,217,136,0.65)] hover:text-[#c7d988]"
-                  >
-                    Мероприятия команды
-                  </Link>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <aside className="border border-[rgba(17,20,15,0.28)] bg-[#d7dcc5] p-4 text-[#11140f]">
-              <p className="text-xs font-semibold tracking-[0.2em] uppercase">
-                Сигналы базы
-              </p>
-              <dl className="mt-4 grid gap-3">
-                <SignalStat label="Участников" value={team.members.length} />
-                <SignalStat label="Мероприятий" value={team.events.length} />
-                <SignalStat label="Объектов" value={team.objects.length} />
-                <SignalStat label="Постов" value={team.posts.length} />
+              <dl className="grid grid-cols-2 gap-3 text-sm">
+                <StatCard label="Участников" value={team.members.length} dark />
+                <StatCard label="Мероприятий" value={team.events.length} dark />
+                <StatCard label="Объектов" value={team.objects.length} dark />
+                <StatCard label="Постов" value={team.posts.length} dark />
+                <StatCard label="Ближайших" value={activeEvents.length} dark />
+                <StatCard label="Проведённых" value={pastEvents.length} dark />
               </dl>
-            </aside>
+            </div>
           </div>
         </section>
 
@@ -222,7 +206,7 @@ export default async function TeamPage({ params }: TeamPageProps) {
         ) : null}
 
         <section className="mt-6 grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
-          <DossierPanel marker="описание" title="О команде">
+          <InfoSection title="О команде">
             {team.description ? (
               <p className="max-w-3xl whitespace-pre-wrap">
                 {team.description}
@@ -230,38 +214,51 @@ export default async function TeamPage({ params }: TeamPageProps) {
             ) : (
               <p>Команда пока не добавила описание.</p>
             )}
-          </DossierPanel>
+          </InfoSection>
 
-          <DossierPanel marker="цифры" title="Команда в цифрах">
-            <dl className="grid gap-3 sm:grid-cols-2">
-              <PanelStat label="Подписчиков" value={team.followerCount} />
-              <PanelStat
+          <section className="border border-zinc-200 bg-white p-6">
+            <h2 className="text-xl font-semibold text-zinc-950">
+              Команда в цифрах
+            </h2>
+            <dl className="mt-5 grid gap-3 sm:grid-cols-2">
+              <StatCard label="Подписчиков" value={team.followerCount} />
+              <StatCard
                 label="Публичных объектов"
                 value={team.objects.length}
               />
-              <PanelStat label="Ближайших" value={activeEvents.length} />
-              <PanelStat label="Прошедших" value={pastEvents.length} />
+              <StatCard
+                label="Ближайших мероприятий"
+                value={activeEvents.length}
+              />
+              <StatCard
+                label="Прошедших мероприятий"
+                value={pastEvents.length}
+              />
             </dl>
-          </DossierPanel>
+          </section>
         </section>
 
-        <DossierPanel
-          className="mt-6"
+        <section
           id="events"
-          marker="выезды"
-          title="Мероприятия команды"
-          action={
+          className="mt-6 border border-zinc-200 bg-white p-6"
+        >
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <h2 className="text-xl font-semibold text-zinc-950">
+                Мероприятия команды
+              </h2>
+              <p className="mt-2 text-sm text-zinc-600">
+                Ближайшие выезды и история открытых событий команды.
+              </p>
+            </div>
             <Link
               href={`/events?team=${team.slug}`}
-              className="text-sm text-[#aab497] hover:text-[#c7d988] hover:underline"
+              className="text-sm text-zinc-600 hover:text-zinc-950"
             >
               Все мероприятия
             </Link>
-          }
-        >
-          <p className="text-sm text-[#aab497]">
-            Ближайшие выезды и история открытых событий команды.
-          </p>
+          </div>
+
           <div className="mt-6 grid gap-6 lg:grid-cols-2">
             <EventList
               title="Ближайшие мероприятия"
@@ -279,12 +276,14 @@ export default async function TeamPage({ params }: TeamPageProps) {
               }
             />
           </div>
-        </DossierPanel>
+        </section>
 
-        <DossierPanel className="mt-6" marker="экипаж" title="Люди команды">
-          <p className="text-sm text-[#aab497]">
+        <section className="mt-6 border border-zinc-200 bg-white p-6">
+          <h2 className="text-xl font-semibold text-zinc-950">Люди команды</h2>
+          <p className="mt-2 text-sm text-zinc-600">
             Участники, организаторы и роли внутри команды.
           </p>
+
           {sortedMembers.length > 0 ? (
             <div className="mt-5 grid gap-4 md:grid-cols-2">
               {sortedMembers.map((member) => (
@@ -292,14 +291,17 @@ export default async function TeamPage({ params }: TeamPageProps) {
               ))}
             </div>
           ) : (
-            <p className="mt-5 border border-[rgba(199,217,136,0.22)] bg-[rgba(255,255,255,0.04)] p-4 text-sm text-[#d7dcc5]">
+            <p className="mt-3 text-sm text-zinc-600">
               Участники пока не добавлены.
             </p>
           )}
-        </DossierPanel>
+        </section>
 
-        <DossierPanel className="mt-6" marker="объекты" title="Объекты команды">
-          <p className="text-sm text-[#aab497]">
+        <section className="mt-6 border border-zinc-200 bg-white p-6">
+          <h2 className="text-xl font-semibold text-zinc-950">
+            Объекты команды
+          </h2>
+          <p className="mt-2 text-sm text-zinc-500">
             Здесь показываются только публичные карточки объектов без координат,
             маршрутов доступа и технических деталей.
           </p>
@@ -310,7 +312,7 @@ export default async function TeamPage({ params }: TeamPageProps) {
                 <Link
                   key={object.id}
                   href={`/objects/${object.slug}`}
-                  className="block border border-[rgba(199,217,136,0.22)] bg-[rgba(255,255,255,0.04)] p-4 hover:border-[rgba(199,217,136,0.55)]"
+                  className="block border border-zinc-200 p-4 hover:border-zinc-950"
                 >
                   {object.coverImageUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -320,11 +322,11 @@ export default async function TeamPage({ params }: TeamPageProps) {
                         object.coverMedia?.alt ||
                         `Фото объекта «${object.name}»`
                       }
-                      className="mb-4 h-36 w-full border border-[rgba(199,217,136,0.22)] object-cover contrast-110 grayscale-[12%] saturate-[0.78]"
+                      className="mb-4 h-36 w-full border border-zinc-200 object-cover"
                     />
                   ) : null}
-                  <h3 className="font-medium text-[#e9eddc]">{object.name}</h3>
-                  <div className="mt-2 flex flex-wrap gap-3 text-sm text-[#aab497]">
+                  <h3 className="font-medium text-zinc-950">{object.name}</h3>
+                  <div className="mt-2 flex flex-wrap gap-3 text-sm text-zinc-600">
                     <span>{getObjectTypeLabel(object.type)}</span>
                     {object.heightMeters ? (
                       <span>{object.heightMeters} м</span>
@@ -336,44 +338,45 @@ export default async function TeamPage({ params }: TeamPageProps) {
               ))}
             </div>
           ) : (
-            <p className="mt-5 border border-[rgba(199,217,136,0.22)] bg-[rgba(255,255,255,0.04)] p-4 text-sm text-[#d7dcc5]">
+            <p className="mt-3 text-sm text-zinc-600">
               Публичных объектов пока нет.
             </p>
           )}
-        </DossierPanel>
+        </section>
 
-        <DossierPanel
-          className="mt-6"
-          marker="лента"
-          title="Публикации команды"
-          action={
+        <section className="mt-6 border border-zinc-200 bg-white p-6">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <h2 className="text-xl font-semibold text-zinc-950">
+                Публикации команды
+              </h2>
+              <p className="mt-2 text-sm text-zinc-600">
+                Посты, фотографии, вопросы и истории вокруг выездов.
+              </p>
+            </div>
             <Link
               href={`/feed?team=${team.slug}`}
-              className="text-sm text-[#aab497] hover:text-[#c7d988] hover:underline"
+              className="text-sm text-zinc-600 hover:text-zinc-950"
             >
               Все посты команды
             </Link>
-          }
-        >
-          <p className="text-sm text-[#aab497]">
-            Посты, фотографии, вопросы и истории вокруг выездов.
-          </p>
+          </div>
+
           {team.posts.length > 0 ? (
             <div className="mt-5 grid gap-4">
               {team.posts.map((post) => (
-                <TeamPostCard
+                <EntityPostPreviewCard
                   key={post.id}
                   isPinned={post.pins.some((pin) => pin.targetId === team.id)}
                   post={post}
+                  showLinkedEntities={false}
                 />
               ))}
             </div>
           ) : (
-            <p className="mt-5 border border-[rgba(199,217,136,0.22)] bg-[rgba(255,255,255,0.04)] p-4 text-sm text-[#d7dcc5]">
-              Публикаций пока нет.
-            </p>
+            <p className="mt-3 text-sm text-zinc-600">Публикаций пока нет.</p>
           )}
-        </DossierPanel>
+        </section>
       </div>
     </main>
   );
@@ -387,58 +390,48 @@ function getDescriptionPreview(description: string) {
     : normalizedDescription;
 }
 
-function DossierPanel({
-  action,
+function InfoSection({
   children,
-  className = "",
-  id,
-  marker,
   title,
 }: {
-  action?: ReactNode;
   children: ReactNode;
-  className?: string;
-  id?: string;
-  marker: string;
   title: string;
 }) {
   return (
-    <section
-      id={id}
-      className={`${className} border border-[rgba(199,217,136,0.25)] bg-[#10150e] p-4 text-sm leading-6 text-[#d7dcc5] sm:p-6`}
-    >
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[rgba(199,217,136,0.18)] pb-4">
-        <h2 className="text-xl font-semibold text-[#e9eddc]">{title}</h2>
-        <div className="flex flex-wrap items-center gap-3">
-          {action}
-          <span className="text-xs tracking-[0.2em] text-[#aab497] uppercase">
-            {marker}
-          </span>
-        </div>
-      </div>
-      <div className="pt-5">{children}</div>
+    <section className="border border-zinc-200 bg-white p-6">
+      <h2 className="text-xl font-semibold text-zinc-950">{title}</h2>
+      <div className="mt-4 text-sm leading-6 text-zinc-600">{children}</div>
     </section>
   );
 }
 
-function SignalStat({ label, value }: { label: string; value: number }) {
+function StatCard({
+  dark = false,
+  label,
+  value,
+}: {
+  dark?: boolean;
+  label: string;
+  value: number;
+}) {
   return (
-    <div className="border border-[rgba(17,20,15,0.2)] bg-[rgba(17,20,15,0.06)] p-3">
-      <dt className="text-xs font-semibold tracking-[0.16em] text-[#5f6f38] uppercase">
-        {label}
-      </dt>
-      <dd className="mt-2 text-2xl font-semibold text-[#11140f]">{value}</dd>
-    </div>
-  );
-}
-
-function PanelStat({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="border border-[rgba(199,217,136,0.22)] bg-[rgba(255,255,255,0.04)] p-3">
-      <dt className="text-xs font-semibold tracking-[0.16em] text-[#aab497] uppercase">
-        {label}
-      </dt>
-      <dd className="mt-2 text-2xl font-semibold text-[#c7d988]">{value}</dd>
+    <div
+      className={
+        dark
+          ? "border border-white/15 bg-white/10 p-3"
+          : "border border-zinc-200 bg-white p-3"
+      }
+    >
+      <dt className={dark ? "text-zinc-300" : "text-zinc-500"}>{label}</dt>
+      <dd
+        className={
+          dark
+            ? "mt-1 font-medium text-white"
+            : "mt-1 font-medium text-zinc-950"
+        }
+      >
+        {value}
+      </dd>
     </div>
   );
 }
@@ -456,7 +449,7 @@ function EventList({
 }) {
   return (
     <section>
-      <h3 className="text-sm font-medium text-[#c7d988]">{title}</h3>
+      <h3 className="text-sm font-medium text-zinc-500">{title}</h3>
       {events.length > 0 ? (
         <>
           <div className="mt-3 grid gap-4">
@@ -465,11 +458,11 @@ function EventList({
             ))}
           </div>
           {afterText ? (
-            <p className="mt-3 text-sm text-[#aab497]">{afterText}</p>
+            <p className="mt-3 text-sm text-zinc-500">{afterText}</p>
           ) : null}
         </>
       ) : (
-        <p className="mt-3 border border-[rgba(199,217,136,0.22)] bg-[rgba(255,255,255,0.04)] p-4 text-sm text-[#d7dcc5]">
+        <p className="mt-3 border border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-600">
           {emptyText}
         </p>
       )}
@@ -484,7 +477,7 @@ function EventCard({ event }: { event: TeamEvent }) {
   return (
     <Link
       href={`/events/${event.slug}`}
-      className="block border border-[rgba(199,217,136,0.22)] bg-[rgba(255,255,255,0.04)] p-4 hover:border-[rgba(199,217,136,0.55)]"
+      className="block border border-zinc-200 p-4 hover:border-zinc-950"
     >
       <div className="flex gap-4">
         {event.coverImageUrl ? (
@@ -494,24 +487,24 @@ function EventCard({ event }: { event: TeamEvent }) {
             alt={
               event.coverMedia?.alt || `Обложка мероприятия «${event.title}»`
             }
-            className="hidden h-24 w-32 border border-[rgba(199,217,136,0.22)] object-cover contrast-110 grayscale-[12%] saturate-[0.78] sm:block"
+            className="hidden h-24 w-32 border border-zinc-200 object-cover sm:block"
           />
         ) : null}
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="flex items-start justify-between gap-4">
             <div>
-              <h4 className="text-base font-semibold text-[#e9eddc]">
+              <h4 className="text-base font-semibold text-zinc-950">
                 {event.title}
               </h4>
-              <p className="mt-1 text-sm text-[#aab497]">
+              <p className="mt-1 text-sm text-zinc-500">
                 {formatEventDateRange(event.startsAt, event.endsAt)}
               </p>
             </div>
-            <span className="shrink-0 text-xs font-medium text-[#c7d988]">
+            <span className="shrink-0 text-xs font-medium text-zinc-500">
               {getEventStatusLabel(event.status)}
             </span>
           </div>
-          <div className="mt-3 flex flex-wrap gap-3 text-sm text-[#d7dcc5]">
+          <div className="mt-3 flex flex-wrap gap-3 text-sm text-zinc-600">
             {event.region ? <span>{event.region}</span> : null}
             {event.object ? (
               publicObject ? (
@@ -544,40 +537,40 @@ function MemberCard({ member }: { member: TeamMember }) {
     profile?.displayName ?? profile?.username ?? member.user.name;
 
   return (
-    <div className="flex flex-col gap-4 border border-[rgba(199,217,136,0.22)] bg-[rgba(255,255,255,0.04)] p-4 sm:flex-row sm:items-start sm:justify-between">
+    <div className="flex flex-col gap-4 border border-zinc-200 p-4 sm:flex-row sm:items-start sm:justify-between">
       <div className="flex min-w-0 items-start gap-3">
         {avatarUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={avatarUrl}
             alt=""
-            className="h-12 w-12 border border-[rgba(199,217,136,0.28)] object-cover"
+            className="h-12 w-12 border border-zinc-200 object-cover"
           />
         ) : (
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center border border-[rgba(199,217,136,0.28)] bg-[#151a12] text-sm font-medium text-[#c7d988]">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center border border-zinc-200 bg-zinc-50 text-sm font-medium text-zinc-500">
             {(displayName ?? "?").slice(0, 1).toUpperCase()}
           </div>
         )}
         <div className="min-w-0">
-          <p className="truncate text-sm font-medium text-[#e9eddc]">
+          <p className="truncate text-sm font-medium text-zinc-950">
             {displayName ?? "Участник без имени"}
           </p>
           {profile?.username ? (
             <Link
               href={`/u/${profile.username}`}
-              className="mt-1 block text-sm text-[#aab497] hover:text-[#c7d988]"
+              className="mt-1 block text-sm text-zinc-500 hover:text-zinc-950"
             >
               @{profile.username}
             </Link>
           ) : null}
           {profile?.city ? (
-            <p className="mt-1 text-sm text-[#aab497]">{profile.city}</p>
+            <p className="mt-1 text-sm text-zinc-600">{profile.city}</p>
           ) : null}
         </div>
       </div>
 
       <div className="flex flex-col gap-2 sm:items-end">
-        <span className="text-xs font-medium text-[#c7d988]">
+        <span className="text-xs font-medium text-zinc-500">
           {getTeamRoleLabel(member.role)}
         </span>
         {member.functionRoles.length > 0 ? (
@@ -585,7 +578,7 @@ function MemberCard({ member }: { member: TeamMember }) {
             {member.functionRoles.map((functionRole) => (
               <span
                 key={functionRole}
-                className="border border-[rgba(199,217,136,0.22)] px-2 py-1 text-xs text-[#aab497]"
+                className="border border-zinc-200 px-2 py-1 text-xs text-zinc-600"
               >
                 {getTeamFunctionRoleLabel(functionRole)}
               </span>
@@ -596,113 +589,3 @@ function MemberCard({ member }: { member: TeamMember }) {
     </div>
   );
 }
-
-function TeamPostCard({
-  isPinned,
-  post,
-}: {
-  isPinned: boolean;
-  post: TeamPost;
-}) {
-  const profile = post.author.profile;
-  const authorDisplayName =
-    profile?.displayName ??
-    profile?.username ??
-    post.author.name ??
-    "Участник без имени";
-  const avatarUrl = profile?.avatarUrl ?? post.author.image ?? null;
-  const imageAlt =
-    post.imageMedia?.alt ||
-    (post.event
-      ? `Изображение к посту о мероприятии «${post.event.title}»`
-      : post.object
-        ? `Изображение к посту об объекте «${post.object.name}»`
-        : "Изображение к посту команды");
-
-  return (
-    <Link
-      href={`/posts/${post.id}`}
-      className="block border border-[rgba(199,217,136,0.22)] bg-[rgba(255,255,255,0.04)] p-4 hover:border-[rgba(199,217,136,0.55)]"
-    >
-      <div className="flex items-start gap-3">
-        {avatarUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={avatarUrl}
-            alt=""
-            className="h-10 w-10 border border-[rgba(199,217,136,0.28)] object-cover"
-          />
-        ) : (
-          <div className="flex h-10 w-10 items-center justify-center border border-[rgba(199,217,136,0.28)] bg-[#151a12] text-sm font-semibold text-[#c7d988]">
-            {authorDisplayName.slice(0, 1).toUpperCase()}
-          </div>
-        )}
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <p className="text-sm font-medium text-[#e9eddc]">
-              {authorDisplayName}
-            </p>
-            {isPinned ? (
-              <span className="border border-[rgba(199,217,136,0.28)] px-2 py-1 text-xs text-[#c7d988]">
-                Закреплено
-              </span>
-            ) : null}
-          </div>
-          <div className="mt-1 flex flex-wrap gap-2 text-xs text-[#aab497]">
-            {profile?.username ? <span>@{profile.username}</span> : null}
-            <span>{formatShortDate(post.createdAt)}</span>
-          </div>
-        </div>
-      </div>
-
-      <p className="mt-3 text-sm leading-6 whitespace-pre-wrap text-[#d7dcc5]">
-        {getPostPreview(post.content)}
-      </p>
-
-      {post.imageUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={post.imageUrl}
-          alt={imageAlt}
-          className="mt-4 h-48 w-full border border-[rgba(199,217,136,0.22)] object-cover contrast-110 grayscale-[12%] saturate-[0.78]"
-        />
-      ) : null}
-
-      {(post.event || post.object) && (
-        <div className="mt-4 flex flex-wrap gap-2 text-sm text-[#aab497]">
-          {post.event ? (
-            <span className="border border-[rgba(199,217,136,0.22)] px-2 py-1">
-              Мероприятие: {post.event.title}
-            </span>
-          ) : null}
-          {post.object ? (
-            <span className="border border-[rgba(199,217,136,0.22)] px-2 py-1">
-              Объект: {post.object.name}
-            </span>
-          ) : null}
-        </div>
-      )}
-
-      <div className="mt-4 flex flex-wrap gap-4 border-t border-[rgba(199,217,136,0.18)] pt-3 text-xs text-[#aab497]">
-        <span>{post.viewsCount} просмотров</span>
-        <span>{post._count.likes} лайков</span>
-        <span>{post._count.comments} комментариев</span>
-      </div>
-    </Link>
-  );
-}
-
-const getPostPreview = (content: string) => {
-  const normalizedContent = content.trim();
-
-  return normalizedContent.length > 240
-    ? `${normalizedContent.slice(0, 240)}...`
-    : normalizedContent;
-};
-
-const formatShortDate = (date: Date) =>
-  new Intl.DateTimeFormat("ru-RU", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  }).format(date);

@@ -10,14 +10,12 @@ export type GalleryViewerImage = {
 };
 
 type ImageGalleryViewerProps = {
-  captionClassName?: string;
   className?: string;
   imageClassName?: string;
   images: GalleryViewerImage[];
 };
 
 export function ImageGalleryViewer({
-  captionClassName = "mt-2 block text-sm leading-5 text-zinc-600",
   className = "grid grid-cols-2 gap-4 lg:grid-cols-3",
   imageClassName = "h-40 w-full border border-zinc-200 object-cover sm:h-52",
   images,
@@ -78,7 +76,9 @@ export function ImageGalleryViewer({
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={image.url} alt={image.alt} className={imageClassName} />
             {image.caption ? (
-              <span className={captionClassName}>{image.caption}</span>
+              <span className="mt-2 block text-sm leading-5 text-zinc-600">
+                {image.caption}
+              </span>
             ) : null}
           </button>
         ))}
