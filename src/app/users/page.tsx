@@ -1,9 +1,8 @@
+/* eslint-disable @typescript-eslint/prefer-nullish-coalescing */
 import Link from "next/link";
 
 import { CollapsibleFilterPanel } from "@/app/_components/collapsible-filter-panel";
 import { api } from "@/trpc/server";
-
-import { UserDossierCard } from "./_components/user-dossier-card";
 
 type UsersPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -94,10 +93,67 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
 
         {profiles.length > 0 ? (
           <>
-            <div className="grid items-stretch gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {profiles.map((profile) => (
-                <UserDossierCard key={profile.id} profile={profile} />
-              ))}
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {profiles.map((profile) => {
+                const profileName =
+                  profile.displayName ??
+                  (profile.username ? `@${profile.username}` : null) ??
+                  profile.user.name ??
+                  "Профиль";
+                const cardContent = (
+                  <>
+                    {profile.avatarUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={profile.avatarUrl}
+                        alt={
+                          profile.avatarMedia?.alt ||
+                          profile.displayName ||
+                          profile.username ||
+                          "Аватар пользователя"
+                        }
+                        className="h-16 w-16 border border-[var(--app-border)] object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-16 w-16 items-center justify-center border border-[var(--app-border)] bg-[var(--app-surface-muted)] text-lg font-semibold text-[var(--app-text-muted)]">
+                        {profileName.slice(0, 1)}
+                      </div>
+                    )}
+
+                    <h2 className="mt-4 truncate text-lg font-semibold text-[var(--app-text)]">
+                      {profileName}
+                    </h2>
+                    {profile.username && profile.displayName ? (
+                      <p className="mt-1 text-sm text-[var(--app-text-muted)]">
+                        @{profile.username}
+                      </p>
+                    ) : null}
+                    <p className="mt-2 min-h-5 text-sm text-[var(--app-text-muted)]">
+                      {profile.city || "Город не указан"}
+                    </p>
+                    <div className="mt-4 text-sm text-[var(--app-text-secondary)]">
+                      Достижений: {profile.user._count.badges}
+                    </div>
+                  </>
+                );
+
+                return profile.username ? (
+                    <Link
+                      key={profile.id}
+                      href={`/u/${profile.username}`}
+                      className="block border border-[var(--app-border)] bg-[var(--app-surface)] p-4 transition hover:border-[var(--app-border-strong)]"
+                    >
+                      {cardContent}
+                    </Link>
+                  ) : (
+                    <article
+                      key={profile.id}
+                      className="border border-[var(--app-border)] bg-[var(--app-surface)] p-4"
+                    >
+                      {cardContent}
+                    </article>
+                  );
+              })}
             </div>
           </>
         ) : (

@@ -87,20 +87,18 @@ export function ObjectImpressions({
   };
 
   return (
-    <section className="mt-6 border border-[rgba(199,217,136,0.25)] bg-[#10150e] p-4 text-[#d7dcc5] sm:p-6">
+    <section className="mt-6 border border-zinc-200 bg-white p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h2 className="text-xl font-semibold text-[#e9eddc]">
+          <h2 className="text-xl font-semibold text-zinc-950">
             Впечатления об объекте
           </h2>
-          <p className="mt-2 text-sm text-[#aab497]">
-            {impressionsCount} всего
-          </p>
+          <p className="mt-2 text-sm text-zinc-600">{impressionsCount} всего</p>
         </div>
         {!isAuthenticated ? (
           <Link
             href="/login"
-            className="border border-[rgba(199,217,136,0.3)] px-4 py-2 text-sm text-[#e9eddc] hover:border-[rgba(199,217,136,0.65)] hover:text-[#c7d988]"
+            className="border border-zinc-300 px-4 py-2 text-sm text-zinc-800 hover:border-zinc-950"
           >
             Войдите, чтобы оставить впечатление
           </Link>
@@ -108,20 +106,20 @@ export function ObjectImpressions({
       </div>
 
       {isAuthenticated ? (
-        <div className="mt-6 border border-[rgba(199,217,136,0.22)] bg-[rgba(255,255,255,0.04)] p-4">
+        <div className="mt-6 border border-zinc-200 p-4">
           {myImpression && !isEditing ? (
             <div>
-              <p className="text-sm font-medium text-[#e9eddc]">
+              <p className="text-sm font-medium text-zinc-950">
                 Ваше впечатление
               </p>
-              <p className="mt-3 text-sm leading-6 whitespace-pre-wrap text-[#d7dcc5]">
+              <p className="mt-3 text-sm leading-6 whitespace-pre-wrap text-zinc-600">
                 {myImpression.body}
               </p>
               <div className="mt-4 flex flex-wrap gap-3">
                 <button
                   type="button"
                   onClick={() => setIsEditing(true)}
-                  className="border border-[rgba(199,217,136,0.3)] px-4 py-2 text-sm text-[#e9eddc] hover:border-[rgba(199,217,136,0.65)] hover:text-[#c7d988]"
+                  className="border border-zinc-300 px-4 py-2 text-sm text-zinc-800 hover:border-zinc-950"
                 >
                   Редактировать
                 </button>
@@ -133,7 +131,7 @@ export function ObjectImpressions({
                       impressionId: myImpression.id,
                     })
                   }
-                  className="border border-[rgba(199,217,136,0.3)] px-4 py-2 text-sm text-[#e9eddc] hover:border-[rgba(199,217,136,0.65)] hover:text-[#c7d988] disabled:cursor-not-allowed disabled:text-[#aab497]"
+                  className="border border-zinc-300 px-4 py-2 text-sm text-zinc-800 hover:border-zinc-950 disabled:cursor-not-allowed disabled:text-zinc-400"
                 >
                   Удалить
                 </button>
@@ -143,7 +141,7 @@ export function ObjectImpressions({
             <form onSubmit={handleSubmit} className="grid gap-3">
               <label
                 htmlFor="objectImpressionBody"
-                className="text-sm font-medium text-[#c7d988]"
+                className="text-sm font-medium text-zinc-950"
               >
                 {myImpression
                   ? "Редактировать впечатление"
@@ -156,19 +154,19 @@ export function ObjectImpressions({
                 minLength={20}
                 maxLength={2000}
                 rows={6}
-                className="resize-y border border-[rgba(199,217,136,0.3)] bg-[#151a12] px-3 py-2 text-sm text-[#e9eddc] outline-none placeholder:text-[#5f6f38] focus:border-[rgba(199,217,136,0.65)]"
+                className="resize-y border border-zinc-300 px-3 py-2 text-sm text-zinc-950 outline-none focus:border-zinc-950"
                 placeholder={`Расскажите, каким вам запомнился объект «${objectName}».`}
               />
-              <p className="text-xs leading-5 text-[#aab497]">
+              <p className="text-xs leading-5 text-zinc-500">
                 Расскажите об общих впечатлениях: атмосфера, вид, удобство для
                 зрителей, что стоит учесть участникам.
               </p>
-              <p className="text-xs leading-5 text-[#c7d988]">{safetyText}</p>
+              <p className="text-xs leading-5 text-amber-800">{safetyText}</p>
               <div className="flex flex-wrap gap-3">
                 <button
                   type="submit"
                   disabled={isPending}
-                  className="border border-[rgba(199,217,136,0.3)] px-4 py-2 text-sm text-[#e9eddc] hover:border-[rgba(199,217,136,0.65)] hover:text-[#c7d988] disabled:cursor-not-allowed disabled:text-[#aab497]"
+                  className="bg-zinc-950 px-4 py-2 text-sm text-white hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-400"
                 >
                   {myImpression ? "Сохранить" : "Оставить впечатление"}
                 </button>
@@ -180,7 +178,7 @@ export function ObjectImpressions({
                       setBody(myImpression.body);
                       setIsEditing(false);
                     }}
-                    className="border border-[rgba(199,217,136,0.3)] px-4 py-2 text-sm text-[#e9eddc] hover:border-[rgba(199,217,136,0.65)] hover:text-[#c7d988] disabled:cursor-not-allowed disabled:text-[#aab497]"
+                    className="border border-zinc-300 px-4 py-2 text-sm text-zinc-800 hover:border-zinc-950 disabled:cursor-not-allowed disabled:text-zinc-400"
                   >
                     Отмена
                   </button>
@@ -189,7 +187,7 @@ export function ObjectImpressions({
             </form>
           )}
           {error ? (
-            <p className="mt-3 text-sm text-red-300">{error.message}</p>
+            <p className="mt-3 text-sm text-red-700">{error.message}</p>
           ) : null}
         </div>
       ) : null}
@@ -197,10 +195,7 @@ export function ObjectImpressions({
       {impressions.length > 0 ? (
         <div className="mt-6 grid gap-4">
           {impressions.map((impression) => (
-            <article
-              key={impression.id}
-              className="border border-[rgba(199,217,136,0.22)] bg-[rgba(255,255,255,0.04)] p-4"
-            >
+            <article key={impression.id} className="border border-zinc-200 p-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="flex min-w-0 items-center gap-3">
                   {impression.author.profile?.avatarUrl ? (
@@ -213,17 +208,17 @@ export function ObjectImpressions({
                         impression.author.profile.username ??
                         "Аватар пользователя"
                       }
-                      className="h-10 w-10 border border-[rgba(199,217,136,0.28)] object-cover"
+                      className="h-10 w-10 border border-zinc-200 object-cover"
                     />
                   ) : null}
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-[#e9eddc]">
+                    <p className="truncate text-sm font-medium text-zinc-950">
                       {getAuthorName(impression)}
                     </p>
                     {impression.author.profile?.username ? (
                       <Link
                         href={`/u/${impression.author.profile.username}`}
-                        className="text-sm text-[#aab497] hover:text-[#c7d988]"
+                        className="text-sm text-zinc-500 hover:text-zinc-950"
                       >
                         @{impression.author.profile.username}
                       </Link>
@@ -231,7 +226,7 @@ export function ObjectImpressions({
                   </div>
                 </div>
                 <div className="flex flex-wrap items-center justify-end gap-3">
-                  <p className="text-xs text-[#aab497]">
+                  <p className="text-xs text-zinc-500">
                     {formatImpressionDate(impression.createdAt)}
                     {impression.editedAt ? " · отредактировано" : ""}
                   </p>
@@ -252,7 +247,7 @@ export function ObjectImpressions({
                           details: null,
                         })
                       }
-                      className="text-xs text-[#aab497] hover:text-[#c7d988] disabled:cursor-not-allowed disabled:text-[#5f6f38]"
+                      className="text-xs text-zinc-500 hover:text-zinc-950 disabled:cursor-not-allowed disabled:text-zinc-400"
                     >
                       {reportedImpressionIds.has(impression.id)
                         ? "Жалоба отправлена"
@@ -261,19 +256,19 @@ export function ObjectImpressions({
                   ) : null}
                 </div>
               </div>
-              <p className="mt-3 text-sm leading-6 whitespace-pre-wrap text-[#d7dcc5]">
+              <p className="mt-3 text-sm leading-6 whitespace-pre-wrap text-zinc-600">
                 {impression.body}
               </p>
             </article>
           ))}
           {reportImpression.error ? (
-            <p className="text-sm text-red-300">
+            <p className="text-sm text-red-700">
               {reportImpression.error.message}
             </p>
           ) : null}
         </div>
       ) : (
-        <p className="mt-5 border border-[rgba(199,217,136,0.22)] bg-[rgba(255,255,255,0.04)] p-4 text-sm text-[#d7dcc5]">
+        <p className="mt-5 text-sm text-zinc-600">
           Пока нет впечатлений об этом объекте.
         </p>
       )}

@@ -26,13 +26,13 @@ export function BadgeRecalculateButton() {
         type="button"
         disabled={recalculate.isPending}
         onClick={() => recalculate.mutate()}
-        className="border border-[rgba(199,217,136,0.3)] px-4 py-2 text-sm text-[#e9eddc] hover:border-[rgba(199,217,136,0.65)] hover:text-[#c7d988] disabled:cursor-not-allowed disabled:text-[#aab497]"
+        className="border border-zinc-300 px-4 py-2 text-sm text-zinc-800 hover:border-zinc-950 disabled:cursor-not-allowed disabled:text-zinc-400"
       >
         {recalculate.isPending ? "Пересчёт..." : "Пересчитать бейджи"}
       </button>
-      {message ? <p className="text-sm text-[#aab497]">{message}</p> : null}
+      {message ? <p className="text-sm text-zinc-600">{message}</p> : null}
       {recalculate.error ? (
-        <p className="text-sm text-red-300">{recalculate.error.message}</p>
+        <p className="text-sm text-red-700">{recalculate.error.message}</p>
       ) : null}
     </div>
   );
