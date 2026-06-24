@@ -11,7 +11,11 @@ import { api } from "@/trpc/server";
 
 import { AnimatedLogo } from "./animated-logo";
 import { RadioProvider } from "./radio-provider";
-import { SiteMobileMenu, type MobileMenuSection } from "./site-mobile-menu";
+import {
+  SiteMobileMenu,
+  SiteNavLink,
+  type MobileMenuSection,
+} from "./site-mobile-menu";
 import { SiteRadioPlayer } from "./site-radio-player";
 import { ThemeToggle } from "./theme-toggle";
 
@@ -121,13 +125,13 @@ export async function AppShell({ children }: AppShellProps) {
   ];
 
   return (
-    <div className="min-h-screen bg-[var(--app-bg)] text-[var(--app-text)]">
+    <div className="iron-app-shell min-h-screen bg-[var(--app-bg)] text-[var(--app-text)]">
       <RadioProvider>
-        <header className="sticky top-0 z-30 border-b border-[var(--app-border)] bg-[var(--app-bg)] lg:hidden">
+        <header className="iron-mobile-header sticky top-0 z-30 border-b border-[var(--app-border-strong)] lg:hidden">
           <div className="flex min-h-16 items-center justify-between gap-4 px-4 py-3">
             <Link
               href="/"
-              className="block w-[clamp(180px,58vw,280px)] max-w-[calc(100vw-6rem)] text-[var(--app-text)] [--logo-color:var(--app-text)]"
+              className="block w-[clamp(180px,58vw,280px)] max-w-[calc(100vw-6rem)] text-[var(--app-text)] [--logo-color:var(--app-text)] [--logo-shadow-color:rgba(224,106,36,0.72)]"
             >
               <AnimatedLogo replayOnClick={false} />
             </Link>
@@ -155,12 +159,12 @@ export async function AppShell({ children }: AppShellProps) {
           <SiteRadioPlayer variant="mobile" />
         </header>
 
-        <div className="hidden border-b border-[var(--app-border)] bg-[var(--app-bg)] lg:block">
+        <div className="iron-hero-header hidden border-b border-[var(--app-border-strong)] lg:block">
           <div className="mx-auto grid w-full max-w-[1500px] grid-cols-[220px_minmax(0,1fr)_280px] px-5 xl:grid-cols-[240px_minmax(0,1fr)_300px]">
             <div className="col-span-2 flex min-h-[132px] items-center py-5 pl-3">
               <Link
                 href="/"
-                className="block min-w-[280px] w-[min(720px,58vw)] max-w-full text-[var(--app-text)] [--logo-color:var(--app-text)] xl:w-[min(860px,58vw)]"
+                className="block w-[min(720px,58vw)] max-w-full min-w-[280px] text-[var(--app-text)] drop-shadow-[0_2px_18px_rgba(0,0,0,0.9)] [--logo-color:var(--app-text)] [--logo-shadow-color:rgba(224,106,36,0.72)] xl:w-[min(860px,58vw)]"
               >
                 <AnimatedLogo replayOnClick={false} />
               </Link>
@@ -173,13 +177,17 @@ export async function AppShell({ children }: AppShellProps) {
       </RadioProvider>
 
       <div className="mx-auto w-full lg:grid lg:min-h-[calc(100vh-9rem)] lg:max-w-[1500px] lg:grid-cols-[220px_minmax(0,1fr)_280px] xl:grid-cols-[240px_minmax(0,1fr)_300px]">
-        <aside className="hidden border-r border-[var(--app-border)] bg-[var(--app-bg)] lg:block">
+        <aside className="iron-sidebar hidden border-r border-[var(--app-border-strong)] lg:block">
           <div className="sticky top-0 flex max-h-screen flex-col overflow-y-auto px-5 py-6">
             <nav className="grid gap-1" aria-label="Основная навигация">
               {mainLinks.map((link) => (
-                <SidebarLink key={link.href} href={link.href}>
+                <SiteNavLink
+                  key={link.href}
+                  href={link.href}
+                  className="px-3 py-2 text-sm font-medium"
+                >
                   {link.label}
-                </SidebarLink>
+                </SiteNavLink>
               ))}
             </nav>
           </div>
@@ -187,7 +195,7 @@ export async function AppShell({ children }: AppShellProps) {
 
         <main className="min-w-0">{children}</main>
 
-        <aside className="hidden border-l border-[var(--app-border)] bg-[var(--app-bg)] lg:block">
+        <aside className="iron-user-panel hidden border-l border-[var(--app-border-strong)] lg:block">
           <div className="sticky top-0 h-screen overflow-y-auto px-5 py-6">
             {user ? (
               <div>
@@ -214,14 +222,22 @@ export async function AppShell({ children }: AppShellProps) {
                   aria-label="Навигация пользователя"
                 >
                   {userLinks.map((link) => (
-                    <SidebarLink key={link.href} href={link.href}>
+                    <SiteNavLink
+                      key={link.href}
+                      href={link.href}
+                      className="px-3 py-2 text-sm font-medium"
+                    >
                       {link.label}
-                    </SidebarLink>
+                    </SiteNavLink>
                   ))}
                   {moderatorLinks.map((link) => (
-                    <SidebarLink key={link.href} href={link.href}>
+                    <SiteNavLink
+                      key={link.href}
+                      href={link.href}
+                      className="px-3 py-2 text-sm font-medium"
+                    >
                       {link.label}
-                    </SidebarLink>
+                    </SiteNavLink>
                   ))}
                 </nav>
 
@@ -249,7 +265,7 @@ export async function AppShell({ children }: AppShellProps) {
                 </div>
                 <Link
                   href="/login"
-                  className="mt-3 inline-flex border border-[var(--app-border-strong)] bg-[var(--app-surface)] px-4 py-2 text-sm font-medium text-[var(--app-text-secondary)] hover:bg-[var(--app-surface-muted)] hover:text-[var(--app-text)]"
+                  className="iron-button mt-3 inline-flex px-4 py-2 text-sm font-medium"
                 >
                   Войти
                 </Link>
@@ -262,28 +278,11 @@ export async function AppShell({ children }: AppShellProps) {
   );
 }
 
-function SidebarLink({
-  children,
-  href,
-}: {
-  children: ReactNode;
-  href: string;
-}) {
-  return (
-    <Link
-      href={href}
-      className="block px-3 py-2 text-sm text-[var(--app-text-secondary)] hover:bg-[var(--app-surface)] hover:text-[var(--app-text)]"
-    >
-      {children}
-    </Link>
-  );
-}
-
 function MobileSignInLink() {
   return (
     <Link
       href="/login"
-      className="block px-1 py-2 text-sm text-[var(--app-text-secondary)] hover:text-[var(--app-text)]"
+      className="block px-1 py-2 text-sm text-[var(--app-text-secondary)] hover:text-[var(--iron-accent)]"
     >
       Войти
     </Link>
@@ -303,8 +302,8 @@ function SignOutButton({ mobile = false }: { mobile?: boolean }) {
         type="submit"
         className={
           mobile
-            ? "block w-full px-1 py-2 text-left text-sm text-[var(--app-text-secondary)] hover:text-[var(--app-text)]"
-            : "w-full border border-[var(--app-border-strong)] bg-[var(--app-surface)] px-4 py-2 text-sm font-medium text-[var(--app-text-secondary)] hover:bg-[var(--app-surface-muted)] hover:text-[var(--app-text)]"
+            ? "block w-full px-1 py-2 text-left text-sm text-[var(--app-text-secondary)] hover:text-[var(--iron-accent)]"
+            : "iron-button w-full px-4 py-2 text-sm font-medium"
         }
       >
         Выйти
@@ -348,7 +347,7 @@ function Avatar({
   return (
     <span
       aria-hidden="true"
-      className={`${sizeClass} flex shrink-0 items-center justify-center rounded-full border border-[var(--app-border-strong)] bg-[var(--app-surface)] bg-cover bg-center font-medium text-[var(--app-text-secondary)]`}
+      className={`${sizeClass} flex shrink-0 items-center justify-center rounded-full border border-[var(--app-border-strong)] bg-[var(--app-surface)] bg-cover bg-center font-medium text-[var(--app-text-secondary)] shadow-[0_0_20px_rgba(224,106,36,0.08)]`}
       style={imageStyle}
     >
       {imageUrl ? null : initial}
@@ -362,7 +361,7 @@ function GuestAvatar({ size }: { size: "sm" | "lg" }) {
   return (
     <span
       aria-hidden="true"
-      className={`${sizeClass} flex shrink-0 items-center justify-center rounded-full border border-[var(--app-border-strong)] bg-[var(--app-surface)]`}
+      className={`${sizeClass} flex shrink-0 items-center justify-center rounded-full border border-[var(--app-border-strong)] bg-[var(--app-surface)] shadow-[0_0_20px_rgba(224,106,36,0.08)]`}
     >
       <Image
         src="/img/roup.svg"

@@ -9,8 +9,9 @@
 }
 
 @theme {
-  --font-sans: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji",
-    "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --font-sans:
+    ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji",
+    "Segoe UI Symbol", "Noto Color Emoji";
 }
 
 @keyframes radio-marquee {
@@ -35,34 +36,69 @@
 
 :root,
 html[data-theme="dark"] {
-  --app-bg: #202020;
-  --app-surface: rgb(255 255 255 / 0.05);
-  --app-surface-muted: rgb(255 255 255 / 0.03);
-  --app-border: rgb(255 255 255 / 0.1);
-  --app-border-strong: rgb(255 255 255 / 0.15);
-  --app-text: rgb(250 250 250);
-  --app-text-secondary: rgb(212 212 216);
-  --app-text-muted: rgb(161 161 170);
-  --app-muted: rgb(161 161 170);
+  --iron-bg: #090806;
+  --iron-bg-soft: #11100c;
+  --iron-panel: #15120e;
+  --iron-panel-soft: #1d1812;
+  --iron-border: rgba(205, 92, 28, 0.42);
+  --iron-border-soft: rgba(205, 92, 28, 0.22);
+  --iron-accent: #e06a24;
+  --iron-accent-soft: #a84a1f;
+  --iron-text: #efe5d2;
+  --iron-muted: #b8aa94;
+  --iron-danger: #d24a2f;
+  --app-bg: var(--iron-bg);
+  --app-surface: rgb(239 229 210 / 0.06);
+  --app-surface-muted: rgb(239 229 210 / 0.035);
+  --app-border: var(--iron-border-soft);
+  --app-border-strong: var(--iron-border);
+  --app-text: var(--iron-text);
+  --app-text-secondary: rgb(221 207 184);
+  --app-text-muted: var(--iron-muted);
+  --app-muted: var(--iron-muted);
   color-scheme: dark;
 }
 
 html[data-theme="light"] {
-  --app-bg: #f4f4f5;
-  --app-surface: #ffffff;
-  --app-surface-muted: #fafafa;
-  --app-border: rgb(228 228 231);
-  --app-border-strong: rgb(212 212 216);
-  --app-text: rgb(9 9 11);
-  --app-text-secondary: rgb(63 63 70);
-  --app-text-muted: rgb(113 113 122);
-  --app-muted: rgb(113 113 122);
-  color-scheme: light;
+  --iron-bg: #090806;
+  --iron-bg-soft: #11100c;
+  --iron-panel: #15120e;
+  --iron-panel-soft: #1d1812;
+  --iron-border: rgba(205, 92, 28, 0.42);
+  --iron-border-soft: rgba(205, 92, 28, 0.22);
+  --iron-accent: #e06a24;
+  --iron-accent-soft: #a84a1f;
+  --iron-text: #efe5d2;
+  --iron-muted: #b8aa94;
+  --iron-danger: #d24a2f;
+  --app-bg: var(--iron-bg);
+  --app-surface: rgb(239 229 210 / 0.06);
+  --app-surface-muted: rgb(239 229 210 / 0.035);
+  --app-border: var(--iron-border-soft);
+  --app-border-strong: var(--iron-border);
+  --app-text: var(--iron-text);
+  --app-text-secondary: rgb(221 207 184);
+  --app-text-muted: var(--iron-muted);
+  --app-muted: var(--iron-muted);
+  color-scheme: dark;
 }
 
 html,
 body {
-  background: var(--app-bg);
+  min-height: 100%;
+  background:
+    radial-gradient(
+      circle at 50% -10%,
+      rgb(224 106 36 / 0.14),
+      transparent 34rem
+    ),
+    linear-gradient(rgb(9 8 6 / 0.88), rgb(9 8 6 / 0.95)),
+    url("/images/iron-path/textures/grunge-dark.jpg") center / 720px auto repeat,
+    var(--iron-bg);
+}
+
+body {
+  overflow-x: hidden;
 }
 
 .font-brand {
@@ -71,13 +107,192 @@ body {
 
 .theme-control {
   border: 1px solid var(--app-border-strong);
-  background: var(--app-surface);
+  background: linear-gradient(
+    180deg,
+    rgb(224 106 36 / 0.08),
+    rgb(239 229 210 / 0.04)
+  );
   color: var(--app-text-secondary);
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease,
+    color 160ms ease,
+    box-shadow 160ms ease;
 }
 
 .theme-control:hover {
-  background: var(--app-surface-muted);
+  border-color: var(--iron-accent);
+  background: rgb(224 106 36 / 0.12);
   color: var(--app-text);
+  box-shadow: 0 0 22px rgb(224 106 36 / 0.1);
+}
+
+.theme-control:focus-visible {
+  outline: 2px solid var(--iron-accent);
+  outline-offset: 2px;
+}
+
+.iron-app-shell {
+  position: relative;
+  isolation: isolate;
+  background:
+    linear-gradient(rgb(9 8 6 / 0.42), rgb(9 8 6 / 0.86)),
+    url("/images/iron-path/textures/grunge-dark.jpg") center / 760px auto repeat,
+    var(--iron-bg);
+}
+
+.iron-app-shell::before {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  content: "";
+  background:
+    radial-gradient(
+      circle at 20% 0%,
+      rgb(224 106 36 / 0.08),
+      transparent 24rem
+    ),
+    radial-gradient(
+      circle at 82% 12%,
+      rgb(239 229 210 / 0.08),
+      transparent 18rem
+    );
+}
+
+.iron-hero-header {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background:
+    linear-gradient(
+      90deg,
+      rgb(9 8 6 / 0.62),
+      rgb(9 8 6 / 0.28) 50%,
+      rgb(9 8 6 / 0.76)
+    ),
+    linear-gradient(180deg, rgb(9 8 6 / 0.1), rgb(9 8 6 / 0.8)),
+    url("/images/iron-path/hero/hero-main-desktop.webp") center 42% / cover
+      no-repeat;
+}
+
+.iron-hero-header::before {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  content: "";
+  background:
+    linear-gradient(rgb(9 8 6 / 0.18), rgb(9 8 6 / 0.16)),
+    url("/images/iron-path/textures/grunge-dark.jpg") center / 680px auto repeat;
+  opacity: 0.32;
+  mix-blend-mode: multiply;
+}
+
+.iron-mobile-header {
+  background:
+    linear-gradient(90deg, rgb(9 8 6 / 0.86), rgb(9 8 6 / 0.62)),
+    url("/images/iron-path/hero/hero-main-desktop.webp") center top / cover
+      no-repeat;
+}
+
+.iron-sidebar {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background:
+    linear-gradient(rgb(9 8 6 / 0.78), rgb(9 8 6 / 0.86)),
+    url("/images/iron-path/sidebar/sidebar-default.webp") center / cover
+      no-repeat;
+}
+
+.iron-sidebar::before {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  content: "";
+  background:
+    linear-gradient(rgb(9 8 6 / 0.62), rgb(9 8 6 / 0.64)),
+    url("/images/iron-path/textures/grunge-dark.jpg") center / 520px auto repeat;
+  opacity: 0.66;
+}
+
+.iron-user-panel {
+  background:
+    linear-gradient(rgb(21 18 14 / 0.9), rgb(9 8 6 / 0.94)),
+    url("/images/iron-path/textures/grunge-dark.jpg") center / 620px auto repeat;
+}
+
+.iron-panel {
+  border: 1px solid var(--app-border);
+  background: linear-gradient(180deg, rgb(29 24 18 / 0.9), rgb(17 16 12 / 0.9));
+  box-shadow: inset 0 1px 0 rgb(239 229 210 / 0.04);
+}
+
+.iron-rust-focus:focus-visible {
+  outline: 2px solid var(--iron-accent);
+  outline-offset: 2px;
+}
+
+.iron-link {
+  border: 1px solid transparent;
+  color: var(--app-text-secondary);
+  background: transparent;
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease,
+    color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.iron-link:hover {
+  border-color: var(--iron-border-soft);
+  background: rgb(224 106 36 / 0.08);
+  color: var(--app-text);
+}
+
+.iron-link[aria-current="page"] {
+  border-color: var(--iron-border);
+  background:
+    linear-gradient(90deg, rgb(224 106 36 / 0.22), rgb(224 106 36 / 0.06)),
+    rgb(21 18 14 / 0.78);
+  color: var(--iron-accent);
+  box-shadow:
+    inset 3px 0 0 var(--iron-accent),
+    0 0 28px rgb(224 106 36 / 0.1);
+}
+
+.iron-link:focus-visible {
+  outline: 2px solid var(--iron-accent);
+  outline-offset: 2px;
+}
+
+.iron-button {
+  border: 1px solid var(--app-border-strong);
+  background: rgb(224 106 36 / 0.08);
+  color: var(--app-text-secondary);
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease,
+    color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.iron-button:hover {
+  border-color: var(--iron-accent);
+  background: rgb(224 106 36 / 0.14);
+  color: var(--app-text);
+  box-shadow: 0 0 24px rgb(224 106 36 / 0.12);
+}
+
+.iron-button:disabled,
+.iron-button[aria-disabled="true"] {
+  cursor: not-allowed;
+  border-color: var(--app-border);
+  color: rgb(184 170 148 / 0.52);
+  box-shadow: none;
 }
 
 html[data-theme="dark"] main.bg-zinc-50 {
