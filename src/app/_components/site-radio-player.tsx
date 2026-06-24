@@ -17,7 +17,7 @@ import { useRadioPlayer } from "./radio-provider";
 type RadioTrack = RouterOutputs["radio"]["listActive"][number];
 
 const moods = [RadioMood.RELAX, RadioMood.ENERGETIC, RadioMood.FUN] as const;
-const radioProgressColor = "#a855f7";
+const radioProgressColor = "var(--iron-accent)";
 
 type SiteRadioPlayerProps = {
   variant?: "desktop" | "mobile";
@@ -68,7 +68,7 @@ export function SiteRadioPlayer({ variant = "desktop" }: SiteRadioPlayerProps) {
     return (
       <section
         aria-label="Радио"
-        className="border-t border-[var(--app-border)] px-4 py-2 text-[var(--app-text)] lg:hidden"
+        className="border-t border-[var(--app-border-strong)] bg-[rgb(9_8_6/0.64)] px-4 py-2 text-[var(--app-text)] backdrop-blur-[1px] lg:hidden"
       >
         <div className="flex min-h-12 min-w-0 items-center gap-3">
           <CoverButton
@@ -111,21 +111,21 @@ export function SiteRadioPlayer({ variant = "desktop" }: SiteRadioPlayerProps) {
   return (
     <section
       aria-label="Радио"
-      className="relative ml-auto hidden h-[96px] w-[360px] shrink-0 justify-self-end text-[var(--app-text)] xl:w-[420px] lg:block"
+      className="relative ml-auto hidden h-[96px] w-[360px] shrink-0 justify-self-end text-[var(--app-text)] lg:block xl:w-[420px]"
     >
       <div
         className={
           isDesktopDrawerOpen
-            ? "absolute top-1/2 right-[60px] flex min-h-[96px] max-w-[288px] -translate-y-1/2 translate-x-0 items-center overflow-hidden py-2.5 pr-6 pl-3 opacity-100 transition-[max-width,opacity,transform,padding] duration-[450ms] ease-out xl:max-w-[348px]"
-            : "pointer-events-none absolute top-1/2 right-[60px] flex min-h-[96px] max-w-0 -translate-y-1/2 translate-x-3 items-center overflow-hidden py-2.5 pr-0 pl-0 opacity-0 transition-[max-width,opacity,transform,padding] duration-[450ms] ease-out"
+            ? "absolute top-1/2 right-[60px] flex min-h-[96px] max-w-[288px] translate-x-0 -translate-y-1/2 items-center overflow-hidden py-2.5 pr-6 pl-3 opacity-100 transition-[max-width,opacity,transform,padding] duration-[450ms] ease-out xl:max-w-[348px]"
+            : "pointer-events-none absolute top-1/2 right-[60px] flex min-h-[96px] max-w-0 translate-x-3 -translate-y-1/2 items-center overflow-hidden py-2.5 pr-0 pl-0 opacity-0 transition-[max-width,opacity,transform,padding] duration-[450ms] ease-out"
         }
         aria-hidden={!isDesktopDrawerOpen}
       >
         <div
           className={
             isDesktopDrawerOpen
-              ? "w-[248px] min-w-0 translate-x-0 text-right opacity-100 transition-[opacity,transform] delay-75 duration-[350ms] ease-out xl:w-[308px]"
-              : "w-[248px] min-w-0 translate-x-2 text-right opacity-0 transition-[opacity,transform] duration-200 ease-out xl:w-[308px]"
+              ? "iron-panel w-[248px] min-w-0 translate-x-0 px-3 py-2 text-right opacity-100 shadow-lg shadow-black/25 transition-[opacity,transform] delay-75 duration-[350ms] ease-out xl:w-[308px]"
+              : "iron-panel w-[248px] min-w-0 translate-x-2 px-3 py-2 text-right opacity-0 shadow-lg shadow-black/25 transition-[opacity,transform] duration-200 ease-out xl:w-[308px]"
           }
         >
           <p className="truncate text-[11px] font-semibold tracking-[0.12em] text-[var(--app-text-secondary)] uppercase">
@@ -238,7 +238,7 @@ function CoverButton({
         type="button"
         onClick={togglePlayback}
         disabled={!currentTrack || isLoading}
-        className={`absolute inset-0 m-auto flex items-center justify-center rounded-full border border-white/35 bg-black/55 p-0 text-white shadow-lg shadow-black/35 backdrop-blur-[1px] transition hover:scale-105 hover:bg-black/65 focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white disabled:cursor-not-allowed disabled:opacity-55 ${
+        className={`absolute inset-0 m-auto flex items-center justify-center rounded-full border border-[var(--app-border-strong)] bg-black/60 p-0 text-[var(--app-text)] shadow-lg shadow-black/40 backdrop-blur-[1px] transition hover:scale-105 hover:border-[var(--iron-accent)] hover:bg-black/70 focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--iron-accent)] disabled:cursor-not-allowed disabled:opacity-55 ${
           size === "sm" ? "h-8 w-8" : "h-12 w-12"
         }`}
         aria-label={isPlaying ? "Поставить радио на паузу" : "Включить радио"}
@@ -287,10 +287,10 @@ function MoodChip({
       tabIndex={tabIndex}
       className={
         isSelected
-          ? `rounded-full border border-[var(--app-text)] bg-[var(--app-text)] font-medium text-[var(--app-bg)] ${
+          ? `rounded-full border border-[var(--iron-accent)] bg-[var(--iron-accent)] font-medium text-[var(--iron-bg)] shadow-[0_0_18px_rgba(224,106,36,0.16)] ${
               compact ? "h-7 min-w-7 px-2 text-xs" : "px-2.5 py-1 text-xs"
             }`
-          : `rounded-full border border-[var(--app-border)] bg-transparent text-[var(--app-text-secondary)] hover:border-[var(--app-border-strong)] hover:text-[var(--app-text)] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-[var(--app-border)] disabled:hover:text-[var(--app-text-secondary)] ${
+          : `rounded-full border border-[var(--app-border)] bg-[rgb(9_8_6/0.28)] text-[var(--app-text-secondary)] hover:border-[var(--iron-accent)] hover:text-[var(--app-text)] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-[var(--app-border)] disabled:hover:text-[var(--app-text-secondary)] ${
               compact ? "h-7 min-w-7 px-2 text-xs" : "px-2.5 py-1 text-xs"
             }`
       }
@@ -316,7 +316,7 @@ function TrackCover({
   return (
     <span
       aria-hidden="true"
-      className={`flex shrink-0 items-center justify-center rounded-full border border-[var(--app-border-strong)] bg-[var(--app-surface-muted)] bg-cover bg-center font-medium text-[var(--app-text-muted)] shadow-lg shadow-black/10 ${
+      className={`flex shrink-0 items-center justify-center rounded-full border border-[var(--app-border-strong)] bg-[var(--app-surface-muted)] bg-cover bg-center font-medium text-[var(--app-text-muted)] shadow-lg shadow-black/30 ${
         size === "sm" ? "h-11 w-11 text-base" : "h-[72px] w-[72px] text-xl"
       }`}
       style={imageStyle}
@@ -361,7 +361,7 @@ function MarqueeText({
         ref={contentRef}
         className={
           isOverflowing
-            ? "inline-flex min-w-max animate-radio-marquee whitespace-nowrap"
+            ? "animate-radio-marquee inline-flex min-w-max whitespace-nowrap"
             : "block truncate whitespace-nowrap"
         }
       >
