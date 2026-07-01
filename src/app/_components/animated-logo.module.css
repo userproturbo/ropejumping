@@ -4,8 +4,8 @@
   height: auto;
   max-width: 100%;
   overflow: visible;
-  color: var(--logo-color, var(--iron-text, #080808));
-  --logo-shadow-color: rgba(224, 106, 36, 0.72);
+  color: var(--logo-color, #080808);
+  --logo-shadow-color: rgba(220, 20, 20, 0.76);
 }
 
 .isReplayable {
@@ -18,11 +18,11 @@
 }
 
 .logoFinal {
-  color: var(--logo-color, var(--iron-text, #080808));
+  color: var(--logo-color, #080808);
 }
 
 .logoShadow {
-  color: var(--logo-shadow-color, rgba(224, 106, 36, 0.72));
+  color: var(--logo-shadow-color, rgba(220, 20, 20, 0.76));
   opacity: 0;
   transform: translate(2.5px, 3.5px);
   transition: opacity 1.45s cubic-bezier(0.22, 1, 0.36, 1);
@@ -40,7 +40,7 @@
 }
 
 .sprayLayer {
-  color: var(--logo-color, var(--iron-text, #080808));
+  color: var(--logo-color, #080808);
   pointer-events: none;
 }
 
