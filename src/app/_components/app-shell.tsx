@@ -15,30 +15,68 @@ import { SiteMobileMenu, type MobileMenuSection } from "./site-mobile-menu";
 import { SiteRadioPlayer } from "./site-radio-player";
 import { ThemeToggle } from "./theme-toggle";
 
-const mainLinks = [
-  { href: "/", label: "Главная" },
-  { href: "/teams", label: "Команды" },
-  { href: "/users", label: "Участники" },
-  { href: "/events", label: "Мероприятия" },
-  { href: "/first-jump", label: "Первый прыжок" },
-  { href: "/objects", label: "Объекты" },
-  { href: "/feed", label: "Лента" },
+type NavigationLink = {
+  href: string;
+  iconSrc?: string;
+  label: string;
+};
+
+const mainLinks: NavigationLink[] = [
+  { href: "/", iconSrc: "/svg/Home.svg", label: "Главная" },
+  { href: "/teams", iconSrc: "/svg/commands.svg", label: "Команды" },
+  { href: "/users", iconSrc: "/svg/PeopleMultiple.svg", label: "Участники" },
+  { href: "/events", iconSrc: "/svg/events.svg", label: "Мероприятия" },
+  {
+    href: "/first-jump",
+    iconSrc: "/svg/logo-pope-clean.svg",
+    label: "Первый прыжок",
+  },
+  { href: "/objects", iconSrc: "/svg/objects.svg", label: "Объекты" },
+  { href: "/feed", iconSrc: "/svg/tape.svg", label: "Лента" },
 ];
 
-const baseUserLinks = [
-  { href: "/profile", label: "Профиль" },
-  { href: "/notifications", label: "Уведомления" },
-  { href: "/feed/new", label: "Создать пост" },
-  { href: "/posts/my", label: "Мои публикации" },
+const baseUserLinks: NavigationLink[] = [
+  { href: "/profile", iconSrc: "/svg/profile.svg", label: "Профиль" },
+  {
+    href: "/notifications",
+    iconSrc: "/svg/notifications.svg",
+    label: "Уведомления",
+  },
+  { href: "/feed/new", iconSrc: "/svg/create-post.svg", label: "Создать пост" },
+  {
+    href: "/posts/my",
+    iconSrc: "/svg/my-publications.svg",
+    label: "Мои публикации",
+  },
   { href: "/teams/my", label: "Мои команды" },
-  { href: "/events/my", label: "Мои мероприятия" },
-  { href: "/applications/my", label: "Мои заявки" },
+  {
+    href: "/events/my",
+    iconSrc: "/svg/my-events.svg",
+    label: "Мои мероприятия",
+  },
+  {
+    href: "/applications/my",
+    iconSrc: "/svg/my-applications.svg",
+    label: "Мои заявки",
+  },
   { href: "/objects/my", label: "Мои объекты" },
-  { href: "/profile/edit", label: "Редактировать профиль" },
+  {
+    href: "/profile/edit",
+    iconSrc: "/svg/edit-profile.svg",
+    label: "Редактировать профиль",
+  },
 ];
 
-const moderatorLink = { href: "/moderation", label: "Модерация" };
-const radioAdminLink = { href: "/admin/radio", label: "Радио" };
+const moderatorLink: NavigationLink = {
+  href: "/moderation",
+  iconSrc: "/svg/moderation.svg",
+  label: "Модерация",
+};
+const radioAdminLink: NavigationLink = {
+  href: "/admin/radio",
+  iconSrc: "/svg/Radio.svg",
+  label: "Радио",
+};
 const objectManagerRoles = [TeamRole.OWNER, TeamRole.ADMIN, TeamRole.ORGANIZER];
 
 type AppShellProps = {
@@ -122,6 +160,17 @@ export async function AppShell({ children }: AppShellProps) {
 
   return (
     <div className="min-h-screen bg-[var(--app-bg)] text-[var(--app-text)]">
+      <style>{`
+        .app-menu-icon,
+        html[data-theme="dark"] .app-menu-icon {
+          filter: brightness(0) invert(88%);
+        }
+
+        html[data-theme="light"] .app-menu-icon {
+          filter: brightness(0) invert(22%);
+        }
+      `}</style>
+
       <RadioProvider>
         <header className="sticky top-0 z-30 border-b border-[var(--app-border)] bg-[var(--app-bg)] lg:hidden">
           <div className="flex min-h-16 items-center justify-between gap-4 px-4 py-3">
@@ -177,7 +226,11 @@ export async function AppShell({ children }: AppShellProps) {
           <div className="sticky top-0 flex max-h-screen flex-col overflow-y-auto px-5 py-6">
             <nav className="grid gap-1" aria-label="Основная навигация">
               {mainLinks.map((link) => (
-                <SidebarLink key={link.href} href={link.href}>
+                <SidebarLink
+                  key={link.href}
+                  href={link.href}
+                  iconSrc={link.iconSrc}
+                >
                   {link.label}
                 </SidebarLink>
               ))}
@@ -214,12 +267,20 @@ export async function AppShell({ children }: AppShellProps) {
                   aria-label="Навигация пользователя"
                 >
                   {userLinks.map((link) => (
-                    <SidebarLink key={link.href} href={link.href}>
+                    <SidebarLink
+                      key={link.href}
+                      href={link.href}
+                      iconSrc={link.iconSrc}
+                    >
                       {link.label}
                     </SidebarLink>
                   ))}
                   {moderatorLinks.map((link) => (
-                    <SidebarLink key={link.href} href={link.href}>
+                    <SidebarLink
+                      key={link.href}
+                      href={link.href}
+                      iconSrc={link.iconSrc}
+                    >
                       {link.label}
                     </SidebarLink>
                   ))}
@@ -265,16 +326,30 @@ export async function AppShell({ children }: AppShellProps) {
 function SidebarLink({
   children,
   href,
+  iconSrc,
 }: {
   children: ReactNode;
   href: string;
+  iconSrc?: string;
 }) {
   return (
     <Link
       href={href}
-      className="block px-3 py-2 text-sm text-[var(--app-text-secondary)] hover:bg-[var(--app-surface)] hover:text-[var(--app-text)]"
+      className="group flex items-center gap-3 px-3 py-2.5 text-base text-[var(--app-text-secondary)] hover:bg-[var(--app-surface)] hover:text-[var(--app-text)]"
     >
-      {children}
+      <span className="flex h-6 w-6 shrink-0 items-center justify-center">
+        {iconSrc ? (
+          <Image
+            src={iconSrc}
+            alt=""
+            aria-hidden="true"
+            width={24}
+            height={24}
+            className="app-menu-icon h-[22px] w-[22px] opacity-95 transition duration-150 group-hover:opacity-100 group-focus-visible:opacity-100 group-active:opacity-100"
+          />
+        ) : null}
+      </span>
+      <span className="min-w-0 truncate">{children}</span>
     </Link>
   );
 }

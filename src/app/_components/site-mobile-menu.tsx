@@ -1,10 +1,12 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useState, type ReactNode } from "react";
 
 type MobileMenuLink = {
   href: string;
+  iconSrc?: string;
   label: string;
 };
 
@@ -57,9 +59,21 @@ export function SiteMobileMenu({
                       key={link.href}
                       href={link.href}
                       onClick={() => setIsOpen(false)}
-                      className="px-1 py-2 text-sm text-[var(--app-text-secondary)] hover:text-[var(--app-text)]"
+                      className="group flex min-w-0 items-center gap-3 px-1 py-2 text-base text-[var(--app-text-secondary)] hover:text-[var(--app-text)]"
                     >
-                      {link.label}
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center">
+                        {link.iconSrc ? (
+                          <Image
+                            src={link.iconSrc}
+                            alt=""
+                            aria-hidden="true"
+                            width={24}
+                            height={24}
+                            className="app-menu-icon h-[22px] w-[22px] opacity-95 transition duration-150 group-hover:opacity-100 group-focus-visible:opacity-100 group-active:opacity-100"
+                          />
+                        ) : null}
+                      </span>
+                      <span className="min-w-0 truncate">{link.label}</span>
                     </Link>
                   ))}
                 </div>
