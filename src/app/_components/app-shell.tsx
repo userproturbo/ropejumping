@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import type { CSSProperties, ReactNode } from "react";
+import type { ReactNode } from "react";
 
 import { TeamRole } from "@/generated/prisma/enums";
 import { signOut } from "@/server/auth";
@@ -86,9 +86,8 @@ type AppShellProps = {
 export async function AppShell({ children }: AppShellProps) {
   const user = await getCurrentUser();
   const isModerator = isModeratorUser(user);
-  const [profile, unreadNotifications, teamMembership, objectContext] = user
+  const [unreadNotifications, teamMembership, objectContext] = user
     ? await Promise.all([
-        api.profile.getMine().catch(() => null),
         api.notification.getUnreadCount(),
         db.teamMember.findFirst({
           where: {
@@ -123,7 +122,7 @@ export async function AppShell({ children }: AppShellProps) {
           },
         }),
       ])
-    : [null, { count: 0 }, null, null];
+    : [{ count: 0 }, null, null];
   const showMyTeams = Boolean(teamMembership);
   const showMyObjects = Boolean(objectContext);
 
@@ -142,14 +141,6 @@ export async function AppShell({ children }: AppShellProps) {
         )
     : [];
   const moderatorLinks = isModerator ? [moderatorLink, radioAdminLink] : [];
-  const userLabel = getUserLabel({ profile, user });
-  const userSubLabel =
-    profile?.username && profile.displayName
-      ? profile.displayName
-      : user?.name && user.email
-        ? user.email
-        : null;
-  const avatarImageUrl = profile?.avatarUrl ?? user?.image ?? null;
   const mobileSections: MobileMenuSection[] = [
     { label: "Навигация", links: mainLinks },
     ...(user ? [{ label: "Аккаунт", links: userLinks }] : []),
@@ -189,15 +180,14 @@ export async function AppShell({ children }: AppShellProps) {
               }
               sections={mobileSections}
               trigger={
-                user ? (
-                  <Avatar
-                    imageUrl={avatarImageUrl}
-                    label={userLabel}
-                    size="sm"
-                  />
-                ) : (
-                  <GuestAvatar size="sm" />
-                )
+                <span
+                  aria-hidden="true"
+                  className="flex h-9 w-9 flex-col items-center justify-center gap-1.5 rounded-full border border-[var(--app-border-strong)] bg-[var(--app-surface)]"
+                >
+                  <span className="h-0.5 w-4 bg-[var(--app-text-secondary)]" />
+                  <span className="h-0.5 w-4 bg-[var(--app-text-secondary)]" />
+                  <span className="h-0.5 w-4 bg-[var(--app-text-secondary)]" />
+                </span>
               }
             />
           </div>
@@ -244,26 +234,8 @@ export async function AppShell({ children }: AppShellProps) {
           <div className="sticky top-0 h-screen overflow-y-auto px-5 py-6">
             {user ? (
               <div>
-                <div className="flex min-w-0 items-center gap-3">
-                  <Avatar
-                    imageUrl={avatarImageUrl}
-                    label={userLabel}
-                    size="lg"
-                  />
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-[var(--app-text)]">
-                      {userLabel}
-                    </p>
-                    {userSubLabel ? (
-                      <p className="mt-0.5 truncate text-xs text-[var(--app-text-muted)]">
-                        {userSubLabel}
-                      </p>
-                    ) : null}
-                  </div>
-                </div>
-
                 <nav
-                  className="mt-6 grid gap-1"
+                  className="grid gap-1"
                   aria-label="Навигация пользователя"
                 >
                   {userLinks.map((link) => (
@@ -295,11 +267,7 @@ export async function AppShell({ children }: AppShellProps) {
               </div>
             ) : (
               <div>
-                <GuestAvatar size="lg" />
-                <p className="mt-3 text-sm font-medium text-[var(--app-text)]">
-                  Jumper
-                </p>
-                <h2 className="mt-4 text-base font-semibold text-[var(--app-text)]">
+                <h2 className="text-base font-semibold text-[var(--app-text)]">
                   Авторизуйтесь
                 </h2>
                 <p className="mt-2 text-sm leading-6 text-[var(--app-text-muted)]">
@@ -385,67 +353,5 @@ function SignOutButton({ mobile = false }: { mobile?: boolean }) {
         Выйти
       </button>
     </form>
-  );
-}
-
-type ShellUser = Awaited<ReturnType<typeof getCurrentUser>>;
-type ShellProfile = Awaited<ReturnType<typeof api.profile.getMine>>;
-
-function getUserLabel({
-  profile,
-  user,
-}: {
-  profile: ShellProfile;
-  user: ShellUser;
-}) {
-  if (profile?.username) return `@${profile.username}`;
-
-  return profile?.displayName ?? user?.name ?? user?.email ?? "Jumper";
-}
-
-function Avatar({
-  imageUrl,
-  label,
-  size,
-}: {
-  imageUrl: string | null;
-  label: string;
-  size: "sm" | "lg";
-}) {
-  const initial = label.trim().charAt(0).toUpperCase() || "?";
-  const imageStyle = imageUrl
-    ? ({
-        backgroundImage: `url("${imageUrl}")`,
-      } satisfies CSSProperties)
-    : undefined;
-  const sizeClass = size === "sm" ? "h-9 w-9 text-sm" : "h-12 w-12 text-base";
-
-  return (
-    <span
-      aria-hidden="true"
-      className={`${sizeClass} flex shrink-0 items-center justify-center rounded-full border border-[var(--app-border-strong)] bg-[var(--app-surface)] bg-cover bg-center font-medium text-[var(--app-text-secondary)]`}
-      style={imageStyle}
-    >
-      {imageUrl ? null : initial}
-    </span>
-  );
-}
-
-function GuestAvatar({ size }: { size: "sm" | "lg" }) {
-  const sizeClass = size === "sm" ? "h-9 w-9 p-1.5" : "h-14 w-14 p-2";
-
-  return (
-    <span
-      aria-hidden="true"
-      className={`${sizeClass} flex shrink-0 items-center justify-center rounded-full border border-[var(--app-border-strong)] bg-[var(--app-surface)]`}
-    >
-      <Image
-        src="/img/roup.svg"
-        alt=""
-        width={size === "sm" ? 28 : 40}
-        height={size === "sm" ? 28 : 40}
-        className="h-full w-full"
-      />
-    </span>
   );
 }
