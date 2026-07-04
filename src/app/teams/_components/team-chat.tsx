@@ -183,7 +183,7 @@ export function TeamChat({
                               message.author.profile.username ??
                               "Аватар пользователя"
                             }
-                            className="h-9 w-9 border border-zinc-200 object-cover"
+                            className="h-9 w-9 aspect-square rounded-full border border-zinc-200 object-cover"
                           />
                         ) : null}
                         <div className="min-w-0">

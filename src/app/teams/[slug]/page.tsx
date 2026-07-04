@@ -118,10 +118,10 @@ export default async function TeamPage({ params }: TeamPageProps) {
                   <img
                     src={team.logoUrl}
                     alt={team.logoMedia?.alt || `Логотип команды ${team.name}`}
-                    className="h-28 w-28 border border-white/20 object-cover"
+                    className="h-28 w-28 aspect-square rounded-full border border-white/20 object-cover"
                   />
                 ) : (
-                  <div className="flex h-28 w-28 items-center justify-center border border-white/20 bg-white/10 text-3xl font-semibold">
+                  <div className="flex h-28 w-28 aspect-square items-center justify-center overflow-hidden rounded-full border border-white/20 bg-white/10 text-3xl font-semibold">
                     {team.name.slice(0, 1).toUpperCase()}
                   </div>
                 )}
@@ -544,10 +544,10 @@ function MemberCard({ member }: { member: TeamMember }) {
           <img
             src={avatarUrl}
             alt=""
-            className="h-12 w-12 border border-zinc-200 object-cover"
+            className="h-12 w-12 aspect-square rounded-full border border-zinc-200 object-cover"
           />
         ) : (
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center border border-zinc-200 bg-zinc-50 text-sm font-medium text-zinc-500">
+          <div className="flex h-12 w-12 aspect-square shrink-0 items-center justify-center overflow-hidden rounded-full border border-zinc-200 bg-zinc-50 text-sm font-medium text-zinc-500">
             {(displayName ?? "?").slice(0, 1).toUpperCase()}
           </div>
         )}

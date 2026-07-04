@@ -51,7 +51,7 @@ export default async function ProfileFollowsPage() {
                           follow.team.logoMedia?.alt ??
                           `Логотип команды ${follow.team.name}`
                         }
-                        className="h-14 w-14 shrink-0 border border-zinc-200 object-cover"
+                        className="h-14 w-14 aspect-square shrink-0 rounded-full border border-zinc-200 object-cover"
                       />
                     ) : null}
                     <div className="min-w-0">

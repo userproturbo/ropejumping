@@ -109,7 +109,7 @@ export default async function ProfilePage() {
                       profile.username ||
                       "Аватар пользователя"
                     }
-                    className="h-20 w-20 border border-zinc-200 object-cover"
+                    className="h-20 w-20 aspect-square rounded-full border border-zinc-200 object-cover"
                   />
                 ) : null}
                 <div>

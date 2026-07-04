@@ -225,10 +225,10 @@ export default async function TeamsPage({ searchParams }: TeamsPageProps) {
                   <img
                     src={team.logoUrl}
                     alt={team.logoMedia?.alt || `Логотип команды ${team.name}`}
-                    className="h-16 w-16 border border-[var(--app-border)] object-cover"
+                    className="h-16 w-16 aspect-square rounded-full border border-[var(--app-border)] object-cover"
                   />
                 ) : (
-                  <div className="flex h-16 w-16 items-center justify-center border border-[var(--app-border)] bg-[var(--app-surface-muted)] text-lg font-semibold text-[var(--app-text-muted)]">
+                  <div className="flex h-16 w-16 aspect-square items-center justify-center overflow-hidden rounded-full border border-[var(--app-border)] bg-[var(--app-surface-muted)] text-lg font-semibold text-[var(--app-text-muted)]">
                     {team.name.slice(0, 1)}
                   </div>
                 )}
