@@ -120,6 +120,84 @@ body {
   color: var(--rp-text);
 }
 
+.utility-tooltip {
+  position: relative;
+}
+
+.utility-tooltip::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  z-index: 50;
+  max-width: 180px;
+  padding: 6px 9px;
+  border: 1px solid var(--rp-border-strong);
+  border-radius: 10px;
+  background: var(--rp-surface-strong);
+  color: var(--rp-text);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, 4px);
+  transition:
+    opacity 160ms ease,
+    transform 160ms ease;
+}
+
+.utility-tooltip::before {
+  content: "";
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 50%;
+  z-index: 51;
+  width: 8px;
+  height: 8px;
+  border-right: 1px solid var(--rp-border-strong);
+  border-bottom: 1px solid var(--rp-border-strong);
+  background: var(--rp-surface-strong);
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, 4px) rotate(45deg);
+  transition:
+    opacity 160ms ease,
+    transform 160ms ease;
+}
+
+.utility-tooltip:hover::after,
+.utility-tooltip:focus-visible::after,
+.utility-tooltip:hover::before,
+.utility-tooltip:focus-visible::before {
+  opacity: 1;
+}
+
+.utility-tooltip:hover::after,
+.utility-tooltip:focus-visible::after {
+  transform: translate(-50%, 0);
+}
+
+.utility-tooltip:hover::before,
+.utility-tooltip:focus-visible::before {
+  transform: translate(-50%, 0) rotate(45deg);
+}
+
+.utility-actions > .utility-tooltip:first-child::after {
+  left: 0;
+  transform: translate(0, 4px);
+}
+
+.utility-actions > .utility-tooltip:first-child:hover::after,
+.utility-actions > .utility-tooltip:first-child:focus-visible::after {
+  transform: translate(0, 0);
+}
+
+.utility-actions > .utility-tooltip:first-child::before {
+  left: 16px;
+}
+
 .theme-icon {
   position: absolute;
   transition:
@@ -158,8 +236,17 @@ main :where(a, div, p)[class*="border"][class*=" p-"] {
   body,
   .theme-control,
   .theme-icon,
-  .theme-surface-transition {
+  .theme-surface-transition,
+  .utility-tooltip::before,
+  .utility-tooltip::after {
     transition-duration: 0.01ms;
+  }
+}
+
+@media (hover: none) {
+  .utility-tooltip::before,
+  .utility-tooltip::after {
+    display: none;
   }
 }
 

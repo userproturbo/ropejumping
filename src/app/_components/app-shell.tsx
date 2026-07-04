@@ -175,7 +175,7 @@ export async function AppShell({ children }: AppShellProps) {
               authAction={
                 <>
                   <ThemeToggle />
-                  {user ? <SignOutButton mobile /> : <MobileSignInLink />}
+                  {user ? <SignOutButton mobile /> : <SignInLink mobile />}
                 </>
               }
               sections={mobileSections}
@@ -260,11 +260,9 @@ export async function AppShell({ children }: AppShellProps) {
                   ))}
                 </nav>
 
-                <div className="mt-auto flex items-center gap-3 border-t border-[var(--rp-border)] pt-4">
+                <div className="utility-actions mt-auto flex items-center gap-3 border-t border-[var(--rp-border)] pt-4">
                   <ThemeToggle />
-                  <div className="min-w-0 flex-1">
-                    <SignOutButton />
-                  </div>
+                  <SignOutButton />
                 </div>
               </div>
             ) : (
@@ -275,14 +273,9 @@ export async function AppShell({ children }: AppShellProps) {
                 <p className="mt-2 text-sm leading-6 text-[var(--rp-text-muted)]">
                   Войдите, чтобы стать частью сообщества.
                 </p>
-                <div className="mt-auto flex items-center gap-3 border-t border-[var(--rp-border)] pt-4">
+                <div className="utility-actions mt-auto flex items-center gap-3 border-t border-[var(--rp-border)] pt-4">
                   <ThemeToggle />
-                  <Link
-                    href="/login"
-                    className="inline-flex h-10 min-w-0 flex-1 items-center justify-center border border-[var(--rp-border-strong)] bg-[var(--rp-surface)] px-4 text-sm font-medium text-[var(--rp-text-soft)] hover:bg-[var(--rp-surface-strong)] hover:text-[var(--rp-text)]"
-                  >
-                    Войти
-                  </Link>
+                  <SignInLink />
                 </div>
               </div>
             )}
@@ -324,13 +317,30 @@ function SidebarLink({
   );
 }
 
-function MobileSignInLink() {
+function SignInLink({ mobile = false }: { mobile?: boolean }) {
   return (
     <Link
       href="/login"
-      className="block px-1 py-2 text-sm text-[var(--rp-text-soft)] hover:text-[var(--rp-text)]"
+      aria-label="Войти"
+      data-tooltip="Войти"
+      className={
+        mobile
+          ? "utility-tooltip block px-1 py-2 text-sm text-[var(--rp-text-soft)] hover:text-[var(--rp-text)]"
+          : "utility-tooltip inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--rp-border-strong)] bg-[var(--rp-surface)] text-[var(--rp-text-soft)] transition duration-200 hover:scale-105 hover:bg-[var(--rp-surface-strong)] hover:text-[var(--rp-text)] active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--rp-text)]"
+      }
     >
-      Войти
+      {mobile ? (
+        "Войти"
+      ) : (
+        <Image
+          src="/svg/enter.svg"
+          alt=""
+          aria-hidden="true"
+          width={22}
+          height={22}
+          className="app-menu-icon h-[22px] w-[22px] opacity-95 transition duration-150"
+        />
+      )}
     </Link>
   );
 }
@@ -346,13 +356,26 @@ function SignOutButton({ mobile = false }: { mobile?: boolean }) {
     >
       <button
         type="submit"
+        aria-label="Выйти"
+        data-tooltip="Выйти"
         className={
           mobile
-            ? "block w-full px-1 py-2 text-left text-sm text-[var(--rp-text-soft)] hover:text-[var(--rp-text)]"
-            : "h-10 w-full border border-[var(--rp-border-strong)] bg-[var(--rp-surface)] px-4 text-sm font-medium text-[var(--rp-text-soft)] hover:bg-[var(--rp-surface-strong)] hover:text-[var(--rp-text)]"
+            ? "utility-tooltip block w-full px-1 py-2 text-left text-sm text-[var(--rp-text-soft)] hover:text-[var(--rp-text)]"
+            : "utility-tooltip inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--rp-border-strong)] bg-[var(--rp-surface)] text-[var(--rp-text-soft)] transition duration-200 hover:scale-105 hover:bg-[var(--rp-surface-strong)] hover:text-[var(--rp-text)] active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--rp-text)]"
         }
       >
-        Выйти
+        {mobile ? (
+          "Выйти"
+        ) : (
+          <Image
+            src="/svg/exit.svg"
+            alt=""
+            aria-hidden="true"
+            width={22}
+            height={22}
+            className="app-menu-icon h-[22px] w-[22px] opacity-95 transition duration-150"
+          />
+        )}
       </button>
     </form>
   );
