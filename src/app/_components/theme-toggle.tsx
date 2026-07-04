@@ -31,7 +31,7 @@ export function ThemeToggle() {
   return (
     <button
       type="button"
-      className="theme-control relative inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition duration-200 hover:scale-105 active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--app-text)]"
+      className="theme-control relative inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition duration-200 hover:scale-105 active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--rp-text)]"
       aria-label={
         theme === "dark" ? "Включить светлую тему" : "Включить тёмную тему"
       }

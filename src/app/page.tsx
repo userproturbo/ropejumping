@@ -57,9 +57,9 @@ export default function Home() {
       <section className="relative isolate overflow-hidden">
         <div className="absolute inset-0 bg-[var(--app-bg)]" />
         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.04)_1px,transparent_1px)] bg-[size:72px_72px] opacity-20" />
-        <div className="absolute top-24 right-[8%] hidden h-80 w-56 rotate-6 border border-[var(--app-border-strong)] bg-[var(--app-surface)] shadow-2xl shadow-black/40 backdrop-blur md:block" />
-        <div className="absolute right-[18%] bottom-20 hidden h-56 w-72 -rotate-3 border border-emerald-200/20 bg-emerald-300/10 shadow-2xl shadow-emerald-950/30 backdrop-blur md:block" />
-        <div className="absolute top-44 right-[31%] hidden h-44 w-44 rotate-12 border border-rose-200/20 bg-rose-300/10 shadow-2xl shadow-black/30 backdrop-blur lg:block" />
+        <div className="absolute top-24 right-[8%] hidden h-80 w-56 rotate-6 rounded-[var(--rp-card-radius)] border border-[var(--app-border-strong)] bg-[var(--app-surface)] shadow-2xl shadow-black/40 backdrop-blur md:block" />
+        <div className="absolute right-[18%] bottom-20 hidden h-56 w-72 -rotate-3 rounded-[var(--rp-card-radius)] border border-[var(--rp-border)] bg-emerald-300/10 shadow-2xl shadow-emerald-950/30 backdrop-blur md:block" />
+        <div className="absolute top-44 right-[31%] hidden h-44 w-44 rotate-12 rounded-[var(--rp-card-radius)] border border-[var(--rp-border)] bg-rose-300/10 shadow-2xl shadow-black/30 backdrop-blur lg:block" />
 
         <div className="relative mx-auto grid min-h-[calc(100vh-4rem)] w-full max-w-7xl items-center gap-10 px-6 py-16 lg:grid-cols-[1.05fr_0.95fr] lg:py-20">
           <div className="max-w-3xl">
