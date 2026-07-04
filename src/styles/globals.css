@@ -62,7 +62,11 @@ html[data-theme="light"] {
 
 html,
 body {
-  background: var(--app-bg);
+  background-color: var(--app-bg);
+  color: var(--app-text);
+  transition:
+    background-color 180ms ease,
+    color 180ms ease;
 }
 
 .font-brand {
@@ -73,11 +77,52 @@ body {
   border: 1px solid var(--app-border-strong);
   background: var(--app-surface);
   color: var(--app-text-secondary);
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease,
+    transform 180ms ease;
 }
 
 .theme-control:hover {
   background: var(--app-surface-muted);
   color: var(--app-text);
+}
+
+.theme-icon {
+  position: absolute;
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease;
+}
+
+.theme-icon-sun,
+html[data-theme="light"] .theme-icon-moon {
+  opacity: 0;
+  transform: rotate(-35deg) scale(0.8);
+}
+
+.theme-icon-moon,
+html[data-theme="light"] .theme-icon-sun {
+  opacity: 1;
+  transform: rotate(0) scale(1);
+}
+
+.theme-surface-transition {
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html,
+  body,
+  .theme-control,
+  .theme-icon,
+  .theme-surface-transition {
+    transition-duration: 0.01ms;
+  }
 }
 
 html[data-theme="dark"] main.bg-zinc-50 {

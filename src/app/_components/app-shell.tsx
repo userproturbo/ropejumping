@@ -150,7 +150,7 @@ export async function AppShell({ children }: AppShellProps) {
   ];
 
   return (
-    <div className="min-h-screen bg-[var(--app-bg)] text-[var(--app-text)]">
+    <div className="theme-surface-transition min-h-screen bg-[var(--app-bg)] text-[var(--app-text)]">
       <style>{`
         .app-menu-icon,
         html[data-theme="dark"] .app-menu-icon {
@@ -163,7 +163,7 @@ export async function AppShell({ children }: AppShellProps) {
       `}</style>
 
       <RadioProvider>
-        <header className="sticky top-0 z-30 border-b border-[var(--app-border)] bg-[var(--app-bg)] lg:hidden">
+        <header className="theme-surface-transition sticky top-0 z-30 border-b border-[var(--app-border)] bg-[var(--app-bg)] lg:hidden">
           <div className="flex min-h-16 items-center justify-between gap-4 px-4 py-3">
             <Link
               href="/"
@@ -194,7 +194,7 @@ export async function AppShell({ children }: AppShellProps) {
           <SiteRadioPlayer variant="mobile" />
         </header>
 
-        <div className="hidden border-b border-[var(--app-border)] bg-[var(--app-bg)] lg:block">
+        <div className="theme-surface-transition hidden border-b border-[var(--app-border)] bg-[var(--app-bg)] lg:block">
           <div className="mx-auto grid w-full max-w-[1500px] grid-cols-[220px_minmax(0,1fr)_280px] px-5 xl:grid-cols-[240px_minmax(0,1fr)_300px]">
             <div className="col-span-2 flex min-h-[132px] items-center py-5 pl-3">
               <Link
@@ -212,7 +212,7 @@ export async function AppShell({ children }: AppShellProps) {
       </RadioProvider>
 
       <div className="mx-auto w-full lg:grid lg:min-h-[calc(100vh-9rem)] lg:max-w-[1500px] lg:grid-cols-[220px_minmax(0,1fr)_280px] xl:grid-cols-[240px_minmax(0,1fr)_300px]">
-        <aside className="hidden border-r border-[var(--app-border)] bg-[var(--app-bg)] lg:block">
+        <aside className="theme-surface-transition hidden border-r border-[var(--app-border)] bg-[var(--app-bg)] lg:block">
           <div className="sticky top-0 flex max-h-screen flex-col overflow-y-auto px-5 py-6">
             <nav className="grid gap-1" aria-label="Основная навигация">
               {mainLinks.map((link) => (
@@ -230,10 +230,10 @@ export async function AppShell({ children }: AppShellProps) {
 
         <main className="min-w-0">{children}</main>
 
-        <aside className="hidden border-l border-[var(--app-border)] bg-[var(--app-bg)] lg:block">
-          <div className="sticky top-0 h-screen overflow-y-auto px-5 py-6">
+        <aside className="theme-surface-transition hidden border-l border-[var(--app-border)] bg-[var(--app-bg)] lg:block">
+          <div className="sticky top-0 flex min-h-[calc(100vh-9rem)] flex-col overflow-y-auto px-5 py-6">
             {user ? (
-              <div>
+              <div className="flex flex-1 flex-col">
                 <nav
                   className="grid gap-1"
                   aria-label="Навигация пользователя"
@@ -258,30 +258,30 @@ export async function AppShell({ children }: AppShellProps) {
                   ))}
                 </nav>
 
-                <div className="mt-6 border-t border-[var(--app-border)] pt-4">
+                <div className="mt-auto flex items-center gap-3 border-t border-[var(--app-border)] pt-4">
                   <ThemeToggle />
-                </div>
-                <div className="mt-3">
-                  <SignOutButton />
+                  <div className="min-w-0 flex-1">
+                    <SignOutButton />
+                  </div>
                 </div>
               </div>
             ) : (
-              <div>
+              <div className="flex flex-1 flex-col">
                 <h2 className="text-base font-semibold text-[var(--app-text)]">
                   Авторизуйтесь
                 </h2>
                 <p className="mt-2 text-sm leading-6 text-[var(--app-text-muted)]">
                   Войдите, чтобы стать частью сообщества.
                 </p>
-                <div className="mt-5">
+                <div className="mt-auto flex items-center gap-3 border-t border-[var(--app-border)] pt-4">
                   <ThemeToggle />
+                  <Link
+                    href="/login"
+                    className="inline-flex h-10 min-w-0 flex-1 items-center justify-center border border-[var(--app-border-strong)] bg-[var(--app-surface)] px-4 text-sm font-medium text-[var(--app-text-secondary)] hover:bg-[var(--app-surface-muted)] hover:text-[var(--app-text)]"
+                  >
+                    Войти
+                  </Link>
                 </div>
-                <Link
-                  href="/login"
-                  className="mt-3 inline-flex border border-[var(--app-border-strong)] bg-[var(--app-surface)] px-4 py-2 text-sm font-medium text-[var(--app-text-secondary)] hover:bg-[var(--app-surface-muted)] hover:text-[var(--app-text)]"
-                >
-                  Войти
-                </Link>
               </div>
             )}
           </div>
@@ -347,7 +347,7 @@ function SignOutButton({ mobile = false }: { mobile?: boolean }) {
         className={
           mobile
             ? "block w-full px-1 py-2 text-left text-sm text-[var(--app-text-secondary)] hover:text-[var(--app-text)]"
-            : "w-full border border-[var(--app-border-strong)] bg-[var(--app-surface)] px-4 py-2 text-sm font-medium text-[var(--app-text-secondary)] hover:bg-[var(--app-surface-muted)] hover:text-[var(--app-text)]"
+            : "h-10 w-full border border-[var(--app-border-strong)] bg-[var(--app-surface)] px-4 text-sm font-medium text-[var(--app-text-secondary)] hover:bg-[var(--app-surface-muted)] hover:text-[var(--app-text)]"
         }
       >
         Выйти
