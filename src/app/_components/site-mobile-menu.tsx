@@ -45,7 +45,7 @@ export function SiteMobileMenu({
       {isOpen ? (
         <div
           id={menuId}
-          className="absolute inset-x-0 top-full max-h-[calc(100vh-4rem)] overflow-y-auto border-b border-[var(--app-border)] bg-[var(--app-bg)] px-6 py-4 shadow-lg shadow-black/30"
+          className="theme-surface-transition absolute inset-x-0 top-full max-h-[calc(100vh-4rem)] overflow-y-auto border-b border-[var(--app-border)] bg-[var(--app-bg)] px-6 py-4 shadow-lg shadow-black/30"
         >
           <nav className="grid gap-4" aria-label="Мобильная навигация">
             {sections.map((section) => (
