@@ -52,7 +52,7 @@ export default async function PublicProfilePage({
               <img
                 src={profile.avatarUrl}
                 alt={avatarAlt}
-                className="h-24 w-24 border border-zinc-200 object-cover"
+                className="h-24 w-24 aspect-square rounded-full border border-zinc-200 object-cover"
               />
             ) : null}
             <div className="min-w-0 flex-1">

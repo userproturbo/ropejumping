@@ -98,7 +98,7 @@ function TeamJoinRequestCard({
             <img
               src={avatarUrl}
               alt=""
-              className="h-12 w-12 border border-zinc-200 object-cover"
+              className="h-12 w-12 aspect-square rounded-full border border-zinc-200 object-cover"
             />
           ) : null}
           <div className="min-w-0">

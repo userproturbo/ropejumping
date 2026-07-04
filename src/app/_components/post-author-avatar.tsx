@@ -16,7 +16,7 @@ export function PostAuthorAvatar({
     return (
       <span
         aria-hidden="true"
-        className={`${sizeClass} shrink-0 border border-zinc-200 bg-cover bg-center`}
+        className={`${sizeClass} aspect-square shrink-0 overflow-hidden rounded-full border border-zinc-200 bg-cover bg-center`}
         style={{ backgroundImage: `url(${JSON.stringify(imageUrl)})` }}
       />
     );
@@ -25,7 +25,7 @@ export function PostAuthorAvatar({
   return (
     <span
       aria-hidden="true"
-      className={`flex ${sizeClass} shrink-0 items-center justify-center border border-zinc-200 bg-zinc-50 text-sm font-medium text-zinc-600`}
+      className={`flex ${sizeClass} aspect-square shrink-0 items-center justify-center overflow-hidden rounded-full border border-zinc-200 bg-zinc-50 text-sm font-medium text-zinc-600`}
     >
       {initial}
     </span>

@@ -208,7 +208,7 @@ export function ObjectImpressions({
                         impression.author.profile.username ??
                         "Аватар пользователя"
                       }
-                      className="h-10 w-10 border border-zinc-200 object-cover"
+                      className="h-10 w-10 aspect-square rounded-full border border-zinc-200 object-cover"
                     />
                   ) : null}
                   <div className="min-w-0">
