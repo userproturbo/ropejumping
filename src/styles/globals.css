@@ -9,8 +9,9 @@
 }
 
 @theme {
-  --font-sans: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji",
-    "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --font-sans:
+    ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji",
+    "Segoe UI Symbol", "Noto Color Emoji";
 }
 
 @keyframes radio-marquee {
@@ -35,6 +36,7 @@
 
 :root {
   --rp-card-radius: 18px;
+  --rp-like: #ff4d5e;
 }
 
 :root,
@@ -118,6 +120,46 @@ body {
 .theme-control:hover {
   background: var(--rp-surface-strong);
   color: var(--rp-text);
+}
+
+.feed-icon {
+  filter: brightness(0) invert(88%);
+}
+
+.feed-toolbar > div:first-child {
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.feed-toolbar > div:first-child > div:first-child {
+  display: none;
+}
+
+.feed-toolbar > div:first-child > div:last-child {
+  width: 100%;
+  padding-inline: 10px;
+  justify-content: space-between;
+}
+
+.feed-toolbar > div:first-child > div:last-child > :is(button, a) {
+  padding-block: 6px;
+}
+
+.feed-toolbar > div:first-child button {
+  padding-inline: 0;
+  border: 0;
+  background: transparent;
+  color: var(--app-text-secondary);
+}
+
+.feed-toolbar > div:first-child button:hover {
+  border: 0;
+  background: transparent;
+  color: var(--app-text);
+}
+
+html[data-theme="light"] .feed-icon {
+  filter: brightness(0) invert(20%);
 }
 
 .utility-tooltip {

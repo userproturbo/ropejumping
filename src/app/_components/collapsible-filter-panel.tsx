@@ -8,6 +8,7 @@ type CollapsibleFilterPanelProps = {
   children: ReactNode;
   defaultOpen: boolean;
   header: ReactNode;
+  triggerIcon?: ReactNode;
 };
 
 export function CollapsibleFilterPanel({
@@ -16,6 +17,7 @@ export function CollapsibleFilterPanel({
   children,
   defaultOpen,
   header,
+  triggerIcon,
 }: CollapsibleFilterPanelProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
   const panelId = useId();
@@ -30,9 +32,10 @@ export function CollapsibleFilterPanel({
             aria-controls={panelId}
             aria-expanded={isOpen}
             onClick={() => setIsOpen((current) => !current)}
-            className="border border-[var(--app-border-strong)] bg-[var(--app-surface)] px-4 py-2 text-sm font-medium text-[var(--app-text)] hover:border-[var(--app-muted)] hover:bg-[var(--app-surface-muted)]"
+            className="group inline-flex items-center gap-2 border border-[var(--app-border-strong)] bg-[var(--app-surface)] px-4 py-2 text-sm font-medium text-[var(--app-text)] hover:border-[var(--app-muted)] hover:bg-[var(--app-surface-muted)]"
           >
-            Фильтры{activeCount > 0 ? `: ${activeCount}` : ""}
+            {triggerIcon}
+            <span>Фильтры{activeCount > 0 ? `: ${activeCount}` : ""}</span>
           </button>
           {actions}
         </div>

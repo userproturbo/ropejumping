@@ -562,6 +562,7 @@ export const postRouter = createTRPCRouter({
   listPublic: publicProcedure
     .input(postPublicListInputSchema.optional())
     .query(async ({ ctx, input }) => {
+      const userId = ctx.session?.user?.id ?? "";
       const q = input?.q ?? "";
       const team = input?.team ?? "";
       const event = input?.event ?? "";
@@ -709,6 +710,14 @@ export const postRouter = createTRPCRouter({
                   alt: true,
                 },
               },
+              likes: {
+                where: {
+                  userId,
+                },
+                select: {
+                  id: true,
+                },
+              },
               pins: {
                 where: getPinsWhereForTarget(currentPinTarget),
                 select: {
@@ -832,9 +841,10 @@ export const postRouter = createTRPCRouter({
       });
 
       return {
-        posts: orderedPosts.map((post) => ({
+        posts: orderedPosts.map(({ likes, ...post }) => ({
           ...post,
           isPinnedInCurrentFilter: post.pins.length > 0,
+          likedByMe: likes.length > 0,
         })),
         availableTeams,
         availableEvents,
