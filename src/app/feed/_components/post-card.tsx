@@ -1,10 +1,11 @@
 /* eslint-disable @typescript-eslint/prefer-nullish-coalescing */
+import Image from "next/image";
 import Link from "next/link";
 
 import { PostAuthorAvatar } from "@/app/_components/post-author-avatar";
 import type { RouterOutputs } from "@/trpc/react";
 
-import { PostPinButton } from "./post-pin-button";
+import { FeedLikeButton, PostPinButton } from "./post-pin-button";
 
 type PublicPost = RouterOutputs["post"]["listPublic"]["posts"][number];
 type PinTarget = NonNullable<
@@ -75,24 +76,43 @@ export function PostCard({
       <LinkedEntities post={post} />
 
       <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--app-border)] pt-4 text-sm">
-        <div className="flex flex-wrap gap-4 text-[var(--app-muted)]">
-          <span>{post.viewsCount} просмотров</span>
-          <span>{post._count.likes} лайков</span>
-          <span>{post._count.comments} комментариев</span>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[var(--app-muted)]">
+          <span
+            className="inline-flex items-center gap-1.5"
+            aria-label={`Просмотры: ${post.viewsCount}`}
+          >
+            <FeedIcon src="/svg/Eye.svg" />
+            <span aria-hidden="true">{post.viewsCount}</span>
+          </span>
+          <FeedLikeButton
+            initialLiked={post.likedByMe}
+            initialLikesCount={post._count.likes}
+            isLoggedIn={isLoggedIn}
+            postId={post.id}
+          />
+          <span
+            className="inline-flex items-center gap-1.5"
+            aria-label={`Комментарии: ${post._count.comments}`}
+          >
+            <FeedIcon src="/svg/Comments.svg" />
+            <span aria-hidden="true">{post._count.comments}</span>
+          </span>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <Link
             href={`/posts/${post.id}`}
-            className="font-medium text-[var(--app-text-secondary)] hover:text-[var(--app-text)]"
+            className="group inline-flex items-center gap-1.5 font-medium text-[var(--app-text-secondary)] hover:text-[var(--app-text)]"
           >
-            Открыть
+            <FeedIcon src="/svg/open.svg" interactive />
+            <span>Открыть</span>
           </Link>
           {isLoggedIn ? (
             <Link
               href={`/reports/new?targetType=POST&targetId=${post.id}`}
-              className="text-[var(--app-muted)] hover:text-[var(--app-text)]"
+              className="group inline-flex items-center gap-1.5 text-[var(--app-muted)] hover:text-[var(--app-text)]"
             >
-              Пожаловаться
+              <FeedIcon src="/svg/complain.svg" interactive />
+              <span>Пожаловаться</span>
             </Link>
           ) : null}
           {currentUserCanPin && currentPinTarget ? (
@@ -105,6 +125,27 @@ export function PostCard({
         </div>
       </div>
     </article>
+  );
+}
+
+function FeedIcon({
+  interactive = false,
+  src,
+}: {
+  interactive?: boolean;
+  src: string;
+}) {
+  return (
+    <Image
+      src={src}
+      alt=""
+      aria-hidden="true"
+      width={18}
+      height={18}
+      className={`feed-icon h-[18px] w-[18px] shrink-0 opacity-90 transition ${
+        interactive ? "group-hover:opacity-100" : ""
+      }`}
+    />
   );
 }
 

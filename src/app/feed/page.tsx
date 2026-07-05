@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 
 import { CollapsibleFilterPanel } from "@/app/_components/collapsible-filter-panel";
@@ -85,152 +86,165 @@ export default async function FeedPage({ searchParams }: FeedPageProps) {
 
   return (
     <main className="min-h-[calc(100vh-4rem)] bg-[var(--app-bg)] text-[var(--app-text)]">
-      <div className="mx-auto w-full max-w-3xl px-5 py-8 sm:px-6 lg:py-10">
-        <CollapsibleFilterPanel
-          actions={
-            <Link
-              href="/feed/new"
-              className="border border-[var(--app-border-strong)] px-4 py-2 text-sm text-[var(--app-text)] hover:border-[var(--app-text-muted)]"
-            >
-              Создать пост
-            </Link>
-          }
-          activeCount={activeChips.length}
-          defaultOpen={activeChips.length > 0}
-          header={
-            <p className="max-w-2xl text-base leading-6 text-[var(--app-text)]">
-              Хронологическая лента сообщества.
-            </p>
-          }
-        >
-          <form action="/feed" method="get">
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="grid gap-2">
-                <label
-                  htmlFor="q"
-                  className="text-sm font-medium text-zinc-950"
-                >
-                  Поиск
-                </label>
-                <input
-                  id="q"
-                  name="q"
-                  type="search"
-                  defaultValue={filters.q}
-                  placeholder="Текст, автор, команда, объект"
-                  className="border border-zinc-300 px-3 py-2 text-sm text-zinc-950 outline-none focus:border-zinc-950"
-                />
-              </div>
-
-              <div className="grid gap-2">
-                <label
-                  htmlFor="team"
-                  className="text-sm font-medium text-zinc-950"
-                >
-                  Команда
-                </label>
-                <select
-                  id="team"
-                  name="team"
-                  defaultValue={filters.team}
-                  className="border border-zinc-300 px-3 py-2 text-sm text-zinc-950 outline-none focus:border-zinc-950"
-                >
-                  <option value="">Все команды</option>
-                  {availableTeams.map((team) => (
-                    <option key={team.id} value={team.slug}>
-                      {team.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="grid gap-2">
-                <label
-                  htmlFor="event"
-                  className="text-sm font-medium text-zinc-950"
-                >
-                  Мероприятие
-                </label>
-                <select
-                  id="event"
-                  name="event"
-                  defaultValue={filters.event}
-                  className="border border-zinc-300 px-3 py-2 text-sm text-zinc-950 outline-none focus:border-zinc-950"
-                >
-                  <option value="">Все мероприятия</option>
-                  {availableEvents.map((event) => (
-                    <option key={event.id} value={event.slug}>
-                      {event.title}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="grid gap-2">
-                <label
-                  htmlFor="object"
-                  className="text-sm font-medium text-zinc-950"
-                >
-                  Объект
-                </label>
-                <select
-                  id="object"
-                  name="object"
-                  defaultValue={filters.object}
-                  className="border border-zinc-300 px-3 py-2 text-sm text-zinc-950 outline-none focus:border-zinc-950"
-                >
-                  <option value="">Все объекты</option>
-                  {availableObjects.map((object) => (
-                    <option key={object.id} value={object.slug}>
-                      {object.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="grid gap-2">
-                <label
-                  htmlFor="sort"
-                  className="text-sm font-medium text-zinc-950"
-                >
-                  Сортировка
-                </label>
-                <select
-                  id="sort"
-                  name="sort"
-                  defaultValue={filters.sort}
-                  className="border border-zinc-300 px-3 py-2 text-sm text-zinc-950 outline-none focus:border-zinc-950"
-                >
-                  {sortOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div className="mt-5 flex flex-wrap items-center gap-3">
-              <button
-                type="submit"
-                className="bg-zinc-950 px-4 py-2 text-sm text-white hover:bg-zinc-800"
-              >
-                Применить фильтры
-              </button>
+      <div className="mx-auto w-full max-w-3xl px-5 pt-3 pb-8 sm:px-6 lg:pt-4 lg:pb-10">
+        <div className="feed-toolbar py-0 [&>div:first-child]:py-0 [&>div:first-child>div:last-child]:py-0">
+          <CollapsibleFilterPanel
+            actions={
               <Link
-                href="/feed"
-                className="text-sm text-zinc-600 hover:text-zinc-950"
+                href="/feed/new"
+                className="group inline-flex items-center gap-2 text-sm font-medium text-[var(--app-text-secondary)] transition hover:text-[var(--app-text)]"
               >
-                Сбросить
+                <Image
+                  src="/svg/Plus.svg"
+                  alt=""
+                  aria-hidden="true"
+                  width={18}
+                  height={18}
+                  className="feed-icon h-[18px] w-[18px] shrink-0 opacity-90 transition group-hover:opacity-100"
+                />
+                <span>Создать пост</span>
               </Link>
-            </div>
-          </form>
-        </CollapsibleFilterPanel>
+            }
+            activeCount={activeChips.length}
+            defaultOpen={activeChips.length > 0}
+            header={null}
+            triggerIcon={
+              <Image
+                src="/svg/settings.svg"
+                alt=""
+                aria-hidden="true"
+                width={18}
+                height={18}
+                className="feed-icon h-[18px] w-[18px] shrink-0 opacity-90 transition group-hover:opacity-100"
+              />
+            }
+          >
+            <form action="/feed" method="get">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="grid gap-2">
+                  <label
+                    htmlFor="q"
+                    className="text-sm font-medium text-zinc-950"
+                  >
+                    Поиск
+                  </label>
+                  <input
+                    id="q"
+                    name="q"
+                    type="search"
+                    defaultValue={filters.q}
+                    placeholder="Текст, автор, команда, объект"
+                    className="border border-zinc-300 px-3 py-2 text-sm text-zinc-950 outline-none focus:border-zinc-950"
+                  />
+                </div>
 
-        <FilterSummary
-          chips={activeChips}
-          resetHref="/feed"
-        />
+                <div className="grid gap-2">
+                  <label
+                    htmlFor="team"
+                    className="text-sm font-medium text-zinc-950"
+                  >
+                    Команда
+                  </label>
+                  <select
+                    id="team"
+                    name="team"
+                    defaultValue={filters.team}
+                    className="border border-zinc-300 px-3 py-2 text-sm text-zinc-950 outline-none focus:border-zinc-950"
+                  >
+                    <option value="">Все команды</option>
+                    {availableTeams.map((team) => (
+                      <option key={team.id} value={team.slug}>
+                        {team.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="grid gap-2">
+                  <label
+                    htmlFor="event"
+                    className="text-sm font-medium text-zinc-950"
+                  >
+                    Мероприятие
+                  </label>
+                  <select
+                    id="event"
+                    name="event"
+                    defaultValue={filters.event}
+                    className="border border-zinc-300 px-3 py-2 text-sm text-zinc-950 outline-none focus:border-zinc-950"
+                  >
+                    <option value="">Все мероприятия</option>
+                    {availableEvents.map((event) => (
+                      <option key={event.id} value={event.slug}>
+                        {event.title}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="grid gap-2">
+                  <label
+                    htmlFor="object"
+                    className="text-sm font-medium text-zinc-950"
+                  >
+                    Объект
+                  </label>
+                  <select
+                    id="object"
+                    name="object"
+                    defaultValue={filters.object}
+                    className="border border-zinc-300 px-3 py-2 text-sm text-zinc-950 outline-none focus:border-zinc-950"
+                  >
+                    <option value="">Все объекты</option>
+                    {availableObjects.map((object) => (
+                      <option key={object.id} value={object.slug}>
+                        {object.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="grid gap-2">
+                  <label
+                    htmlFor="sort"
+                    className="text-sm font-medium text-zinc-950"
+                  >
+                    Сортировка
+                  </label>
+                  <select
+                    id="sort"
+                    name="sort"
+                    defaultValue={filters.sort}
+                    className="border border-zinc-300 px-3 py-2 text-sm text-zinc-950 outline-none focus:border-zinc-950"
+                  >
+                    {sortOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="mt-5 flex flex-wrap items-center gap-3">
+                <button
+                  type="submit"
+                  className="bg-zinc-950 px-4 py-2 text-sm text-white hover:bg-zinc-800"
+                >
+                  Применить фильтры
+                </button>
+                <Link
+                  href="/feed"
+                  className="text-sm text-zinc-600 hover:text-zinc-950"
+                >
+                  Сбросить
+                </Link>
+              </div>
+            </form>
+          </CollapsibleFilterPanel>
+        </div>
+
+        <FilterSummary chips={activeChips} resetHref="/feed" />
 
         {posts.length > 0 ? (
           <div className="grid gap-4">
