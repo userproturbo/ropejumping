@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/prefer-nullish-coalescing */
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -12,7 +13,10 @@ import {
 } from "../../feed/_components/post-card";
 import { CommentAuthorActions } from "../_components/comment-author-actions";
 import { PostAuthorActions } from "../_components/post-author-actions";
-import { PostInteractions } from "../_components/post-interactions";
+import {
+  PostDetailLikeMetric,
+  PostInteractions,
+} from "../_components/post-interactions";
 import { PostViewTracker } from "../_components/post-view-tracker";
 
 type PostPageProps = {
@@ -50,38 +54,23 @@ export default async function PostPage({ params }: PostPageProps) {
       <PostViewTracker postId={post.id} />
       <div className="mx-auto w-full max-w-3xl px-6 py-10">
         <article className="border border-zinc-200 bg-white p-6">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div className="flex min-w-0 items-start gap-3">
-              <PostAuthorAvatar imageUrl={authorAvatar} label={authorName} />
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <p className="font-medium text-zinc-950">{authorName}</p>
-                  {!post.showInFeed && isPostAuthor ? (
-                    <span className="inline-flex border border-amber-200 px-2 py-1 text-xs text-amber-800">
-                      Без общей ленты
-                    </span>
-                  ) : null}
-                </div>
-                <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-zinc-500">
-                  {post.author.profile?.username ? (
-                    <span>@{post.author.profile.username}</span>
-                  ) : null}
-                  <span>{formatFeedDate(post.createdAt)}</span>
-                </div>
+          <div className="flex min-w-0 items-start gap-3">
+            <PostAuthorAvatar imageUrl={authorAvatar} label={authorName} />
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="font-medium text-zinc-950">{authorName}</p>
+                {!post.showInFeed && isPostAuthor ? (
+                  <span className="inline-flex border border-amber-200 px-2 py-1 text-xs text-amber-800">
+                    Без общей ленты
+                  </span>
+                ) : null}
               </div>
-            </div>
-            <div className="flex flex-wrap items-center gap-3 text-sm">
-              <Link href="/feed" className="text-zinc-600 hover:text-zinc-950">
-                Лента
-              </Link>
-              {user ? (
-                <Link
-                  href={`/reports/new?targetType=POST&targetId=${post.id}`}
-                  className="text-zinc-600 hover:text-zinc-950"
-                >
-                  Пожаловаться
-                </Link>
-              ) : null}
+              <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-zinc-500">
+                {post.author.profile?.username ? (
+                  <span>@{post.author.profile.username}</span>
+                ) : null}
+                <span>{formatFeedDate(post.createdAt)}</span>
+              </div>
             </div>
           </div>
 
@@ -125,10 +114,47 @@ export default async function PostPage({ params }: PostPageProps) {
             ) : null}
           </div>
 
-          <div className="mt-5 flex flex-wrap gap-4 border-t border-zinc-200 pt-4 text-sm text-zinc-500">
-            <span>{post.viewsCount} просмотров</span>
-            <span>{post._count.likes} лайков</span>
-            <span>{post._count.comments} комментариев</span>
+          <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-zinc-200 pt-4 text-sm">
+            <div className="flex flex-wrap items-center gap-4 text-zinc-500">
+              <span
+                className="inline-flex items-center gap-1.5"
+                aria-label={`Просмотры: ${post.viewsCount}`}
+              >
+                <PostMetricIcon src="/svg/Eye.svg" />
+                <span aria-hidden="true">{post.viewsCount}</span>
+              </span>
+              <PostDetailLikeMetric
+                initialLiked={post.likes.length > 0}
+                initialLikesCount={post._count.likes}
+                isLoggedIn={Boolean(user)}
+                postId={post.id}
+              />
+              <span
+                className="inline-flex items-center gap-1.5"
+                aria-label={`Комментарии: ${post._count.comments}`}
+              >
+                <PostMetricIcon src="/svg/Comments.svg" />
+                <span aria-hidden="true">{post._count.comments}</span>
+              </span>
+            </div>
+            <div className="flex items-center gap-3 text-zinc-600">
+              <Link
+                href="/feed"
+                aria-label="Вернуться в ленту"
+                className="group inline-flex items-center p-1 hover:text-zinc-950"
+              >
+                <PostMetricIcon src="/svg/tape.svg" interactive />
+              </Link>
+              {user ? (
+                <Link
+                  href={`/reports/new?targetType=POST&targetId=${post.id}`}
+                  aria-label="Пожаловаться"
+                  className="group inline-flex items-center p-1 hover:text-zinc-950"
+                >
+                  <PostMetricIcon src="/svg/complain.svg" interactive />
+                </Link>
+              ) : null}
+            </div>
           </div>
 
           {isPostAuthor ? (
@@ -142,11 +168,7 @@ export default async function PostPage({ params }: PostPageProps) {
         </article>
 
         <PostInteractions
-          key={`${post.id}-${post._count.likes}-${post._count.comments}-${post.likes.length}`}
           canComment={Boolean(profile)}
-          initialCommentsCount={post._count.comments}
-          initialLiked={post.likes.length > 0}
-          initialLikesCount={post._count.likes}
           isLoggedIn={Boolean(user)}
           postId={post.id}
         />
@@ -208,5 +230,26 @@ export default async function PostPage({ params }: PostPageProps) {
         </section>
       </div>
     </main>
+  );
+}
+
+function PostMetricIcon({
+  interactive = false,
+  src,
+}: {
+  interactive?: boolean;
+  src: string;
+}) {
+  return (
+    <Image
+      src={src}
+      alt=""
+      aria-hidden="true"
+      width={18}
+      height={18}
+      className={`feed-icon h-[18px] w-[18px] shrink-0 opacity-90 transition ${
+        interactive ? "group-hover:opacity-100" : ""
+      }`}
+    />
   );
 }

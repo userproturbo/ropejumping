@@ -101,18 +101,18 @@ export function PostCard({
         <div className="flex flex-wrap items-center gap-3">
           <Link
             href={`/posts/${post.id}`}
-            className="group inline-flex items-center gap-1.5 font-medium text-[var(--app-text-secondary)] hover:text-[var(--app-text)]"
+            aria-label="Открыть пост"
+            className="group inline-flex items-center p-1 text-[var(--app-text-secondary)] hover:text-[var(--app-text)]"
           >
             <FeedIcon src="/svg/open.svg" interactive />
-            <span>Открыть</span>
           </Link>
           {isLoggedIn ? (
             <Link
               href={`/reports/new?targetType=POST&targetId=${post.id}`}
-              className="group inline-flex items-center gap-1.5 text-[var(--app-muted)] hover:text-[var(--app-text)]"
+              aria-label="Пожаловаться"
+              className="group inline-flex items-center p-1 text-[var(--app-muted)] hover:text-[var(--app-text)]"
             >
               <FeedIcon src="/svg/complain.svg" interactive />
-              <span>Пожаловаться</span>
             </Link>
           ) : null}
           {currentUserCanPin && currentPinTarget ? (
