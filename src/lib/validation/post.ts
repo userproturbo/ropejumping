@@ -112,6 +112,7 @@ export const postPublicListInputSchema = z.object({
 
 export const commentCreateInputSchema = z.object({
   postId: z.string().cuid(),
+  parentId: optionalCuid,
   content: z.string().trim().min(1).max(1000),
 });
 
