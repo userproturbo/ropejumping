@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 
 import { PostAuthorAvatar } from "@/app/_components/post-author-avatar";
 import { getCurrentUser } from "@/server/auth/session";
+import type { RouterOutputs } from "@/trpc/react";
 import { api } from "@/trpc/server";
 
 import {
@@ -24,6 +25,10 @@ type PostPageProps = {
     id: string;
   }>;
 };
+
+type PostDetail = NonNullable<RouterOutputs["post"]["getById"]>;
+type PostComment = PostDetail["comments"][number];
+type PostReply = PostComment["replies"][number];
 
 export default async function PostPage({ params }: PostPageProps) {
   const { id } = await params;
@@ -196,30 +201,25 @@ export default async function PostPage({ params }: PostPageProps) {
                   key={comment.id}
                   className="border border-zinc-200 p-4"
                 >
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <p className="font-medium text-zinc-950">
-                      {getAuthorName(comment.author)}
-                    </p>
-                    <span className="text-xs text-zinc-500">
-                      {formatFeedDate(comment.createdAt)}
-                    </span>
-                    {user ? (
-                      <Link
-                        href={`/reports/new?targetType=COMMENT&targetId=${comment.id}`}
-                        className="text-xs text-zinc-500 hover:text-zinc-950"
-                      >
-                        Пожаловаться
-                      </Link>
-                    ) : null}
-                  </div>
-                  <p className="mt-3 text-sm leading-6 whitespace-pre-wrap text-zinc-600">
-                    {comment.content}
-                  </p>
-                  {user?.id === comment.author.id ? (
-                    <CommentAuthorActions
-                      commentId={comment.id}
-                      initialContent={comment.content}
-                    />
+                  <CommentContent
+                    canReply={Boolean(profile)}
+                    comment={comment}
+                    currentUserId={user?.id}
+                    postId={post.id}
+                  />
+                  {comment.replies.length > 0 ? (
+                    <div className="mt-4 ml-4 grid gap-4 border-l border-[color:var(--rp-border)] pl-4">
+                      {comment.replies.map((reply) => (
+                        <article key={reply.id} className="py-1">
+                          <CommentContent
+                            canReply={false}
+                            comment={reply}
+                            currentUserId={user?.id}
+                            postId={post.id}
+                          />
+                        </article>
+                      ))}
+                    </div>
                   ) : null}
                 </article>
               ))}
@@ -230,6 +230,43 @@ export default async function PostPage({ params }: PostPageProps) {
         </section>
       </div>
     </main>
+  );
+}
+
+function CommentContent({
+  canReply,
+  comment,
+  currentUserId,
+  postId,
+}: {
+  canReply: boolean;
+  comment: PostReply;
+  currentUserId?: string;
+  postId: string;
+}) {
+  return (
+    <>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <p className="font-medium text-zinc-950">
+          {getAuthorName(comment.author)}
+        </p>
+        <span className="text-xs text-zinc-500">
+          {formatFeedDate(comment.createdAt)}
+        </span>
+      </div>
+      <p className="mt-3 text-sm leading-6 whitespace-pre-wrap text-zinc-600">
+        {comment.content}
+      </p>
+      {currentUserId ? (
+        <CommentAuthorActions
+          canManage={currentUserId === comment.author.id}
+          canReply={canReply}
+          commentId={comment.id}
+          initialContent={comment.content}
+          postId={postId}
+        />
+      ) : null}
+    </>
   );
 }
 

@@ -886,12 +886,24 @@ export const postRouter = createTRPCRouter({
         comments: {
           where: {
             hiddenAt: null,
+            parentId: null,
           },
           orderBy: {
             createdAt: "asc",
           },
           include: {
             author: authorInclude,
+            replies: {
+              where: {
+                hiddenAt: null,
+              },
+              orderBy: {
+                createdAt: "asc",
+              },
+              include: {
+                author: authorInclude,
+              },
+            },
           },
         },
         _count: {
@@ -1350,10 +1362,38 @@ export const postRouter = createTRPCRouter({
       }
 
       return ctx.db.$transaction(async (tx) => {
+        if (input.parentId) {
+          const parentComment = await tx.comment.findFirst({
+            where: {
+              id: input.parentId,
+              postId: input.postId,
+              hiddenAt: null,
+            },
+            select: {
+              parentId: true,
+            },
+          });
+
+          if (!parentComment) {
+            throw new TRPCError({
+              code: "NOT_FOUND",
+              message: "Комментарий для ответа не найден.",
+            });
+          }
+
+          if (parentComment.parentId) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: "Можно отвечать только на основные комментарии.",
+            });
+          }
+        }
+
         const comment = await tx.comment.create({
           data: {
             postId: input.postId,
             authorId: ctx.session.user.id,
+            parentId: input.parentId,
             content: input.content,
           },
         });
