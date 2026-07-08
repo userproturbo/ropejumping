@@ -239,6 +239,7 @@ model User {
   posts                   Post[]               @relation("PostAuthor")
   comments                Comment[]            @relation("CommentAuthor")
   postLikes               PostLike[]           @relation("PostLikes")
+  commentLikes            CommentLike[]        @relation("CommentLikes")
   postViews               PostView[]
   reports                 Report[]             @relation("ReportsFiled")
   reviewedReports         Report[]             @relation("ReportsReviewed")
@@ -868,16 +869,31 @@ model Comment {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 
-  post    Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
-  author  User      @relation("CommentAuthor", fields: [authorId], references: [id], onDelete: Cascade)
-  parent  Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
-  replies Comment[] @relation("CommentReplies")
+  post    Post          @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author  User          @relation("CommentAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  parent  Comment?      @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies Comment[]     @relation("CommentReplies")
+  likes   CommentLike[]
 
   @@index([postId])
   @@index([authorId])
   @@index([parentId])
   @@index([createdAt])
   @@index([hiddenAt])
+}
+
+model CommentLike {
+  id        String   @id @default(cuid())
+  commentId String
+  userId    String
+  createdAt DateTime @default(now())
+
+  comment Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user    User    @relation("CommentLikes", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([commentId, userId])
+  @@index([commentId])
+  @@index([userId])
 }
 
 model PostLike {
