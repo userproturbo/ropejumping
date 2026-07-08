@@ -257,15 +257,16 @@ function CommentContent({
       <p className="mt-3 text-sm leading-6 whitespace-pre-wrap text-zinc-600">
         {comment.content}
       </p>
-      {currentUserId ? (
-        <CommentAuthorActions
-          canManage={currentUserId === comment.author.id}
-          canReply={canReply}
-          commentId={comment.id}
-          initialContent={comment.content}
-          postId={postId}
-        />
-      ) : null}
+      <CommentAuthorActions
+        canManage={currentUserId === comment.author.id}
+        canReply={canReply}
+        commentId={comment.id}
+        initialContent={comment.content}
+        initialLiked={comment.likes.length > 0}
+        initialLikesCount={comment._count.likes}
+        isLoggedIn={Boolean(currentUserId)}
+        postId={postId}
+      />
     </>
   );
 }

@@ -125,5 +125,7 @@ export const commentDeleteInputSchema = z.object({
   commentId: z.string().cuid(),
 });
 
+export const commentIdInputSchema = z.string().cuid();
+
 export type PostCreateInput = z.infer<typeof postCreateInputSchema>;
 export type CommentCreateInput = z.infer<typeof commentCreateInputSchema>;

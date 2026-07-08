@@ -12,6 +12,7 @@ import type { Prisma } from "@/generated/prisma/client";
 import {
   commentCreateInputSchema,
   commentDeleteInputSchema,
+  commentIdInputSchema,
   commentUpdateInputSchema,
   postCreateInputSchema,
   postDeleteInputSchema,
@@ -893,6 +894,19 @@ export const postRouter = createTRPCRouter({
           },
           include: {
             author: authorInclude,
+            likes: {
+              where: {
+                userId,
+              },
+              select: {
+                id: true,
+              },
+            },
+            _count: {
+              select: {
+                likes: true,
+              },
+            },
             replies: {
               where: {
                 hiddenAt: null,
@@ -902,6 +916,19 @@ export const postRouter = createTRPCRouter({
               },
               include: {
                 author: authorInclude,
+                likes: {
+                  where: {
+                    userId,
+                  },
+                  select: {
+                    id: true,
+                  },
+                },
+                _count: {
+                  select: {
+                    likes: true,
+                  },
+                },
               },
             },
           },
@@ -1489,6 +1516,68 @@ export const postRouter = createTRPCRouter({
       });
 
       return { success: true };
+    }),
+
+  toggleCommentLike: protectedProcedure
+    .input(commentIdInputSchema)
+    .mutation(async ({ ctx, input }) => {
+      const comment = await ctx.db.comment.findFirst({
+        where: {
+          id: input,
+          hiddenAt: null,
+          post: publicReadablePostWhere,
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      if (!comment) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Комментарий не найден.",
+        });
+      }
+
+      const existingLike = await ctx.db.commentLike.findUnique({
+        where: {
+          commentId_userId: {
+            commentId: comment.id,
+            userId: ctx.session.user.id,
+          },
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      return ctx.db.$transaction(async (tx) => {
+        if (existingLike) {
+          await tx.commentLike.delete({
+            where: {
+              id: existingLike.id,
+            },
+          });
+        } else {
+          await tx.commentLike.create({
+            data: {
+              commentId: comment.id,
+              userId: ctx.session.user.id,
+            },
+          });
+        }
+
+        const likesCount = await tx.commentLike.count({
+          where: {
+            commentId: comment.id,
+          },
+        });
+
+        return {
+          liked: !existingLike,
+          likesCount,
+        };
+      });
     }),
 
   toggleLike: protectedProcedure
